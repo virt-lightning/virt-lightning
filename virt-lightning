@@ -1,0 +1,336 @@
+#!/usr/bin/env python3
+
+import glob
+import time
+import paramiko
+import pathlib
+import libvirt
+import tempfile
+import yaml
+import subprocess
+import sys
+import re
+import random
+import os.path
+import getpass
+import json
+import argparse
+
+# See: https://bugzilla.redhat.com/show_bug.cgi?id=1643853#c4
+# /etc/qemu/bridge.conf
+qemu_bridge = 'virbr0'
+root_password = 'root'
+# gateway = '192.168.122.1'
+# dns = '192.168.122.1'
+
+class VM():
+    def __init__(self, name, distro=None, memory=768, key_file='~/.ssh/id_rsa.pub'):
+        self.name = name
+        self.memory = memory
+        self.vcpus = 1
+        self.swap_size = '1G'
+        with open(os.path.expanduser(key_file), 'r') as key_f:
+            self.ssh_key = key_f.read()
+
+    def set_network_info(self, ):
+        networks = [{'libvirt': 'bridge=%s' % qemu_bridge}]
+        self.networks = []
+
+        idx = 0
+        for i in networks:
+            n = {
+                'name': 'net%d' % idx,
+                'mac': '52:54:00:%02x:%02x:%02x' % (
+                    random.randint(0, 255),
+                    random.randint(0, 255),
+                    random.randint(0, 255)),
+            }
+            n.update(i)
+            self.networks.append(n)
+            idx += 1
+
+    # def has_nm(self):
+    #     nm_os_filter = '(RHEL|CentOS|Fedora)'
+    #     if re.search(nm_os_filter, self.distro, re.IGNORECASE):
+    #         return True
+    #     else:
+    #         return False
+
+
+    def get_libvirt_domain(self):
+        conn = libvirt.open('qemu:///session')
+        if conn == None:
+            print('Failed to open connection to qemu:///session')
+            exit(1)
+
+        domainNames = conn.listAllDomains()
+        if conn == None:
+             print('Failed to get a list of domain names')
+
+        for domain in domainNames:
+            if domain.name() == self.name:
+                return(domain)
+
+    def clean_up(self):
+        domain = self.get_libvirt_domain()
+        if not domain:
+            return
+        state, _ = domain.state()
+        if state != libvirt.VIR_DOMAIN_SHUTOFF:
+            domain.destroy()
+        domain.undefine()
+
+    def prepare_meta_data(self):
+        data = {
+            'resize_rootfs': True,
+            'chpasswd': {
+                'list': 'root:%s' % root_password,
+                'expire': False,
+                },
+            'ssh_pwauth': True,
+            'ssh_authorized_keys': [self.ssh_key],
+            'disable_root': 0,
+            'users': [{
+                'name': getpass.getuser(),
+                'gecos': 'virt-bootstrap user',
+                'sudo': 'ALL=(ALL) NOPASSWD:ALL',
+                'ssh_authorized_keys': [self.ssh_key]
+                }
+            ],
+            'mounts': [
+                [ 'vdb', 'none', 'swap', 'sw', 0, 0 ]],
+            'bootcmd': [
+                'mkswap /dev/vdb',
+                'swapon /dev/vdb',
+                'systemctl mask cloud-init',
+#                'systemctl enable --now qemu-guest-agent',
+#                'hostnamectl set-hostname %s || true' % self.name,
+            ],
+
+
+        }
+
+#        network = {'config': 'disable'}
+#        if self.has_nm():
+#            print('Has NM')
+#            network = {'config': 'disabled'}
+#            if self.networks:
+#                if_index = 0
+#                for n in self.networks:
+#                    nmcli_call = 'nmcli con add type ethernet con-name {name} ifname eth{if_index}'
+#                    nmcli_call += ' ip4 {ipv4}'
+#                    nmcli_call += ' ipv4.gateway {gateway}'
+#                    nmcli_call += ' ipv4.dns {dns}'
+#                    data['bootcmd'].append(nmcli_call.format(if_index=if_index, **n))
+#                    data['bootcmd'].append('nmcli c up {name}'.format(if_index=if_index, **n))
+#                    if_index += 1
+#        else:
+#            network = {'version': 2, 'ethernets': {}}
+#            if self.networks:
+#                if_index = 0
+#                for n in self.networks:
+#                    entry = {
+#                        'match': {'macaddress': n['mac']},
+#                        'addresses': [n['ipv4']],
+#                        'gateway4': n['gateway'],
+#                        'nameservers': {
+#                            'addresses': [n['dns']]
+#                        }
+#                    }
+#                    network['ethernets']['eth%d' % if_index] = entry
+#                    if_index += 1
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with open(temp_dir + '/user-data', 'w') as fd:
+                fd.write('#cloud-config\n')
+                fd.write(yaml.dump(data, Dumper=yaml.Dumper))
+            with open(temp_dir + '/meta-data', 'w') as fd:
+                fd.write('dsmode: local\n')
+                fd.write('instance-id: iid-%s\n' % self.name)
+                fd.write('local-hostname: %s\n' % self.name)
+            # with open(temp_dir + '/network-config', 'w') as fd:
+            #     fd.write(yaml.dump(network, Dumper=yaml.Dumper))
+
+            subprocess.check_call([
+                'genisoimage',
+                '-output', self.cidata_path,
+                '-volid', 'cidata',
+                '-joliet',
+                '-r',
+                'user-data',
+                'meta-data',
+#                'network-config'
+            ], cwd=temp_dir)
+
+
+    def prepare_root_disk(self, size=20):
+        subprocess.check_call([
+            'qemu-img', 'create', '-f', 'qcow2',
+            '-b', self.base_image_path,
+            self.image_path, '%sG' % size])
+
+
+    def virt_install(self):
+        virti = [
+            'virt-install', '--import', '--cpu', 'host',
+            '-n', self.name, '--memory', '%s' % self.memory,
+            '--vcpus', '%s' % self.vcpus,
+            '--os-type', 'linux', '--os-variant', 'virtio26',
+#            '-v', '--debug',
+            '--graphics', 'spice',
+            '--noautoconsole',
+            '--disk', '%s,bus=virtio,format=qcow' % self.image_path,
+            '--disk', '%s,device=cdrom' % self.cidata_path,
+            '--channel', 'unix,mode=bind,target_type=virtio,name=org.qemu.guest_agent.0'
+
+        ]
+
+
+        for n in self.networks:
+            virti.append('--network')
+            virti.append('{libvirt},mac={mac}'.format(**n))
+
+        if self.swap_size:
+            subprocess.Popen([
+                'qemu-img', 'create', '-f', 'qcow2',
+                self.swap_path, self.swap_size])
+            virti.append('--disk')
+            virti.append('%s,bus=virtio,format=qcow' % self.swap_path)
+        r = subprocess.run(virti, check=True)
+
+    def start(self, distro):
+        self.distro = distro
+        self.base_image_path = '%s/.local/share/libvirt/images/upstream/%s.qcow2' % (pathlib.Path.home(), distro)
+        self.image_path = '%s/.local/share/libvirt/images/%s.qcow2' % (pathlib.Path.home(), self.name)
+        self.swap_path = '%s/.local/share/libvirt/images/%s-swap.qcow2' % (pathlib.Path.home(), self.name)
+        self.cidata_path = '%s/.local/share/libvirt/images/%s-cidata.iso' % (pathlib.Path.home(), self.name)
+
+        self.set_network_info()
+        self.prepare_meta_data()
+        self.prepare_root_disk()
+        self.virt_install()
+
+    def get_ipv4(self):
+        domain = self.get_libvirt_domain()
+
+        for _ in range(1, 1000):
+            try:
+                ifaces = domain.interfaceAddresses(libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT, 0)
+                for (name, val) in ifaces.items():
+                    addr = val['addrs'][0]['addr']
+                    if addr and not addr.startswith('127.'):
+                        return addr
+            except (KeyError, TypeError):
+                pass
+            except libvirt.libvirtError:
+                pass
+            time.sleep(.100)
+
+    def wait(self):
+        for _ in range(1,100):
+            try:
+                client = paramiko.SSHClient()
+                client.load_system_host_keys()
+                client.set_missing_host_key_policy(paramiko.WarningPolicy)
+                client.connect(self.get_ipv4())
+                stdin, stdout, stderr = client.exec_command('hostname')
+                stdout.read()
+                print('%s -> IP %s' % (self.name, self.get_ipv4()))
+                return
+            except paramiko.ssh_exception.BadHostKeyException:
+                # We already have a different key for this IP, let's ignore that.
+                pass
+            except paramiko.ssh_exception.NoValidConnectionsError:
+                continue
+            except paramiko.ssh_exception.SSHException:
+                continue
+            except OSError:
+                continue
+            time.sleep(.300)
+        else:
+            print('Cannot reach system: %s (%s)' % (self.name, self.get_ipv4()))
+
+    def ansible_host_line(self):
+        return '{name} ansible_host={ipv4} ansible_user={user}'.format(
+            name=self.name, ipv4=self.get_ipv4(), user=getpass.getuser())
+
+
+def up(host_definitions):
+    vms = []
+    for host_def in host_definitions:
+        vm = VM(
+            host_def['name'],
+        )
+        vm.start(host_def['distro']),
+        vms.append(vm)
+
+    for vm in vms:
+        vm.wait()
+
+def down(host_definitions):
+    for host_def in host_definitions:
+        VM(host_def['name']).clean_up()
+
+
+def ansible_inventory(host_definitions):
+    for host_def in host_definitions:
+        print(VM(host_def['name']).ansible_host_line())
+
+def list_distro():
+    path = '%s/.local/share/libvirt/images/upstream' % (pathlib.Path.home())
+    for path in glob.glob(path + '/*.qcow2'):
+        distro = pathlib.Path(path).stem
+        if 'no-cloud-init' not in distro:
+            print('- distro: %s' % distro)
+
+def clean_all():
+    conn = libvirt.open('qemu:///session')
+    if conn == None:
+        print('Failed to open connection to qemu:///session')
+        exit(1)
+    domainNames = conn.listAllDomains()
+    if conn == None:
+        print('Failed to get a list of domain names')
+
+    for domain in domainNames:
+        print('Removing domain: %s' % domain.name())
+        VM(domain.name()).clean_up()
+
+def load_host_definitions(virt_bootstrap_yaml_path):
+    fd = open(virt_bootstrap_yaml_path, 'r')
+    host_definitions = yaml.load(fd)
+    for host in host_definitions:
+        if 'name' not in host:
+            host['name'] = re.sub('\W+','', host['distro'])
+    return host_definitions
+
+
+
+parser = argparse.ArgumentParser(description='virt-bootstrap')
+parser.add_argument(
+    'action',
+    choices=['up', 'down', 'ansible_inventory', 'distro', 'clean_all'],
+    help='Action')
+parser.add_argument(
+    '--virt-bootstrap-yaml',
+    default='virt-bootstrap.yaml',
+    help='point on an alternative virt-bootstrap.yaml file (default: %(default)s)')
+parser.add_argument(
+    '--ansible-inventory',
+    default=None,
+    help='location where to write the Ansible inventory file (default: %(default)s)')
+
+
+args = parser.parse_args()
+
+
+if args.action == 'up':
+    up(load_host_definitions(args.virt_bootstrap_yaml))
+elif args.action == 'down':
+    down(load_host_definitions(args.virt_bootstrap_yaml))
+elif args.action == 'ansible_inventory':
+    ansible_inventory(load_host_definitions(args.virt_bootstrap_yaml))
+elif args.action == 'distro':
+    list_distro()
+elif args.action == 'clean_all':
+    clean_all()
