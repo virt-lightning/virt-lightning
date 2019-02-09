@@ -5,8 +5,9 @@ import getpass
 import glob
 import pathlib
 import re
-import yaml
 import sys
+import time
+import yaml
 
 import virt_lightning as vl
 CURSOR_UP_ONE = '\x1b[1A'
@@ -96,6 +97,7 @@ def status(context=None, live=False):
             print("{name:<13} {username}@{ipv4:>5} {ssh_ping}".format(**v))
         if not live:
             break
+        time.sleep(.5)
 
 
 def down(context):
