@@ -63,7 +63,7 @@ def ansible_inventory(context):
             )
 
 
-def status(context=None, live=True):
+def status(context=None, live=False):
     hv = vl.LibvirtHypervisor(configuration)
     results = {}
 
@@ -148,6 +148,7 @@ def main():
             "distro",
             "clean_all",
             "status_all",
+            "status_live",
         ],
         help="The action to call.",
     )
@@ -179,3 +180,5 @@ def main():
         status()
     elif args.action == "status":
         status(args.context)
+    elif args.action == "status_live":
+        status(args.context, True)
