@@ -1,25 +1,30 @@
 #!/usr/bin/env python3
 
-import time
-import asyncio
-import os
-import sys
 import libvirt
+import logging
+import os
+import paramiko
+import pathlib
 import string
-import uuid
-import pathlib
 import subprocess
-import pathlib
 import tempfile
+import uuid
+import warnings
 import yaml
 
 import xml.etree.ElementTree as ET
 
+
 def libvirt_callback(userdata, err):
     pass
 
-libvirt.registerErrorHandler(f=libvirt_callback, ctx=None)
 
+libvirt.registerErrorHandler(f=libvirt_callback, ctx=None)
+#logging.getLogger("paramiko").setLevel(logging.ERROR)
+
+# To hide a bunch of CryptographyDeprecationWarning: we don't really care
+# in our context.
+warnings.filterwarnings("ignore", category=UserWarning)
 
 DISK_XML = """
     <disk type='file' device='disk'>
@@ -137,28 +142,28 @@ BRIDGE_XML = """
 </interface>
 """
 
-class LibvirtHypervisor():
+
+class LibvirtHypervisor:
     def __init__(self, configuration):
-        conn = libvirt.open(configuration.get('libvirt_uri', 'qemu:///session'))
-        if conn == None:
-            print('Failed to open connection to qemu:///session')
+        conn = libvirt.open(
+            configuration.get("libvirt_uri", "qemu:///session")
+        )
+        if conn is None:
+            print("Failed to open connection to qemu:///session")
             exit(1)
         self.conn = conn
         self.configuration = configuration
 
     def create_domain(self):
         domain = LibvirtDomain.new(self.conn)
-        root_password = self.configuration.get('root_password', 'root')
+        root_password = self.configuration.get("root_password", "root")
         domain.cloud_init = {
-            'resize_rootfs': True,
-            'chpasswd': {
-                'list': 'root:%s' % root_password,
-                'expire': False,
-                },
-            'ssh_pwauth': True,
-            'disable_root': 0,
-            'mounts': [],
-            'bootcmd': ['systemctl mask cloud-init']
+            "resize_rootfs": True,
+            "chpasswd": {"list": "root:%s" % root_password, "expire": False},
+            "ssh_pwauth": True,
+            "disable_root": 0,
+            "mounts": [],
+            "bootcmd": ["systemctl mask cloud-init"],
         }
         return domain
 
@@ -167,12 +172,12 @@ class LibvirtHypervisor():
             yield LibvirtDomain(i)
 
 
-class LibvirtDomain():
+class LibvirtDomain:
     def __init__(self, dom):
         self.dom = dom
         self.cloud_init = None
         self._username = None
-
+        self.wait_for = []
     def new(conn):
         root = ET.fromstring(DOMAIN_XML)
         e = root.findall("./name")[0]
@@ -181,35 +186,48 @@ class LibvirtDomain():
         return LibvirtDomain(dom)
 
     def ssh_key_file(self, ssh_key_file):
-        self.ssh_key = open(os.path.expanduser(ssh_key_file), 'r').read()
-        self.cloud_init['ssh_authorized_keys'] = [self.ssh_key]
-        if 'users' in self.cloud_init:
-            self.cloud_init['users'][0]['ssh_authorized_keys'] = [self.ssh_key]
+        self.ssh_key = open(os.path.expanduser(ssh_key_file), "r").read()
+        self.cloud_init["ssh_authorized_keys"] = [self.ssh_key]
+        if "users" in self.cloud_init:
+            self.cloud_init["users"][0]["ssh_authorized_keys"] = [
+                self.ssh_key
+            ]
 
     def username(self, username=None):
         if username:
             self._username = username
-            self.cloud_init['users'] = [{
-                    'name': username,
-                    'gecos': 'virt-bootstrap user',
-                    'sudo': 'ALL=(ALL) NOPASSWD:ALL',
-                    'ssh_authorized_keys': self.cloud_init.get('ssh_authorized_keys')
-                }]
+            self.cloud_init["users"] = [
+                {
+                    "name": username,
+                    "gecos": "virt-bootstrap user",
+                    "sudo": "ALL=(ALL) NOPASSWD:ALL",
+                    "ssh_authorized_keys": self.cloud_init.get(
+                        "ssh_authorized_keys"
+                    ),
+                }
+            ]
 
             meta = "<username name='%s' />" % username
             self.dom.setMetadata(
-                libvirt.VIR_DOMAIN_METADATA_ELEMENT, meta, "vl", "username", libvirt.VIR_DOMAIN_AFFECT_CONFIG)
+                libvirt.VIR_DOMAIN_METADATA_ELEMENT,
+                meta,
+                "vl",
+                "username",
+                libvirt.VIR_DOMAIN_AFFECT_CONFIG,
+            )
         elif self._username:
             return self._username
         else:
             try:
-                xml = self.dom.metadata(libvirt.VIR_DOMAIN_METADATA_ELEMENT, 'username')
+                xml = self.dom.metadata(
+                    libvirt.VIR_DOMAIN_METADATA_ELEMENT, "username"
+                )
             except libvirt.libvirtError as e:
                 if e.get_error_code() == libvirt.VIR_ERR_NO_DOMAIN_METADATA:
                     return None
-                raise(e)
+                raise (e)
             elt = ET.fromstring(xml)
-            return elt.attrib['name']
+            return elt.attrib["name"]
 
     def name(self, name=None):
         if name:
@@ -222,100 +240,156 @@ class LibvirtDomain():
 
     def memory(self, value=None):
         if value:
-            self.dom.setMemoryFlags(value * 1024, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
+            self.dom.setMemoryFlags(
+                value * 1024, libvirt.VIR_DOMAIN_AFFECT_CONFIG
+            )
 
     def getNextBlckDevice(self):
-        if not hasattr(self, 'blockdev'):
+        if not hasattr(self, "blockdev"):
             self.blockdev = list(string.ascii_lowercase)
             self.blockdev.reverse()
-        return 'vd%s' % self.blockdev.pop()
+        return "vd%s" % self.blockdev.pop()
 
     def context(self, context=None):
         if context:
             meta = "<context name='%s' />" % context
             self.dom.setMetadata(
-                libvirt.VIR_DOMAIN_METADATA_ELEMENT, meta, "vl", "context", libvirt.VIR_DOMAIN_AFFECT_CONFIG)
+                libvirt.VIR_DOMAIN_METADATA_ELEMENT,
+                meta,
+                "vl",
+                "context",
+                libvirt.VIR_DOMAIN_AFFECT_CONFIG,
+            )
         try:
-            xml = self.dom.metadata(libvirt.VIR_DOMAIN_METADATA_ELEMENT, 'context')
+            xml = self.dom.metadata(
+                libvirt.VIR_DOMAIN_METADATA_ELEMENT, "context"
+            )
         except libvirt.libvirtError as e:
             if e.get_error_code() == libvirt.VIR_ERR_NO_DOMAIN_METADATA:
                 return None
-            raise(e)
+            raise (e)
         elt = ET.fromstring(xml)
-        return elt.attrib['name']
+        return elt.attrib["name"]
 
-    def attachDisk(self, path, device='disk', type='qcow2'):
+    def attachDisk(self, path, device="disk", type="qcow2"):
         device_name = self.getNextBlckDevice()
         disk_root = ET.fromstring(DISK_XML)
-        disk_root.attrib['device'] = device
-        disk_root.findall("./driver")[0].attrib = {'name': 'qemu', 'type': type}
-        disk_root.findall("./source")[0].attrib = {'file': path}
-        disk_root.findall("./target")[0].attrib = {'dev': device_name}
+        disk_root.attrib["device"] = device
+        disk_root.findall("./driver")[0].attrib = {
+            "name": "qemu",
+            "type": type,
+        }
+        disk_root.findall("./source")[0].attrib = {"file": path}
+        disk_root.findall("./target")[0].attrib = {"dev": device_name}
         xml = ET.tostring(disk_root).decode()
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
         return device_name
 
     def attachBridge(self, bridge):
         disk_root = ET.fromstring(BRIDGE_XML)
-        disk_root.findall("./source")[0].attrib = {'bridge': bridge}
+        disk_root.findall("./source")[0].attrib = {"bridge": bridge}
         xml = ET.tostring(disk_root).decode()
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
 
     def add_root_disk(self, distro, size=20):
-        base_image_path = '%s/.local/share/libvirt/images/upstream/%s.qcow2' % (pathlib.Path.home(), distro)
-        image_path = '%s/.local/share/libvirt/images/%s.qcow2' % (pathlib.Path.home(), self.name())
-        subprocess.check_call([
-            'qemu-img', 'create', '-f', 'qcow2',
-            '-b', base_image_path,
-            image_path, '%sG' % size])
+        base_image_path = (
+            "%s/.local/share/libvirt/images/upstream/%s.qcow2"
+            % (pathlib.Path.home(), distro)
+        )
+        image_path = "%s/.local/share/libvirt/images/%s.qcow2" % (
+            pathlib.Path.home(),
+            self.name(),
+        )
+        proc = subprocess.Popen(
+            [
+                "qemu-img", "create",
+                "-f", "qcow2",
+                "-b", base_image_path,
+                image_path,
+                "%sG" % size,
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        self.wait_for.append(proc)
         self.attachDisk(image_path)
 
     def add_swap_disk(self, size=1):
-        swap_path = '%s/.local/share/libvirt/images/%s-swap.qcow2' % (pathlib.Path.home(), self.name())
-        subprocess.Popen([
-            'qemu-img', 'create', '-f', 'qcow2',
-            swap_path, '%sG' % size])
+        swap_path = "%s/.local/share/libvirt/images/%s-swap.qcow2" % (
+            pathlib.Path.home(),
+            self.name(),
+        )
+        proc = subprocess.Popen(
+            ["qemu-img", "create", "-f", "qcow2", swap_path, "%sG" % size],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        self.wait_for.append(proc)
         device_name = self.attachDisk(swap_path)
-        self.cloud_init['mounts'].append([device_name, 'none', 'swap', 'sw', 0, 0])
-        self.cloud_init['bootcmd'].append('mkswap /dev/vdb')
-        self.cloud_init['bootcmd'].append('swapon /dev/vdb')
+        self.cloud_init["mounts"].append(
+            [device_name, "none", "swap", "sw", 0, 0]
+        )
+        self.cloud_init["bootcmd"].append("mkswap /dev/vdb")
+        self.cloud_init["bootcmd"].append("swapon /dev/vdb")
 
     def dump(self):
         ET.dump(self.root)
 
     def prepare_meta_data(self):
-        cidata_path = '%s/.local/share/libvirt/images/%s-cidata.iso' % (pathlib.Path.home(), self.name())
+        cidata_path = "%s/.local/share/libvirt/images/%s-cidata.iso" % (
+            pathlib.Path.home(),
+            self.name(),
+        )
         with tempfile.TemporaryDirectory() as temp_dir:
-            with open(temp_dir + '/user-data', 'w') as fd:
-                fd.write('#cloud-config\n')
+            with open(temp_dir + "/user-data", "w") as fd:
+                fd.write("#cloud-config\n")
                 fd.write(yaml.dump(self.cloud_init, Dumper=yaml.Dumper))
-            with open(temp_dir + '/meta-data', 'w') as fd:
-                fd.write('dsmode: local\n')
-                fd.write('instance-id: iid-%s\n' % self.name())
-                fd.write('local-hostname: %s\n' % self.name())
+            with open(temp_dir + "/meta-data", "w") as fd:
+                fd.write("dsmode: local\n")
+                fd.write("instance-id: iid-%s\n" % self.name())
+                fd.write("local-hostname: %s\n" % self.name())
 
-            subprocess.check_call([
-                'genisoimage',
-                '-output', cidata_path,
-                '-volid', 'cidata',
-                '-joliet',
-                '-r',
-                'user-data',
-                'meta-data',
-            ], cwd=temp_dir)
-        self.attachDisk(cidata_path, device='cdrom', type='raw')
+            proc = subprocess.Popen(
+                [
+                    "genisoimage",
+                    "-output",
+                    cidata_path,
+                    "-volid",
+                    "cidata",
+                    "-joliet",
+                    "-r",
+                    "user-data",
+                    "meta-data",
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                cwd=temp_dir,
+            )
+            proc.wait()
+            self.wait_for.append(proc)
+        self.attachDisk(cidata_path, device="cdrom", type="raw")
 
     def start(self):
         self.prepare_meta_data()
+        for proc in self.wait_for:
+            outs, errs = proc.communicate()
+            if proc.returncode != 0:
+                raise Exception("A command has failed: ", outs, errs)
+
         self.dom.create()
 
     def get_ipv4(self):
         try:
-            ifaces = self.dom.interfaceAddresses(libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT, 0)
-            for (name, val) in ifaces.items():
-                addr = val['addrs'][0]['addr']
-                if addr and not addr.startswith('127.'):
-                    return addr
+            ifaces = self.dom.interfaceAddresses(
+                libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT, 0
+            )
+            for (_, val) in ifaces.items():
+                for addr in val["addrs"]:
+                    if addr["type"] != 0:  # 1 == IPv6
+                        continue
+                    if addr["addr"].startswith("127."):
+                        continue
+                    return addr["addr"]
         except (KeyError, TypeError):
             pass
         except libvirt.libvirtError:
@@ -329,3 +403,23 @@ class LibvirtDomain():
         if state != libvirt.VIR_DOMAIN_SHUTOFF:
             self.dom.destroy()
         self.dom.undefine()
+
+
+    def ssh_ping(self):
+        try:
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            client.connect(self.get_ipv4())
+            return True
+        except paramiko.ssh_exception.BadHostKeyException:
+            # We already have a different key for this IP, let's ignore that.
+            pass
+        except paramiko.ssh_exception.NoValidConnectionsError:
+            pass
+        except paramiko.ssh_exception.SSHException:
+            pass
+        except (OSError, EOFError):
+            pass
+        except (KeyboardInterrupt):
+            exit(0)
+        return False

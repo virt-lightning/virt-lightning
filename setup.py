@@ -15,50 +15,50 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import codecs
 import os
 import setuptools
 
 
 def _get_requirements():
-    requirements_path = '%s/%s' % (os.path.dirname(os.path.abspath(__file__)),
-                                   'requirements.txt')
-    with open(requirements_path, 'r') as f:
-        requirements = f.read()
+    requirements_path = "%s/%s" % (
+        os.path.dirname(os.path.abspath(__file__)),
+        "requirements.txt",
+    )
+    with open(requirements_path, "r") as f:
+        return f.read()
 
 
 def _get_readme():
-    readme_path = '%s/%s' % (os.path.dirname(os.path.abspath(__file__)),
-                             'README.md')
+    readme_path = "%s/%s" % (os.path.dirname(os.path.abspath(__file__)), "README.md")
 
-    with codecs.open(readme_path, 'r', encoding='utf8') as f:
+    with open(readme_path, "r") as f:
         return f.read()
 
 
 setuptools.setup(
-    name='virt-lightning',
-    version='0.0.1',
+    name="virt-lightning",
+    version="0.0.1",
     packages=setuptools.find_packages(),
-    author='Gonéri Le Bouder',
-    author_email='goneri@lebouder.net',
-    description='Deploy your testing VM in a couple of sections',
+    author="Gonéri Le Bouder",
+    author_email="goneri@lebouder.net",
+    description="Deploy your testing VM in a couple of sections",
     long_description=_get_readme(),
     install_requires=_get_requirements(),
-    url='https://github.com/virt-lightning/virt-lightning',
-    license='Apache v2.0',
+    url="https://github.com/virt-lightning/virt-lightning",
+    license="Apache v2.0",
     classifiers=[
-        'Environment :: Console',
-        'Intended Audience :: Developers',
-        'Intended Audience :: Information Technology',
-        'License :: OSI Approved :: Apache Software License',
-        'Operating System :: POSIX :: Linux',
-        'Programming Language :: Python :: 3.6',
-        'Topic :: System :: Distributed Computing'
+        "Environment :: Console",
+        "Intended Audience :: Developers",
+        "Intended Audience :: Information Technology",
+        "License :: OSI Approved :: Apache Software License",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3.6",
+        "Topic :: System :: Distributed Computing",
     ],
     entry_points={
-        'console_scripts': [
-            'virt-lightning = virt_lightning:main'
-            'vi = virt_lightning:main'
-        ],
-    }
+        "console_scripts": [
+            "virt-lightning = virt_lightning.shell:main",
+            "vl = virt_lightning.shell:main",
+        ]
+    },
 )
