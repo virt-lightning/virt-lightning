@@ -3,7 +3,6 @@
 import libvirt
 import logging
 import os
-import paramiko
 import pathlib
 import string
 import subprocess
@@ -20,11 +19,7 @@ def libvirt_callback(userdata, err):
 
 
 libvirt.registerErrorHandler(f=libvirt_callback, ctx=None)
-#logging.getLogger("paramiko").setLevel(logging.ERROR)
 
-# To hide a bunch of CryptographyDeprecationWarning: we don't really care
-# in our context.
-warnings.filterwarnings("ignore", category=UserWarning)
 
 DISK_XML = """
     <disk type='file' device='disk'>
@@ -404,22 +399,17 @@ class LibvirtDomain:
             self.dom.destroy()
         self.dom.undefine()
 
-
     def ssh_ping(self):
-        try:
-            client = paramiko.SSHClient()
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            client.connect(self.get_ipv4())
-            return True
-        except paramiko.ssh_exception.BadHostKeyException:
-            # We already have a different key for this IP, let's ignore that.
-            pass
-        except paramiko.ssh_exception.NoValidConnectionsError:
-            pass
-        except paramiko.ssh_exception.SSHException:
-            pass
-        except (OSError, EOFError):
-            pass
-        except (KeyboardInterrupt):
-            exit(0)
-        return False
+        ipv4 = self.get_ipv4()
+        if not ipv4:
+            return
+
+        proc = subprocess.Popen(
+            ["ssh", "-o", "StrictHostKeyChecking=no",
+             "-o", "UserKnownHostsFile=/dev/null",
+             "root@%s" % ipv4, "hostname"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        proc.wait()
+        return True if proc.returncode == 0 else False
