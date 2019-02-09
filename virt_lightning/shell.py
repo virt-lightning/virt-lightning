@@ -3,6 +3,8 @@
 import argparse
 import getpass
 import glob
+import locale
+import os
 import pathlib
 import re
 import sys
@@ -20,47 +22,75 @@ configuration = {
     "username": getpass.getuser(),
 }
 
+lang, encoding = locale.getdefaultlocale()
+
+if encoding and encoding == "UTF-8":
+    cross = "✕"
+    check_mark = "✔"
+else:
+    cross = "-"
+    check_mark = "+"
 
 def up(virt_lightning_yaml_path, context):
-    fd = open(virt_lightning_yaml_path, "r")
-    host_definitions = yaml.load(fd)
-    hv = vl.LibvirtHypervisor(configuration)
-    print("Starting:")
-    status_line = ""
-    for host in host_definitions:
-        if "name" not in host:
-            host["name"] = re.sub(r"\W+", "", host["distro"])
-        status_line += "🗲%s " % host["name"]
-        print(status_line)
-        domain = hv.create_domain()
-        domain.context(context)
-        domain.name(host["name"])
-        domain.ssh_key_file(
-            configuration.get("ssh_key_file", "~/.ssh/id_rsa.pub")
-        )
-        domain.username(configuration.get("username", getpass.getuser()))
-        domain.vcpus(host.get("vcpus"))
-        domain.memory(host.get("memory", 768))
-        domain.add_root_disk(host["distro"])
-        domain.add_swap_disk(host.get("swap_size", 1))
-        domain.attachBridge(configuration["bridge"])
-        domain.start()
-        sys.stdout.write(CURSOR_UP_ONE)
-        sys.stdout.write(ERASE_LINE)
-    print(status_line)
-    print("Done! You can now follow the deployment. To get the live status:")
-    print("  vl status")
-    print("")
-    print("You can also access the serial console of the VM:")
-    print("  virsh console $vm_name")
+    if not os.path.isfile(virt_lightning_yaml_path):
+        print("Configuration file not found")
+        return
+
+    try:
+        with open(virt_lightning_yaml_path, "r") as fd:
+            host_definitions = yaml.load(fd)
+            hv = vl.LibvirtHypervisor(configuration)
+            print("Starting:")
+            status_line = ""
+            for host in host_definitions:
+                if "name" not in host:
+                    host["name"] = re.sub(r"\W+", "", host["distro"])
+                # Unfortunatly, i can't decode that symbol
+                # that symbol more well add to check encoding block
+                status_line += "🗲{hostname} ".format(
+                    hostname = host["name"]
+                )
+                print(status_line)
+                domain = hv.create_domain()
+                domain.context(context)
+                domain.name(host["name"])
+                domain.ssh_key_file(
+                    configuration.get("ssh_key_file", "~/.ssh/id_rsa.pub")
+                )
+                domain.username(configuration.get("username", getpass.getuser()))
+                domain.vcpus(host.get("vcpus"))
+                domain.memory(host.get("memory", 768))
+                domain.add_root_disk(host["distro"])
+                domain.add_swap_disk(host.get("swap_size", 1))
+                domain.attachBridge(configuration["bridge"])
+                domain.start()
+                sys.stdout.write(CURSOR_UP_ONE)
+                sys.stdout.write(ERASE_LINE)
+
+            print(status_line)
+
+            print("Done! You can now follow the deployment. To get the live status:")
+            print("  vl status")
+            print("")
+            print("You can also access the serial console of the VM:")
+            print("  virsh console $vm_name")
+    except IOError:
+        print("Error while open configuration file")
+    except yaml.YAMLError as excp:
+        print("Can not parse yaml file")
+    except:
+        print("Handled unknown exception")
 
 def ansible_inventory(context):
     hv = vl.LibvirtHypervisor(configuration)
+
     for domain in hv.list_domains():
         if domain.context() == context:
             print(
-                "%s ansible_host=%s ansible_username=%s"
-                % (domain.name(), domain.get_ipv4(), domain.username())
+                "{name} ansible_host={ipv4} ansible_username={username}".format(
+                name = domain.name(), ipv4 = domain.get_ipv4(),
+                username = domain.username(),
+                )
             )
 
 
@@ -72,9 +102,9 @@ def status(context=None, live=False):
         if isinstance(v, str):
             return v
         elif(v):
-            return "✔"
+            return check_mark
         else:
-            return "✕"
+            return cross
 
     while True:
         for domain in hv.list_domains():
@@ -109,11 +139,13 @@ def down(context):
 
 
 def list_distro():
-    path = "%s/.local/share/libvirt/images/upstream" % (pathlib.Path.home())
+    path = "{path}/.local/share/libvirt/images/upstream".format(
+        path = pathlib.Path.home()
+    )
     for path in glob.glob(path + "/*.qcow2"):
         distro = pathlib.Path(path).stem
         if "no-cloud-init" not in distro:
-            print("- distro: %s" % distro)
+            print("- distro: {distro}".format(distro = distro))
 
 
 def main():
