@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import libvirt
 import os
 import pathlib
 import re
@@ -8,11 +7,14 @@ import string
 import subprocess
 import tempfile
 import uuid
-import yaml
-
 import xml.etree.ElementTree as ET
 
-from .templates import DISK_XML, DOMAIN_XML, BRIDGE_XML
+import libvirt
+
+import yaml
+
+
+from .templates import BRIDGE_XML, DISK_XML, DOMAIN_XML
 
 
 def libvirt_callback(userdata, err):
@@ -65,7 +67,7 @@ class LibvirtDomain:
     def root_password(self, root_password=None):
         if root_password:
             self.cloud_init["chpassd"] = {
-                "list": "root:%s" % root_password,
+                "list": "root:{root_password}".format(root_password=root_password),
                 "expire": False,
             }
         chpassd = self.cloud_init.get("chpassd")
@@ -156,11 +158,11 @@ class LibvirtDomain:
         elt = ET.fromstring(xml)
         return elt.attrib["name"]
 
-    def attachDisk(self, path, device="disk", type="qcow2"):
+    def attachDisk(self, path, device="disk", disk_type="qcow2"):
         device_name = self.getNextBlckDevice()
         disk_root = ET.fromstring(DISK_XML)
         disk_root.attrib["device"] = device
-        disk_root.findall("./driver")[0].attrib = {"name": "qemu", "type": type}
+        disk_root.findall("./driver")[0].attrib = {"name": "qemu", "type": disk_type}
         disk_root.findall("./source")[0].attrib = {"file": path}
         disk_root.findall("./target")[0].attrib = {"dev": device_name}
         xml = ET.tostring(disk_root).decode()
@@ -174,8 +176,9 @@ class LibvirtDomain:
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
 
     def add_root_disk(self, distro, size=20):
-        base_image_path_template = ("{path}/.local/share/libvirt/"
-                                    "images/upstream/{distro}.qcow2")
+        base_image_path_template = (
+            "{path}/.local/share/libvirt/" "images/upstream/{distro}.qcow2"
+        )
         base_image_path = base_image_path_template.format(
             path=pathlib.Path.home(), distro=distro
         )
@@ -191,7 +194,7 @@ class LibvirtDomain:
                 "-b",
                 base_image_path,
                 image_path,
-                "%sG" % size,
+                "{size}G".format(size=size),
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -204,7 +207,14 @@ class LibvirtDomain:
             path=pathlib.Path.home(), name=self.name()
         )
         proc = subprocess.Popen(
-            ["qemu-img", "create", "-f", "qcow2", swap_path, "%sG" % size],
+            [
+                "qemu-img",
+                "create",
+                "-f",
+                "qcow2",
+                swap_path,
+                "{size}G".format(size=size),
+            ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
@@ -248,7 +258,7 @@ class LibvirtDomain:
             )
             proc.wait()
             self.wait_for.append(proc)
-        self.attachDisk(cidata_path, device="cdrom", type="raw")
+        self.attachDisk(cidata_path, device="cdrom", disk_type="raw")
 
     def start(self):
         self.prepare_meta_data()

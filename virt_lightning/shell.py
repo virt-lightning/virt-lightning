@@ -8,11 +8,12 @@ import pathlib
 import re
 import sys
 import time
-import yaml
-
-from virt_lightning.symbols import get_symbols
 
 import virt_lightning as vl
+from virt_lightning.symbols import get_symbols
+
+import yaml
+
 
 CURSOR_UP_ONE = "\x1b[1A"
 ERASE_LINE = "\x1b[2K"

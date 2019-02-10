@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2019 Red Hat, Inc
@@ -16,6 +16,7 @@
 # under the License.
 
 import os
+
 import setuptools
 
 
