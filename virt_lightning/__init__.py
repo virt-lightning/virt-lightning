@@ -141,7 +141,7 @@ class LibvirtDomain:
     def memory(self, value=None):
         if value:
             self.dom.setMemoryFlags(
-                value * 1024, libvirt.VIR_DOMAIN_AFFECT_CONFIG
+                value, libvirt.VIR_DOMAIN_AFFECT_CONFIG
             )
 
     def getNextBlckDevice(self):
