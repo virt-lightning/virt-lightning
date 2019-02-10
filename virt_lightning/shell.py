@@ -23,7 +23,7 @@ configuration = {
     "username": getpass.getuser(),
 }
 
-def load_vm_config(config_file)
+def load_vm_config(config_file):
     if not os.path.isfile(config_file):
         print("Configuration file not found")
         return None
