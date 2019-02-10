@@ -21,8 +21,7 @@ import setuptools
 
 def _get_requirements():
     requirements_path = "{path}/{filename}".format(
-        path = os.path.dirname(os.path.abspath(__file__)),
-        filename = "requirements.txt",
+        path=os.path.dirname(os.path.abspath(__file__)), filename="requirements.txt"
     )
     with open(requirements_path, "r") as f:
         return f.read()
@@ -30,8 +29,7 @@ def _get_requirements():
 
 def _get_readme():
     readme_path = "{path}/{filename}".format(
-        path = os.path.dirname(os.path.abspath(__file__)),
-        filename = "README.md",
+        path=os.path.dirname(os.path.abspath(__file__)), filename="README.md"
     )
 
     with open(readme_path, "r") as f:

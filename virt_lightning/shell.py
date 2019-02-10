@@ -13,8 +13,9 @@ import yaml
 from virt_lightning.symbols import get_symbols
 
 import virt_lightning as vl
-CURSOR_UP_ONE = '\x1b[1A'
-ERASE_LINE = '\x1b[2K'
+
+CURSOR_UP_ONE = "\x1b[1A"
+ERASE_LINE = "\x1b[2K"
 
 
 configuration = {
@@ -22,6 +23,7 @@ configuration = {
     "bridge": "virbr0",
     "username": getpass.getuser(),
 }
+
 
 def load_vm_config(config_file):
     if not os.path.isfile(config_file):
@@ -43,6 +45,7 @@ def load_vm_config(config_file):
 
     return None
 
+
 def up(virt_lightning_yaml_path, context):
     host_definitions = load_vm_config(virt_lightning_yaml_path)
 
@@ -59,16 +62,12 @@ def up(virt_lightning_yaml_path, context):
             host["name"] = re.sub(r"\W+", "", host["distro"])
         # Unfortunatly, i can't decode that symbol
         # that symbol more well add to check encoding block
-        status_line += "🗲{hostname} ".format(
-            hostname = host["name"]
-        )
+        status_line += "🗲{hostname} ".format(hostname=host["name"])
         print(status_line)
         domain = hv.create_domain()
         domain.context(context)
         domain.name(host["name"])
-        domain.ssh_key_file(
-            configuration.get("ssh_key_file", "~/.ssh/id_rsa.pub")
-        )
+        domain.ssh_key_file(configuration.get("ssh_key_file", "~/.ssh/id_rsa.pub"))
         domain.username(configuration.get("username", getpass.getuser()))
         domain.root_password(host.get("root_password"))
         domain.vcpus(host.get("vcpus"))
@@ -88,6 +87,7 @@ def up(virt_lightning_yaml_path, context):
     print("You can also access the serial console of the VM:")
     print("  virsh console $vm_name")
 
+
 def ansible_inventory(context):
     hv = vl.LibvirtHypervisor(configuration)
 
@@ -95,8 +95,9 @@ def ansible_inventory(context):
         if domain.context() == context:
             print(
                 "{name} ansible_host={ipv4} ansible_username={username}".format(
-                name = domain.name(), ipv4 = domain.get_ipv4(),
-                username = domain.username(),
+                    name=domain.name(),
+                    ipv4=domain.get_ipv4(),
+                    username=domain.username(),
                 )
             )
 
@@ -110,7 +111,7 @@ def status(context=None, live=False):
     def iconify(v):
         if isinstance(v, str):
             return v
-        elif(v):
+        elif v:
             return symbols.CHECKMARK.value
         else:
             return symbols.CROSS.value
@@ -125,7 +126,8 @@ def status(context=None, live=False):
                 "ipv4": domain.get_ipv4() or "waiting",
                 "context": domain.context(),
                 "username": domain.username(),
-                "ssh_ping": iconify(domain.ssh_ping())}
+                "ssh_ping": iconify(domain.ssh_ping()),
+            }
 
         for _ in range(0, len(results) + 1):
             sys.stdout.write(CURSOR_UP_ONE)
@@ -136,7 +138,7 @@ def status(context=None, live=False):
             print("{name:<13} {username}@{ipv4:>5} {ssh_ping}".format(**v))
         if not live:
             break
-        time.sleep(.5)
+        time.sleep(0.5)
 
 
 def down(context):
@@ -149,12 +151,12 @@ def down(context):
 
 def list_distro():
     path = "{path}/.local/share/libvirt/images/upstream".format(
-        path = pathlib.Path.home()
+        path=pathlib.Path.home()
     )
     for path in glob.glob(path + "/*.qcow2"):
         distro = pathlib.Path(path).stem
         if "no-cloud-init" not in distro:
-            print("- distro: {distro}".format(distro = distro))
+            print("- distro: {distro}".format(distro=distro))
 
 
 def main():
@@ -180,7 +182,8 @@ def main():
     parser = argparse.ArgumentParser(
         description="virt-lightning",
         epilog=example,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument(
         "action",
         choices=[
@@ -207,7 +210,6 @@ def main():
     )
 
     args = parser.parse_args()
-
 
     if args.action == "up":
         up(args.virt_lightning_yaml, args.context)
