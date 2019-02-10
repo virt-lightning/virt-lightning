@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import libvirt
-import logging
 import os
 import pathlib
 import re
@@ -9,7 +8,6 @@ import string
 import subprocess
 import tempfile
 import uuid
-import warnings
 import yaml
 
 import xml.etree.ElementTree as ET
@@ -176,7 +174,9 @@ class LibvirtDomain:
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
 
     def add_root_disk(self, distro, size=20):
-        base_image_path = "{path}/.local/share/libvirt/images/upstream/{distro}.qcow2".format(
+        base_image_path_template = ("{path}/.local/share/libvirt/"
+                                    "images/upstream/{distro}.qcow2")
+        base_image_path = base_image_path_template.format(
             path=pathlib.Path.home(), distro=distro
         )
         image_path = "{path}/.local/share/libvirt/images/{name}.qcow2".format(

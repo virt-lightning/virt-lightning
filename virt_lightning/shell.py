@@ -38,10 +38,8 @@ def load_vm_config(config_file):
 
     except IOError:
         print("Error while open configuration file")
-    except yaml.YAMLError as excp:
-        print("Can not parse yaml file")
-    except:
-        print("Handled unknown exception")
+    except yaml.YAMLError as e:
+        print("Can not parse yaml file", e)
 
     return None
 
