@@ -70,6 +70,7 @@ def up(virt_lightning_yaml_path, context):
             configuration.get("ssh_key_file", "~/.ssh/id_rsa.pub")
         )
         domain.username(configuration.get("username", getpass.getuser()))
+        domain.root_password(host.get("root_password"))
         domain.vcpus(host.get("vcpus"))
         domain.memory(host.get("memory", 768))
         domain.add_root_disk(host["distro"])

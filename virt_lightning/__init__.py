@@ -37,13 +37,8 @@ class LibvirtHypervisor:
 
     def create_domain(self):
         domain = LibvirtDomain.new(self.conn)
-        root_password = self.configuration.get("root_password", "root")
         domain.cloud_init = {
             "resize_rootfs": True,
-            "chpasswd": {
-                "list": "root:{pswd}".format(pswd = root_password),
-                "expire": False,
-            },
             "ssh_pwauth": True,
             "disable_root": 0,
             "mounts": [],
@@ -59,7 +54,7 @@ class LibvirtHypervisor:
 class LibvirtDomain:
     def __init__(self, dom):
         self.dom = dom
-        self.cloud_init = None
+        self.cloud_init = []
         self._username = None
         self.ssh_key = None
         self.wait_for = []
@@ -70,6 +65,15 @@ class LibvirtDomain:
         e.text = str(uuid.uuid4())[0:10]
         dom = conn.defineXML(ET.tostring(root).decode())
         return LibvirtDomain(dom)
+
+    def root_password(self, root_password=None):
+        if root_password:
+            self.cloud_init["chpassd"] = {
+                "list": "root:%s" % root_password,
+                "expire": False}
+        chpassd = self.cloud_init.get("chpassd")
+        if chpassd:
+            return chpassd["list"].split(":")[1]
 
     def ssh_key_file(self, ssh_key_file):
         try:
