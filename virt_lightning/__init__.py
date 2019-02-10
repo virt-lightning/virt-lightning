@@ -4,6 +4,7 @@ import libvirt
 import logging
 import os
 import pathlib
+import re
 import string
 import subprocess
 import tempfile
@@ -13,6 +14,8 @@ import yaml
 
 import xml.etree.ElementTree as ET
 
+from .templates import DISK_XML, DOMAIN_XML, BRIDGE_XML
+
 
 def libvirt_callback(userdata, err):
     pass
@@ -21,130 +24,13 @@ def libvirt_callback(userdata, err):
 libvirt.registerErrorHandler(f=libvirt_callback, ctx=None)
 
 
-DISK_XML = """
-    <disk type='file' device='disk'>
-      <driver name='qemu' type='qcow2'/>
-      <source />
-      <target bus='virtio'/>
-    </disk>
-"""
-
-DOMAIN_XML = """
-<domain type='kvm'>
-  <name></name>
-  <memory unit='KiB'>786432</memory>
-  <currentMemory unit='KiB'>786432</currentMemory>
-  <vcpu placement='static'>1</vcpu>
-  <os>
-    <type arch='x86_64' machine='pc-i440fx-3.0'>hvm</type>
-    <boot dev='hd'/>
-  </os>
-  <features>
-    <acpi/>
-    <apic/>
-    <vmport state='off'/>
-  </features>
-  <cpu mode='host-model' check='partial'>
-    <model fallback='allow'/>
-  </cpu>uu
-  <clock offset='utc'>
-    <timer name='rtc' tickpolicy='catchup'/>
-    <timer name='pit' tickpolicy='delay'/>
-    <timer name='hpet' present='no'/>
-  </clock>
-  <on_poweroff>destroy</on_poweroff>
-  <on_reboot>restart</on_reboot>
-  <on_crash>destroy</on_crash>
-  <pm>
-    <suspend-to-mem enabled='no'/>
-    <suspend-to-disk enabled='no'/>
-  </pm>
-  <devices>
-    <emulator>/usr/bin/qemu-kvm</emulator>
-    <controller type='usb' index='0' model='ich9-ehci1'>
-      <address type='pci'/>
-    </controller>
-    <controller type='usb' index='0' model='ich9-uhci1'>
-      <master startport='0'/>
-      <address type='pci'/>
-    </controller>
-    <controller type='usb' index='0' model='ich9-uhci2'>
-      <master startport='2'/>
-      <address type='pci'/>
-    </controller>
-    <controller type='usb' index='0' model='ich9-uhci3'>
-      <master startport='4'/>
-      <address type='pci'/>
-    </controller>
-    <controller type='pci' index='0' model='pci-root'/>
-    <controller type='ide' index='0'>
-      <address type='pci'/>
-    </controller>
-    <controller type='virtio-serial' index='0'>
-      <address type='pci'/>
-    </controller>
-    <serial type='pty'>
-      <target type='isa-serial' port='0'>
-        <model name='isa-serial'/>
-      </target>
-    </serial>
-    <console type='pty'>
-      <target type='serial' port='0'/>
-    </console>
-    <channel type='unix'>
-      <target type='virtio' name='org.qemu.guest_agent.0'/>
-      <address type='virtio-serial' controller='0' bus='0' port='1'/>
-    </channel>
-    <channel type='spicevmc'>
-      <target type='virtio' name='com.redhat.spice.0'/>
-      <address type='virtio-serial' controller='0' bus='0' port='2'/>
-    </channel>
-    <input type='mouse' bus='ps2'/>
-    <input type='keyboard' bus='ps2'/>
-    <graphics type='spice' autoport='yes'>
-      <listen type='address'/>
-      <image compression='off'/>
-    </graphics>
-    <sound model='ich6'>
-      <address type='pci'/>
-    </sound>
-    <video>
-      <model type='qxl' ram='65536' vram='65536' vgamem='16384' heads='1' primary='yes'/>
-      <address type='pci'/>
-    </video>
-    <redirdev bus='usb' type='spicevmc'>
-      <address type='usb' bus='0' port='1'/>
-    </redirdev>
-    <redirdev bus='usb' type='spicevmc'>
-      <address type='usb' bus='0' port='2'/>
-    </redirdev>
-    <memballoon model='virtio'>
-      <address type='pci'/>
-    </memballoon>
-    <rng model='virtio'>
-      <backend model='random'>/dev/urandom</backend>
-      <address type='pci'/>
-    </rng>
-  </devices>
-</domain>
-"""
-
-BRIDGE_XML = """
-<interface type='bridge'>
-  <source bridge='virbr0'/>
-  <model type='virtio'/>
-  <address type='pci'/>
-</interface>
-"""
-
-
 class LibvirtHypervisor:
-    def __init__(self, configuration):
+    def __init__(self, configuration, uri = "qemu:///session"):
         conn = libvirt.open(
-            configuration.get("libvirt_uri", "qemu:///session")
+            configuration.get("libvirt_uri", uri)
         )
         if conn is None:
-            print("Failed to open connection to qemu:///session")
+            print("Failed to open connection to {uri}".format(uri = uri))
             exit(1)
         self.conn = conn
         self.configuration = configuration
@@ -154,7 +40,10 @@ class LibvirtHypervisor:
         root_password = self.configuration.get("root_password", "root")
         domain.cloud_init = {
             "resize_rootfs": True,
-            "chpasswd": {"list": "root:%s" % root_password, "expire": False},
+            "chpasswd": {
+                "list": "root:{pswd}".format(pswd = root_password),
+                "expire": False,
+            },
             "ssh_pwauth": True,
             "disable_root": 0,
             "mounts": [],
@@ -172,7 +61,9 @@ class LibvirtDomain:
         self.dom = dom
         self.cloud_init = None
         self._username = None
+        self.ssh_key = None
         self.wait_for = []
+
     def new(conn):
         root = ET.fromstring(DOMAIN_XML)
         e = root.findall("./name")[0]
@@ -181,15 +72,23 @@ class LibvirtDomain:
         return LibvirtDomain(dom)
 
     def ssh_key_file(self, ssh_key_file):
-        self.ssh_key = open(os.path.expanduser(ssh_key_file), "r").read()
-        self.cloud_init["ssh_authorized_keys"] = [self.ssh_key]
-        if "users" in self.cloud_init:
-            self.cloud_init["users"][0]["ssh_authorized_keys"] = [
-                self.ssh_key
-            ]
+        try:
+            with open(os.path.expanduser(ssh_key_file), "r") as fd:
+                self.ssh_key = fd.read()
+        except IOError:
+            print("Can not read {filename}".format(filename = ssh_key_file))
+
+        if self.ssh_key and len(self.ssh_key) > 0:
+            self.cloud_init["ssh_authorized_keys"] = [self.ssh_key]
+            if "users" in self.cloud_init:
+                self.cloud_init["users"][0]["ssh_authorized_keys"] = [
+                    self.ssh_key
+                ]
 
     def username(self, username=None):
-        if username:
+        is_valid_username = re.match('[a-z_][a-z0-9_-]*$', username)
+
+        if is_valid_username and len(username) <= 32:
             self._username = username
             self.cloud_init["users"] = [
                 {
@@ -202,7 +101,9 @@ class LibvirtDomain:
                 }
             ]
 
-            meta = "<username name='%s' />" % username
+            meta = "<username name='{username}' />".format(
+                username = username,
+            )
             self.dom.setMetadata(
                 libvirt.VIR_DOMAIN_METADATA_ELEMENT,
                 meta,
@@ -243,11 +144,11 @@ class LibvirtDomain:
         if not hasattr(self, "blockdev"):
             self.blockdev = list(string.ascii_lowercase)
             self.blockdev.reverse()
-        return "vd%s" % self.blockdev.pop()
+        return "vd{block}".format(block = self.blockdev.pop())
 
     def context(self, context=None):
         if context:
-            meta = "<context name='%s' />" % context
+            meta = "<context name='{context}' />".format(context = context)
             self.dom.setMetadata(
                 libvirt.VIR_DOMAIN_METADATA_ELEMENT,
                 meta,
@@ -288,12 +189,14 @@ class LibvirtDomain:
 
     def add_root_disk(self, distro, size=20):
         base_image_path = (
-            "%s/.local/share/libvirt/images/upstream/%s.qcow2"
-            % (pathlib.Path.home(), distro)
+            "{path}/.local/share/libvirt/images/upstream/{distro}.qcow2".format(
+                path = pathlib.Path.home(),
+                distro = distro,
+            )
         )
-        image_path = "%s/.local/share/libvirt/images/%s.qcow2" % (
-            pathlib.Path.home(),
-            self.name(),
+        image_path = "{path}/.local/share/libvirt/images/{name}.qcow2".format(
+            path = pathlib.Path.home(),
+            name = self.name(),
         )
         proc = subprocess.Popen(
             [
@@ -310,9 +213,9 @@ class LibvirtDomain:
         self.attachDisk(image_path)
 
     def add_swap_disk(self, size=1):
-        swap_path = "%s/.local/share/libvirt/images/%s-swap.qcow2" % (
-            pathlib.Path.home(),
-            self.name(),
+        swap_path = "{path}/.local/share/libvirt/images/{name}-swap.qcow2".format(
+            path = pathlib.Path.home(),
+            name = self.name(),
         )
         proc = subprocess.Popen(
             ["qemu-img", "create", "-f", "qcow2", swap_path, "%sG" % size],
@@ -331,9 +234,9 @@ class LibvirtDomain:
         ET.dump(self.root)
 
     def prepare_meta_data(self):
-        cidata_path = "%s/.local/share/libvirt/images/%s-cidata.iso" % (
-            pathlib.Path.home(),
-            self.name(),
+        cidata_path = "{path}/.local/share/libvirt/images/{name}-cidata.iso".format(
+            path = pathlib.Path.home(),
+            name = self.name(),
         )
         with tempfile.TemporaryDirectory() as temp_dir:
             with open(temp_dir + "/user-data", "w") as fd:
@@ -341,8 +244,8 @@ class LibvirtDomain:
                 fd.write(yaml.dump(self.cloud_init, Dumper=yaml.Dumper))
             with open(temp_dir + "/meta-data", "w") as fd:
                 fd.write("dsmode: local\n")
-                fd.write("instance-id: iid-%s\n" % self.name())
-                fd.write("local-hostname: %s\n" % self.name())
+                fd.write("instance-id: iid-{name}\n".format(name = self.name()))
+                fd.write("local-hostname: {name}\n".format(name = self.name()))
 
             proc = subprocess.Popen(
                 [
@@ -407,7 +310,8 @@ class LibvirtDomain:
         proc = subprocess.Popen(
             ["ssh", "-o", "StrictHostKeyChecking=no",
              "-o", "UserKnownHostsFile=/dev/null",
-             "root@%s" % ipv4, "hostname"],
+             "root@{ipv4}".format(ipv4 = ipv4),
+             "hostname",],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )

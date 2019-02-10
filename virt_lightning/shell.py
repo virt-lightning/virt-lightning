@@ -3,11 +3,14 @@
 import argparse
 import getpass
 import glob
+import os
 import pathlib
 import re
 import sys
 import time
 import yaml
+
+from virt_lightning.symbols import get_symbols
 
 import virt_lightning as vl
 CURSOR_UP_ONE = '\x1b[1A'
@@ -20,17 +23,45 @@ configuration = {
     "username": getpass.getuser(),
 }
 
+def load_vm_config(config_file)
+    if not os.path.isfile(config_file):
+        print("Configuration file not found")
+        return None
+
+    try:
+        with open(config_file, "r") as fd:
+            host_definitions = yaml.load(fd)
+
+            return host_definitions
+
+    except IOError:
+        print("Error while open configuration file")
+    except yaml.YAMLError as excp:
+        print("Can not parse yaml file")
+    except:
+        print("Handled unknown exception")
+
+    return None
 
 def up(virt_lightning_yaml_path, context):
-    fd = open(virt_lightning_yaml_path, "r")
-    host_definitions = yaml.load(fd)
+    host_definitions = load_vm_config(virt_lightning_yaml_path)
+
+    if not host_definitions:
+        return
+
     hv = vl.LibvirtHypervisor(configuration)
+
     print("Starting:")
     status_line = ""
+
     for host in host_definitions:
         if "name" not in host:
             host["name"] = re.sub(r"\W+", "", host["distro"])
-        status_line += "🗲%s " % host["name"]
+        # Unfortunatly, i can't decode that symbol
+        # that symbol more well add to check encoding block
+        status_line += "🗲{hostname} ".format(
+            hostname = host["name"]
+        )
         print(status_line)
         domain = hv.create_domain()
         domain.context(context)
@@ -47,7 +78,9 @@ def up(virt_lightning_yaml_path, context):
         domain.start()
         sys.stdout.write(CURSOR_UP_ONE)
         sys.stdout.write(ERASE_LINE)
+
     print(status_line)
+
     print("Done! You can now follow the deployment. To get the live status:")
     print("  vl status")
     print("")
@@ -56,11 +89,14 @@ def up(virt_lightning_yaml_path, context):
 
 def ansible_inventory(context):
     hv = vl.LibvirtHypervisor(configuration)
+
     for domain in hv.list_domains():
         if domain.context() == context:
             print(
-                "%s ansible_host=%s ansible_username=%s"
-                % (domain.name(), domain.get_ipv4(), domain.username())
+                "{name} ansible_host={ipv4} ansible_username={username}".format(
+                name = domain.name(), ipv4 = domain.get_ipv4(),
+                username = domain.username(),
+                )
             )
 
 
@@ -68,13 +104,15 @@ def status(context=None, live=False):
     hv = vl.LibvirtHypervisor(configuration)
     results = {}
 
+    symbols = get_symbols()
+
     def iconify(v):
         if isinstance(v, str):
             return v
         elif(v):
-            return "✔"
+            return symbols.CHECKMARK.value
         else:
-            return "✕"
+            return symbols.CROSS.value
 
     while True:
         for domain in hv.list_domains():
@@ -109,11 +147,13 @@ def down(context):
 
 
 def list_distro():
-    path = "%s/.local/share/libvirt/images/upstream" % (pathlib.Path.home())
+    path = "{path}/.local/share/libvirt/images/upstream".format(
+        path = pathlib.Path.home()
+    )
     for path in glob.glob(path + "/*.qcow2"):
         distro = pathlib.Path(path).stem
         if "no-cloud-init" not in distro:
-            print("- distro: %s" % distro)
+            print("- distro: {distro}".format(distro = distro))
 
 
 def main():
