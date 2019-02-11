@@ -59,9 +59,14 @@ def up(virt_lightning_yaml_path, context):
     for host in host_definitions:
         if "name" not in host:
             host["name"] = re.sub(r"\W+", "", host["distro"])
+
+        if hv.get_domain_by_name(host["name"]):
+            print("Domain {name} already exists!".format(**host))
+            exit(1)
+
         # Unfortunatly, i can't decode that symbol
         # that symbol more well add to check encoding block
-        status_line += "🗲{hostname} ".format(hostname=host["name"])
+        status_line += "🗲{name} ".format(**host)
         print(status_line)
         domain = hv.create_domain()
         domain.context(context)
@@ -78,13 +83,33 @@ def up(virt_lightning_yaml_path, context):
         sys.stdout.write(CURSOR_UP_ONE)
         sys.stdout.write(ERASE_LINE)
 
-    print(status_line)
-
-    print("Done! You can now follow the deployment. To get the live status:")
-    print("  vl status")
-    print("")
-    print("You can also access the serial console of the VM:")
-    print("  virsh console $vm_name")
+    time.sleep(2)
+    status_line_template = (
+        "IPv4 ready: {with_ipv4}/{all_vms}, " "SSH ready: {with_ssh}/{all_vms}"
+    )
+    while True:
+        status = get_status(hv, context=context)
+        all_vms = len(status)
+        with_ipv4 = len([i for i in status if i["ipv4"]])
+        with_ssh = len([i for i in status if i["ssh_ping"]])
+        status_line = status_line_template.format(
+            all_vms=all_vms, with_ipv4=with_ipv4, with_ssh=with_ssh
+        )
+        sys.stdout.write(CURSOR_UP_ONE)
+        sys.stdout.write(ERASE_LINE)
+        print(status_line)
+        time.sleep(0.5)
+        if all_vms == with_ssh:
+            print("Done! You can now follow the deployment:")
+            print("You can also access the serial console of the VM:\n\n")
+            for host in status:
+                print(
+                    (
+                        "⚈ {name}:\n    console⇝ virsh console {name}\n"
+                        "    ssh⇝ ssh {username}@{ipv4}"
+                    ).format(**host)
+                )
+            break
 
 
 def ansible_inventory(context):
@@ -99,6 +124,24 @@ def ansible_inventory(context):
                     username=domain.username(),
                 )
             )
+
+
+def get_status(hv, context):
+    status = []
+    for domain in hv.list_domains():
+        if context and context != domain.context():
+            continue
+        name = domain.name()
+        status.append(
+            {
+                "name": name,
+                "ipv4": domain.get_ipv4(),
+                "context": domain.context(),
+                "username": domain.username(),
+                "ssh_ping": domain.ssh_ping(),
+            }
+        )
+    return status
 
 
 def status(context=None, live=False):
@@ -116,16 +159,13 @@ def status(context=None, live=False):
             return symbols.CROSS.value
 
     while True:
-        for domain in hv.list_domains():
-            if context and context != domain.context():
-                continue
-            name = domain.name()
-            results[name] = {
-                "name": name,
-                "ipv4": domain.get_ipv4() or "waiting",
-                "context": domain.context(),
-                "username": domain.username(),
-                "ssh_ping": iconify(domain.ssh_ping()),
+        for status in get_status(hv, context):
+            results[status["name"]] = {
+                "name": status["name"],
+                "ipv4": status["ipv4"] or "waiting",
+                "context": status["context"],
+                "username": status["username"],
+                "ssh_ping": iconify(status["ssh_ping"]),
             }
 
         for _ in range(0, len(results) + 1):

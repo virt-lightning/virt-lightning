@@ -48,6 +48,16 @@ class LibvirtHypervisor:
         for i in self.conn.listAllDomains():
             yield LibvirtDomain(i)
 
+    def get_domain_by_name(self, name):
+        try:
+            dom = self.conn.lookupByName(name)
+            return LibvirtDomain(dom)
+        except libvirt.libvirtError as e:
+            if e.get_error_code() == libvirt.VIR_ERR_NO_DOMAIN:
+                return None
+            else:
+                raise (e)
+
 
 class LibvirtDomain:
     def __init__(self, dom):
@@ -87,9 +97,10 @@ class LibvirtDomain:
                 self.cloud_init["users"][0]["ssh_authorized_keys"] = [self.ssh_key]
 
     def username(self, username=None):
-        is_valid_username = re.match("[a-z_][a-z0-9_-]*$", username)
+        if username:
+            if not re.match("[a-z_][a-z0-9_-]{1,32}$", username):
+                raise Exception("Invalid username: ", username)
 
-        if is_valid_username and len(username) <= 32:
             self._username = username
             self.cloud_init["users"] = [
                 {
@@ -131,7 +142,16 @@ class LibvirtDomain:
 
     def memory(self, value=None):
         if value:
-            self.dom.setMemoryFlags(value, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
+            if value < 256:
+                print(
+                    "Warning: low memory {value} for VM {name}".format(
+                        value=value, name=self.name
+                    )
+                )
+            value *= 1024
+            self.dom.setMemoryFlags(
+                value, libvirt.VIR_DOMAIN_AFFECT_CONFIG | libvirt.VIR_DOMAIN_MEM_MAXIMUM
+            )
 
     def getNextBlckDevice(self):
         if not hasattr(self, "blockdev"):
@@ -283,8 +303,12 @@ class LibvirtDomain:
                     return addr["addr"]
         except (KeyError, TypeError):
             pass
-        except libvirt.libvirtError:
-            pass
+        except libvirt.libvirtError as e:
+            if e.get_error_code() == libvirt.VIR_ERR_AGENT_UNRESPONSIVE:
+                pass
+            else:
+                print(e.get_error_code())
+                raise (e)
 
     def set_user_password(self, user, password):
         return self.dom.setUserPassword(user, password)
