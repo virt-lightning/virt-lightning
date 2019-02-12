@@ -82,3 +82,11 @@ Export an inventory in the Ansible format.
 
 List the distro images that can be used. Its output is compatible with `vl up`.
 You can initialize a new configuration with: `vl distro > virt-lightning.yaml`.
+
+### Performance profiling
+
+```shell
+time vl up
+vl ansible_inventory > inventory
+ansible all -m shell -a "systemd-analyze blame|head -n 5" -i inventory
+```

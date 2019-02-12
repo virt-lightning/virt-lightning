@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
+import ipaddress
 import os
 import pathlib
 import re
 import string
 import subprocess
 import tempfile
+import time
 import uuid
 import xml.etree.ElementTree as ET
 
@@ -14,7 +16,7 @@ import libvirt
 import yaml
 
 
-from .templates import BRIDGE_XML, DISK_XML, DOMAIN_XML
+from .templates import BRIDGE_XML, CLOUD_INIT_ENI, DISK_XML, DOMAIN_XML
 
 
 def libvirt_callback(userdata, err):
@@ -32,15 +34,21 @@ class LibvirtHypervisor:
             exit(1)
         self.conn = conn
         self.configuration = configuration
+        self.network = ipaddress.ip_network(
+            self.configuration.get("network", "192.168.122.0/24")
+        )
+        self.gateway = ipaddress.IPv4Interface(
+            self.configuration.get("gateway", "192.168.122.1/24")
+        )
+        self._last_free_ipv4 = None
 
     def create_domain(self):
         domain = LibvirtDomain.new(self.conn)
         domain.cloud_init = {
             "resize_rootfs": True,
-            "ssh_pwauth": True,
             "disable_root": 0,
-            "mounts": [],
-            "bootcmd": ["systemctl mask cloud-init"],
+            "bootcmd": [],
+            "runcmd": [],
         }
         return domain
 
@@ -58,14 +66,39 @@ class LibvirtHypervisor:
             else:
                 raise (e)
 
+    def get_free_ipv4(self):
+        # TODO: extend the list with ARP table
+        used_ips = [self.gateway]
+        for dom in self.list_domains():
+            ipstr = dom.get_metadata("ipv4")
+            if not ipstr:
+                continue
+            interface = ipaddress.ip_interface(ipstr)
+            used_ips.append(interface)
+
+        for ip in self.network:
+            cidr_ip = "{ip}/24".format(ip=ip)
+            interface = ipaddress.IPv4Interface(cidr_ip)
+            if int(interface.ip.exploded.split(".")[3]) < 5:
+                continue
+            if self._last_free_ipv4 and self._last_free_ipv4 >= interface:
+                continue
+            if interface not in used_ips:
+                self._last_free_ipv4 = interface
+                return interface
+
 
 class LibvirtDomain:
     def __init__(self, dom):
         self.dom = dom
         self.cloud_init = []
+        self.meta_data = (
+            "dsmode: local\n" "instance-id: iid-{name}\n" "local-hostname: {name}\n"
+        )
         self._username = None
         self.ssh_key = None
         self.wait_for = []
+        self.distro = None
 
     def new(conn):
         root = ET.fromstring(DOMAIN_XML)
@@ -111,25 +144,11 @@ class LibvirtDomain:
                 }
             ]
 
-            meta = "<username name='{username}' />".format(username=username)
-            self.dom.setMetadata(
-                libvirt.VIR_DOMAIN_METADATA_ELEMENT,
-                meta,
-                "vl",
-                "username",
-                libvirt.VIR_DOMAIN_AFFECT_CONFIG,
-            )
+            self.record_metadata("username", username)
         elif self._username:
             return self._username
         else:
-            try:
-                xml = self.dom.metadata(libvirt.VIR_DOMAIN_METADATA_ELEMENT, "username")
-            except libvirt.libvirtError as e:
-                if e.get_error_code() == libvirt.VIR_ERR_NO_DOMAIN_METADATA:
-                    return None
-                raise (e)
-            elt = ET.fromstring(xml)
-            return elt.attrib["name"]
+            return self.get_metadata("username")
 
     def name(self, name=None):
         if name:
@@ -159,24 +178,30 @@ class LibvirtDomain:
             self.blockdev.reverse()
         return "vd{block}".format(block=self.blockdev.pop())
 
-    def context(self, context=None):
-        if context:
-            meta = "<context name='{context}' />".format(context=context)
-            self.dom.setMetadata(
-                libvirt.VIR_DOMAIN_METADATA_ELEMENT,
-                meta,
-                "vl",
-                "context",
-                libvirt.VIR_DOMAIN_AFFECT_CONFIG,
-            )
+    def record_metadata(self, k, v):
+        meta = "<{k} name='{v}' />".format(k=k, v=v)
+        self.dom.setMetadata(
+            libvirt.VIR_DOMAIN_METADATA_ELEMENT,
+            meta,
+            "vl",
+            k,
+            libvirt.VIR_DOMAIN_AFFECT_CONFIG,
+        )
+
+    def get_metadata(self, k):
         try:
-            xml = self.dom.metadata(libvirt.VIR_DOMAIN_METADATA_ELEMENT, "context")
+            xml = self.dom.metadata(libvirt.VIR_DOMAIN_METADATA_ELEMENT, k)
         except libvirt.libvirtError as e:
             if e.get_error_code() == libvirt.VIR_ERR_NO_DOMAIN_METADATA:
                 return None
             raise (e)
         elt = ET.fromstring(xml)
         return elt.attrib["name"]
+
+    def context(self, context=None):
+        if context:
+            self.record_metadata("context", context)
+        return self.get_metadata("context")
 
     def attachDisk(self, path, device="disk", disk_type="qcow2"):
         device_name = self.getNextBlckDevice()
@@ -196,6 +221,7 @@ class LibvirtDomain:
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
 
     def add_root_disk(self, distro, size=20):
+        self.distro = distro
         base_image_path_template = (
             "{path}/.local/share/libvirt/" "images/upstream/{distro}.qcow2"
         )
@@ -240,25 +266,99 @@ class LibvirtDomain:
         )
         self.wait_for.append(proc)
         device_name = self.attachDisk(swap_path)
-        self.cloud_init["mounts"].append([device_name, "none", "swap", "sw", 0, 0])
+        self.cloud_init["mounts"] = [device_name, "none", "swap", "sw", 0, 0]
         self.cloud_init["bootcmd"].append("mkswap /dev/vdb")
         self.cloud_init["bootcmd"].append("swapon /dev/vdb")
 
     def dump(self):
         ET.dump(self.root)
 
+    def set_ip(self, ipv4, gateway, dns):
+        self.ipv4 = ipv4
+        self.gateway = gateway
+        self.dns = dns
+        self.record_metadata("ipv4", ipv4)
+
+        primary_mac_addr = self.get_mac_addresses()[0]
+        self._network_meta = {"config": "disabled"}
+        if "ubuntu-18.04" in self.distro:
+            self._network_meta = {
+                "version": 2,
+                "ethernets": {
+                    "interface0": {
+                        "match": {"macaddress": primary_mac_addr},
+                        "set-name": "interface0",
+                        "addresses": [str(self.ipv4)],
+                        "gateway4": self.gateway,
+                        "nameservers": {"addresses": [self.dns]},
+                    }
+                },
+            }
+        else:
+            self.meta_data += CLOUD_INIT_ENI
+            self._network_meta = {
+                "version": 1,
+                "config": [
+                    {
+                        "type": "physical",
+                        "name": "eth0",
+                        "mac_address": primary_mac_addr,
+                        "subnets": [
+                            {
+                                "type": "static",
+                                "address": str(self.ipv4),
+                                "gateway": self.gateway,
+                                "dns_nameservers": [self.dns],
+                            }
+                        ],
+                    }
+                ],
+            }
+
+        nm_filter = "(centos|fedora|rhel)"
+        if re.match(nm_filter, self.distro):
+            nmcli_call = (
+                "nmcli c add type ethernet con-name eth0 ifname eth0 ip4 {ipv4} "
+                "ipv4.gateway {gateway} ipv4.dns {dns} ipv4.method manual"
+            )
+            self.cloud_init["runcmd"].append("nmcli -g UUID c|xargs -n 1 nmcli con del")
+            self.cloud_init["runcmd"].append(
+                nmcli_call.format(ipv4=self.ipv4, gateway=self.gateway, dns=self.dns)
+            )
+            # Without that NM, initialize eth0 with a DHCP IP
+            self.cloud_init["bootcmd"].append(
+                'echo "[main]" > /etc/NetworkManager/conf.d/no-auto-default.conf'
+            )
+            self.cloud_init["bootcmd"].append(
+                (
+                    'echo "no-auto-default=eth0" >> '
+                    "/etc/NetworkManager/conf.d/no-auto-default.conf"
+                )
+            )
+
+    def get_mac_addresses(self):
+        xml = self.dom.XMLDesc(0)
+        root = ET.fromstring(xml)
+        ifaces = root.findall("./devices/interface/mac")
+        return [iface.attrib["address"] for iface in ifaces]
+
     def prepare_meta_data(self):
         cidata_path = "{path}/.local/share/libvirt/images/{name}-cidata.iso".format(
             path=pathlib.Path.home(), name=self.name()
         )
+
         with tempfile.TemporaryDirectory() as temp_dir:
             with open(temp_dir + "/user-data", "w") as fd:
                 fd.write("#cloud-config\n")
                 fd.write(yaml.dump(self.cloud_init, Dumper=yaml.Dumper))
             with open(temp_dir + "/meta-data", "w") as fd:
-                fd.write("dsmode: local\n")
-                fd.write("instance-id: iid-{name}\n".format(name=self.name()))
-                fd.write("local-hostname: {name}\n".format(name=self.name()))
+                fd.write(
+                    self.meta_data.format(
+                        name=self.name(), ipv4=self.ipv4.ip, gateway=self.gateway
+                    )
+                )
+            with open(temp_dir + "/network-config", "w") as fd:
+                fd.write(yaml.dump(self._network_meta, Dumper=yaml.Dumper))
 
             proc = subprocess.Popen(
                 [
@@ -271,6 +371,7 @@ class LibvirtDomain:
                     "-r",
                     "user-data",
                     "meta-data",
+                    "network-config",
                 ],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -320,6 +421,8 @@ class LibvirtDomain:
         self.dom.undefine()
 
     def ssh_ping(self):
+        if hasattr(self, "_ssh_ping"):
+            return self._ssh_ping
         ipv4 = self.get_ipv4()
         if not ipv4:
             return
@@ -331,11 +434,19 @@ class LibvirtDomain:
                 "StrictHostKeyChecking=no",
                 "-o",
                 "UserKnownHostsFile=/dev/null",
-                "root@{ipv4}".format(ipv4=ipv4),
+                "-o",
+                "ConnectTimeout=1",
+                "{username}@{ipv4}".format(username=self.username(), ipv4=ipv4),
                 "hostname",
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-        proc.wait()
-        return True if proc.returncode == 0 else False
+        time.sleep(1)
+        status = proc.poll()
+        proc.kill()
+        if status == 0:
+            self._ssh_ping = True
+            return True
+        else:
+            return False

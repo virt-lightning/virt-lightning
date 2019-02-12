@@ -4,5 +4,5 @@ DOWNLOAD_URL=http://download-node-02.eng.bos.redhat.com/released/RHEL-7/${RHEL_V
 IMAGE_NAME=rhel-${RHEL_VERSION}
 
 function prepare {
-    true
+    virt-sysprep -a ${UPSTREAM_IMAGE_DIR}/${IMAGE_NAME}.qcow2 --run-command 'rm /etc/sysconfig/network-scripts/ifcfg-eth0'
 }
