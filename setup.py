@@ -24,7 +24,7 @@ def _get_requirements():
     requirements_path = "{path}/{filename}".format(
         path=os.path.dirname(os.path.abspath(__file__)), filename="requirements.txt"
     )
-    with open(requirements_path, "r") as f:
+    with open(requirements_path, "r", encoding="utf-8") as f:
         return f.read()
 
 
@@ -33,7 +33,7 @@ def _get_readme():
         path=os.path.dirname(os.path.abspath(__file__)), filename="README.md"
     )
 
-    with open(readme_path, "r") as f:
+    with open(readme_path, "r", encoding="utf-8") as f:
         return f.read()
 
 
