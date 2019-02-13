@@ -47,8 +47,8 @@ https://github.com/virt-lightning/virt-lightning/tree/master/images
 ```shell
 git clone https://github.com/virt-lightning/virt-lightning
 cd virt-lightning/images
-./centos-7.sh
-./debian-9.sh
+./image centos-7 build
+./image debian-9 build
 (etc)
 ```
 
