@@ -2,7 +2,6 @@
 
 import ipaddress
 import os
-import pathlib
 import re
 import string
 import subprocess
@@ -41,9 +40,13 @@ class LibvirtHypervisor:
             self.configuration.get("gateway", "192.168.122.1/24")
         )
         self._last_free_ipv4 = None
+        self.pool = self.conn.storagePoolLookupByName(
+            self.configuration.get("storage_pool", "default")
+        )
+        self.get_storage_dir()
 
     def create_domain(self):
-        domain = LibvirtDomain.new(self.conn)
+        domain = LibvirtDomain.new(self)
         domain.cloud_init = {
             "resize_rootfs": True,
             "disable_root": 0,
@@ -87,10 +90,17 @@ class LibvirtHypervisor:
                 self._last_free_ipv4 = interface
                 return interface
 
+    def get_storage_dir(self):
+        xml = self.pool.XMLDesc(0)
+        root = ET.fromstring(xml)
+        disk_source = root.find("./target/path")
+        return disk_source.text
+
 
 class LibvirtDomain:
-    def __init__(self, dom):
+    def __init__(self, dom, hv=None):
         self.dom = dom
+        self.hv = hv  # TODO: Cross reference!
         self.cloud_init = []
         self.meta_data = (
             "dsmode: local\n" "instance-id: iid-{name}\n" "local-hostname: {name}\n"
@@ -100,12 +110,12 @@ class LibvirtDomain:
         self.wait_for = []
         self.distro = None
 
-    def new(conn):
+    def new(hv):
         root = ET.fromstring(DOMAIN_XML)
         e = root.findall("./name")[0]
         e.text = str(uuid.uuid4())[0:10]
-        dom = conn.defineXML(ET.tostring(root).decode())
-        return LibvirtDomain(dom)
+        dom = hv.conn.defineXML(ET.tostring(root).decode())
+        return LibvirtDomain(dom, hv)
 
     def root_password(self, root_password=None):
         if root_password:
@@ -222,14 +232,12 @@ class LibvirtDomain:
 
     def add_root_disk(self, distro, size=20):
         self.distro = distro
-        base_image_path_template = (
-            "{path}/.local/share/libvirt/" "images/upstream/{distro}.qcow2"
-        )
+        base_image_path_template = "{path}/upstream/{distro}.qcow2"
         base_image_path = base_image_path_template.format(
-            path=pathlib.Path.home(), distro=distro
+            path=self.hv.get_storage_dir(), distro=distro
         )
-        image_path = "{path}/.local/share/libvirt/images/{name}.qcow2".format(
-            path=pathlib.Path.home(), name=self.name()
+        image_path = "{path}/{name}.qcow2".format(
+            path=self.hv.get_storage_dir(), name=self.name()
         )
         proc = subprocess.Popen(
             [
@@ -249,8 +257,8 @@ class LibvirtDomain:
         self.attachDisk(image_path)
 
     def add_swap_disk(self, size=1):
-        swap_path = "{path}/.local/share/libvirt/images/{name}-swap.qcow2".format(
-            path=pathlib.Path.home(), name=self.name()
+        swap_path = "{path}/{name}-swap.qcow2".format(
+            path=self.hv.get_storage_dir(), name=self.name()
         )
         proc = subprocess.Popen(
             [
@@ -343,8 +351,8 @@ class LibvirtDomain:
         return [iface.attrib["address"] for iface in ifaces]
 
     def prepare_meta_data(self):
-        cidata_path = "{path}/.local/share/libvirt/images/{name}-cidata.iso".format(
-            path=pathlib.Path.home(), name=self.name()
+        cidata_path = "{path}/{name}-cidata.iso".format(
+            path=self.hv.get_storage_dir(), name=self.name()
         )
 
         with tempfile.TemporaryDirectory() as temp_dir:

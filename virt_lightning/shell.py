@@ -26,6 +26,7 @@ configuration = {
     "bridge": "virbr0",
     "username": getpass.getuser(),
     "root_password": "root",
+    "storage_pool": "default",
 }
 
 
@@ -200,13 +201,17 @@ def down(context):
 
 
 def list_distro():
-    path = "{path}/.local/share/libvirt/images/upstream".format(
-        path=pathlib.Path.home()
-    )
-    for path in glob.glob(path + "/*.qcow2"):
+    hv = vl.LibvirtHypervisor(configuration)
+    path = hv.get_storage_dir()
+    for path in glob.glob(path + "/upstream/*.qcow2"):
         distro = pathlib.Path(path).stem
         if "no-cloud-init" not in distro:
             print("- distro: {distro}".format(distro=distro))
+
+
+def storage_dir():
+    hv = vl.LibvirtHypervisor(configuration)
+    print(hv.get_storage_dir())
 
 
 def main():
@@ -245,6 +250,7 @@ def main():
             "clean_all",
             "status_all",
             "status_live",
+            "storage_dir",
         ],
         help="The action to call.",
     )
@@ -277,3 +283,5 @@ def main():
         status(args.context)
     elif args.action == "status_live":
         status(args.context, True)
+    elif args.action == "storage_dir":
+        storage_dir()

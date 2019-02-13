@@ -121,4 +121,4 @@ CLOUD_INIT_ENI = """network-interfaces: |
    network 192.168.122.0
    netmask 255.255.255.0
    gateway {gateway}
- """
+"""
