@@ -1,0 +1,10 @@
+FEDORA_VERSION=29
+DOWNLOAD_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/${FEDORA_VERSION}/Cloud/x86_64/images/Fedora-Cloud-Base-${FEDORA_VERSION}-1.2.x86_64.qcow2
+IMAGE_NAME=fedora-${FEDORA_VERSION}
+
+function prepare {
+    network-scripts because of https://bugs.launchpad.net/cloud-init/+bug/1799301
+    virt-sysprep -a ${UPSTREAM_IMAGE_DIR}/${IMAGE_NAME}.qcow2 \
+        --network --update --install qemu-guest-agent,network-scripts,python \
+        --run-command 'systemctl enable qemu-guest-agent' --selinux-relabel
+}

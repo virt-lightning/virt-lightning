@@ -1,0 +1,9 @@
+export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
+
+DISTROS_HANDLERS=./distros
+UPSTREAM_IMAGE_DIR=~/.local/share/libvirt/images/upstream
+mkdir -p ${UPSTREAM_IMAGE_DIR}
+
+function download {
+    curl -L -o ${UPSTREAM_IMAGE_DIR}/${IMAGE_NAME}.qcow2 ${DOWNLOAD_URL}
+}

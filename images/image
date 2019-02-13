@@ -1,0 +1,46 @@
+#!/bin/bash
+
+. defines
+
+function show_distros {
+    printf "Available distros:\n"
+
+    for d in $(ls -1 ${DISTROS_HANDLERS})
+    do
+        printf "%s " ${d}
+    done
+
+    printf "\n"
+}
+
+function show_help {
+    echo "Use ${0} {distro} download|prepare"
+
+    show_distros
+}
+
+
+function read_distro {
+    if [ -f distros/${1} ]
+    then
+        . distros/${1}
+    else
+        echo "${1} not found"
+        exit 1
+    fi
+}
+
+case $1 in
+    [a-z]*)
+       read_distro ${1};;
+    *) show_help ;;
+esac
+
+if [ "x$2" != "x" ]
+then
+    case $2 in
+        download) download;;
+        prepare) prepare;;
+        build) download && prepare;;
+    esac
+fi

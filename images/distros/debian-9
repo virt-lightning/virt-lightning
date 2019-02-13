@@ -1,0 +1,7 @@
+IMAGE_NAME=debian-9
+DOWNLOAD_URL=https://cdimage.debian.org/cdimage/openstack/current-9/${IMAGE_NAME}-openstack-amd64.qcow2
+
+function prepare {
+    virt-sysprep -a ${UPSTREAM_IMAGE_DIR}/${IMAGE_NAME}.qcow2 \
+        --network --install qemu-guest-agent
+}

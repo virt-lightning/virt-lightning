@@ -1,1 +1,2 @@
+libvirt-python
 pyyaml
