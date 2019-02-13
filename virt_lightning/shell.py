@@ -21,8 +21,11 @@ ERASE_LINE = "\x1b[2K"
 
 configuration = {
     "libvirt_uri": "qemu:///session",
+    "network": "192.168.122.0/24",
+    "gateway": "192.168.122.1/24",
     "bridge": "virbr0",
     "username": getpass.getuser(),
+    "root_password": "root",
 }
 
 
@@ -53,8 +56,7 @@ def up(virt_lightning_yaml_path, context):
 
     hv = vl.LibvirtHypervisor(configuration)
 
-    print("Starting:")
-    status_line = ""
+    status_line = "Starting:"
 
     for host in host_definitions:
         if "name" not in host:
@@ -73,27 +75,36 @@ def up(virt_lightning_yaml_path, context):
         domain.name(host["name"])
         domain.ssh_key_file(configuration.get("ssh_key_file", "~/.ssh/id_rsa.pub"))
         domain.username(configuration.get("username", getpass.getuser()))
-        domain.root_password(host.get("root_password"))
+        domain.root_password(
+            configuration.get("root_password", host.get("root_password"))
+        )
         domain.vcpus(host.get("vcpus"))
         domain.memory(host.get("memory", 768))
         domain.add_root_disk(host["distro"])
-        domain.add_swap_disk(host.get("swap_size", 1))
         domain.attachBridge(configuration["bridge"])
+        domain.set_ip(
+            ipv4=hv.get_free_ipv4(), gateway="192.168.122.1", dns="192.168.122.1"
+        )
+        domain.add_swap_disk(host.get("swap_size", 1))
         domain.start()
         sys.stdout.write(CURSOR_UP_ONE)
         sys.stdout.write(ERASE_LINE)
 
     time.sleep(2)
     status_line_template = (
-        "IPv4 ready: {with_ipv4}/{all_vms}, " "SSH ready: {with_ssh}/{all_vms}"
+        "{icon}IPv4 ready: {with_ipv4}/{all_vms}    "
+        "{icon}SSH ready: {with_ssh}/{all_vms}"
     )
+    print(status_line)
+    icons = ["☆", "★"]
     while True:
+        icons.reverse()
         status = get_status(hv, context=context)
         all_vms = len(status)
         with_ipv4 = len([i for i in status if i["ipv4"]])
         with_ssh = len([i for i in status if i["ssh_ping"]])
         status_line = status_line_template.format(
-            all_vms=all_vms, with_ipv4=with_ipv4, with_ssh=with_ssh
+            icon=icons[0], all_vms=all_vms, with_ipv4=with_ipv4, with_ssh=with_ssh
         )
         sys.stdout.write(CURSOR_UP_ONE)
         sys.stdout.write(ERASE_LINE)

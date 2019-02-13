@@ -3,5 +3,5 @@ IMAGE_NAME=centos-7
 
 function prepare {
     virt-sysprep -a ${UPSTREAM_IMAGE_DIR}/${IMAGE_NAME}.qcow2 \
-        --network --update --selinux-relabel
+        --network --update --install NetworkManager --run-command 'systemctl enable NetworkManager' --selinux-relabel
 }
