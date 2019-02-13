@@ -20,7 +20,7 @@ ERASE_LINE = "\x1b[2K"
 
 
 configuration = {
-    "libvirt_uri": "qemu:///session",
+    "libvirt_uri": "qemu:///system" if os.geteuid() == 0 else "qemu:///session",
     "network": "192.168.122.0/24",
     "gateway": "192.168.122.1/24",
     "bridge": "virbr0",
