@@ -391,6 +391,8 @@ class LibvirtDomain:
         self.dom.create()
 
     def get_ipv4(self):
+        if not self.dom.isActive():
+            return
         try:
             ifaces = self.dom.interfaceAddresses(
                 libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT, 0
