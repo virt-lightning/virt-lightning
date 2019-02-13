@@ -20,7 +20,7 @@ ansible all -m ping -i inventory
 
 First you need to install libvirt and guestfs:
 ```shell
-sudo dnf install -y python3 libvirt libguestfs-tools python3-libvirt python3-virtualenv
+sudo dnf install -y python3 libvirt libguestfs-tools python3-libvirt python3-virtualenv libvirt-devel
 sudo systemctl start --now libvirtd
 ```
 
@@ -32,9 +32,8 @@ sudo chmod g+x $HOME
 
 Finally we can prepare a virtualenv:
 ```shell
-virtualenv -p python3 virt-lightning
-cp /usr/lib64/python3.7/site-packages/libvirt* virt-lightning/lib/python3.7/site-packages
-source virt-lightning/bin/activate
+python3 -m venv venv
+source venv/bin/activate
 pip install git+https://github.com/virt-lightning/virt-lightning
 ```
 
