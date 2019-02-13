@@ -128,11 +128,17 @@ class LibvirtDomain:
             return chpassd["list"].split(":")[1]
 
     def ssh_key_file(self, ssh_key_file):
+        doc_url = "https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/#generating-a-new-ssh-key"  # NOQA
         try:
             with open(os.path.expanduser(ssh_key_file), "r") as fd:
                 self.ssh_key = fd.read()
         except IOError:
-            print("Can not read {filename}".format(filename=ssh_key_file))
+            raise Exception(
+                (
+                    "Can not read {filename}. If you don't have any SSH key, "
+                    "please follow the steps describe here:\n  {doc_url}"
+                ).format(filename=ssh_key_file, doc_url=doc_url)
+            )
 
         if self.ssh_key and len(self.ssh_key) > 0:
             self.cloud_init["ssh_authorized_keys"] = [self.ssh_key]
