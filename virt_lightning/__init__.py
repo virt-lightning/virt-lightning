@@ -25,6 +25,15 @@ def libvirt_callback(userdata, err):
 libvirt.registerErrorHandler(f=libvirt_callback, ctx=None)
 
 
+def run_cmd(cmd, cwd=None):
+    proc = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd
+    )
+    outs, errs = proc.communicate()
+    if proc.returncode != 0:
+        raise Exception("A command has failed: ", outs, errs)
+
+
 class LibvirtHypervisor:
     def __init__(self, configuration, uri="qemu:///session"):
         conn = libvirt.open(configuration.get("libvirt_uri", uri))
@@ -44,6 +53,7 @@ class LibvirtHypervisor:
             self.configuration.get("storage_pool", "default")
         )
         self.get_storage_dir()
+        self.wait_for = []
 
     def create_domain(self):
         domain = LibvirtDomain.new(self)
@@ -96,18 +106,69 @@ class LibvirtHypervisor:
         disk_source = root.find("./target/path")
         return disk_source.text
 
+    def create_disk(self, name, size=20, backing_on=None):
+        disk_path = "{path}/{name}.qcow2".format(path=self.get_storage_dir(), name=name)
+        cmd = ["qemu-img", "create", "-f", "qcow2"]
+        if backing_on:
+            backing_disk = "{path}/upstream/{name}.qcow2".format(
+                path=self.get_storage_dir(), name=backing_on
+            )
+            cmd += ["-b", backing_disk]
+        cmd += [disk_path, "{size}G".format(size=size)]
+
+        run_cmd(cmd)
+        return disk_path
+
+    def prepare_meta_data(self, domain):
+        cidata_path = "{path}/{name}-cidata.iso".format(
+            path=self.get_storage_dir(), name=domain.name()
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with open(temp_dir + "/user-data", "w") as fd:
+                fd.write("#cloud-config\n")
+                fd.write(yaml.dump(domain.cloud_init, Dumper=yaml.Dumper))
+            with open(temp_dir + "/meta-data", "w") as fd:
+                fd.write(
+                    domain.meta_data.format(
+                        name=domain.name(), ipv4=domain.ipv4.ip, gateway=domain.gateway
+                    )
+                )
+            with open(temp_dir + "/network-config", "w") as fd:
+                fd.write(yaml.dump(domain._network_meta, Dumper=yaml.Dumper))
+
+            run_cmd(
+                [
+                    "genisoimage",
+                    "-output",
+                    cidata_path,
+                    "-volid",
+                    "cidata",
+                    "-joliet",
+                    "-r",
+                    "user-data",
+                    "meta-data",
+                    "network-config",
+                ],
+                cwd=temp_dir,
+            )
+        return cidata_path
+
+    def start(self, domain):
+        meta_data_iso = self.prepare_meta_data(domain)
+        domain.attachDisk(meta_data_iso, device="cdrom", disk_type="raw")
+        domain.dom.create()
+
 
 class LibvirtDomain:
     def __init__(self, dom, hv=None):
         self.dom = dom
-        self.hv = hv  # TODO: Cross reference!
         self.cloud_init = []
         self.meta_data = (
             "dsmode: local\n" "instance-id: iid-{name}\n" "local-hostname: {name}\n"
         )
         self._username = None
         self.ssh_key = None
-        self.wait_for = []
         self.distro = None
 
     def new(hv):
@@ -236,49 +297,10 @@ class LibvirtDomain:
         xml = ET.tostring(disk_root).decode()
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
 
-    def add_root_disk(self, distro, size=20):
-        self.distro = distro
-        base_image_path_template = "{path}/upstream/{distro}.qcow2"
-        base_image_path = base_image_path_template.format(
-            path=self.hv.get_storage_dir(), distro=distro
-        )
-        image_path = "{path}/{name}.qcow2".format(
-            path=self.hv.get_storage_dir(), name=self.name()
-        )
-        proc = subprocess.Popen(
-            [
-                "qemu-img",
-                "create",
-                "-f",
-                "qcow2",
-                "-b",
-                base_image_path,
-                image_path,
-                "{size}G".format(size=size),
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        self.wait_for.append(proc)
-        self.attachDisk(image_path)
+    def add_root_disk(self, root_disk_path):
+        self.attachDisk(root_disk_path)
 
-    def add_swap_disk(self, size=1):
-        swap_path = "{path}/{name}-swap.qcow2".format(
-            path=self.hv.get_storage_dir(), name=self.name()
-        )
-        proc = subprocess.Popen(
-            [
-                "qemu-img",
-                "create",
-                "-f",
-                "qcow2",
-                swap_path,
-                "{size}G".format(size=size),
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        self.wait_for.append(proc)
+    def add_swap_disk(self, swap_path):
         device_name = self.attachDisk(swap_path)
         self.cloud_init["mounts"] = [device_name, "none", "swap", "sw", 0, 0]
         self.cloud_init["bootcmd"].append("mkswap /dev/vdb")
@@ -355,54 +377,6 @@ class LibvirtDomain:
         root = ET.fromstring(xml)
         ifaces = root.findall("./devices/interface/mac")
         return [iface.attrib["address"] for iface in ifaces]
-
-    def prepare_meta_data(self):
-        cidata_path = "{path}/{name}-cidata.iso".format(
-            path=self.hv.get_storage_dir(), name=self.name()
-        )
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            with open(temp_dir + "/user-data", "w") as fd:
-                fd.write("#cloud-config\n")
-                fd.write(yaml.dump(self.cloud_init, Dumper=yaml.Dumper))
-            with open(temp_dir + "/meta-data", "w") as fd:
-                fd.write(
-                    self.meta_data.format(
-                        name=self.name(), ipv4=self.ipv4.ip, gateway=self.gateway
-                    )
-                )
-            with open(temp_dir + "/network-config", "w") as fd:
-                fd.write(yaml.dump(self._network_meta, Dumper=yaml.Dumper))
-
-            proc = subprocess.Popen(
-                [
-                    "genisoimage",
-                    "-output",
-                    cidata_path,
-                    "-volid",
-                    "cidata",
-                    "-joliet",
-                    "-r",
-                    "user-data",
-                    "meta-data",
-                    "network-config",
-                ],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                cwd=temp_dir,
-            )
-            proc.wait()
-            self.wait_for.append(proc)
-        self.attachDisk(cidata_path, device="cdrom", disk_type="raw")
-
-    def start(self):
-        self.prepare_meta_data()
-        for proc in self.wait_for:
-            outs, errs = proc.communicate()
-            if proc.returncode != 0:
-                raise Exception("A command has failed: ", outs, errs)
-
-        self.dom.create()
 
     def get_ipv4(self):
         try:

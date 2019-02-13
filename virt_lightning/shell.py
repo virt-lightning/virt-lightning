@@ -72,6 +72,7 @@ def up(virt_lightning_yaml_path, context):
         status_line += "🗲{name} ".format(**host)
         print(status_line)
         domain = hv.create_domain()
+        domain.distro = host["distro"]
         domain.context(context)
         domain.name(host["name"])
         domain.ssh_key_file(configuration.get("ssh_key_file", "~/.ssh/id_rsa.pub"))
@@ -81,13 +82,14 @@ def up(virt_lightning_yaml_path, context):
         )
         domain.vcpus(host.get("vcpus"))
         domain.memory(host.get("memory", 768))
-        domain.add_root_disk(host["distro"])
+        root_disk_path = hv.create_disk(name=host["name"], backing_on=host["distro"])
+        domain.add_root_disk(root_disk_path)
         domain.attachBridge(configuration["bridge"])
         domain.set_ip(
             ipv4=hv.get_free_ipv4(), gateway="192.168.122.1", dns="192.168.122.1"
         )
-        domain.add_swap_disk(host.get("swap_size", 1))
-        domain.start()
+        domain.add_swap_disk(hv.create_disk(host["name"] + "-swap", size=1))
+        hv.start(domain)
         sys.stdout.write(CURSOR_UP_ONE)
         sys.stdout.write(ERASE_LINE)
 
