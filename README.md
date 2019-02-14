@@ -95,7 +95,7 @@ ansible all -m shell -a "systemd-analyze blame|head -n 5" -i inventory
 You can create your own configuration file like this and save to config.ini
 
 ```
-[settings]
+[main]
 network = 192.168.122.0/24
 gateway = 192.168.122.1/24
 bridge = virbr0
