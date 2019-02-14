@@ -54,16 +54,16 @@ class LibvirtHypervisor:
         )
         self.get_storage_dir()
         self.wait_for = []
+        self.kvm_binary = self.find_kvm_binary()
 
     def create_domain(self):
-        domain = LibvirtDomain.new(self)
-        domain.cloud_init = {
-            "resize_rootfs": True,
-            "disable_root": 0,
-            "bootcmd": [],
-            "runcmd": [],
-        }
-        return domain
+        root = ET.fromstring(DOMAIN_XML)
+        e = root.find("./name")
+        e.text = uuid.uuid4().hex[0:10]
+        e = root.find("./devices/emulator")
+        e.text = self.find_kvm_binary()
+        dom = self.conn.defineXML(ET.tostring(root).decode())
+        return LibvirtDomain(dom)
 
     def list_domains(self):
         for i in self.conn.listAllDomains():
@@ -159,24 +159,30 @@ class LibvirtHypervisor:
         domain.attachDisk(meta_data_iso, device="cdrom", disk_type="raw")
         domain.dom.create()
 
+    def find_kvm_binary(self):
+        paths = ["/usr/bin/qemu-kvm", "/usr/bin/kvm"]
+        for i in paths:
+            if os.path.exists(i):
+                return
+        else:
+            raise Exception("Failed to find the kvm binary in: ", paths)
+
 
 class LibvirtDomain:
-    def __init__(self, dom, hv=None):
+    def __init__(self, dom):
         self.dom = dom
-        self.cloud_init = []
+        self.cloud_init = {
+            "resize_rootfs": True,
+            "disable_root": 0,
+            "bootcmd": [],
+            "runcmd": [],
+        }
         self.meta_data = (
             "dsmode: local\n" "instance-id: iid-{name}\n" "local-hostname: {name}\n"
         )
         self._username = None
         self.ssh_key = None
         self.distro = None
-
-    def new(hv):
-        root = ET.fromstring(DOMAIN_XML)
-        e = root.findall("./name")[0]
-        e.text = str(uuid.uuid4())[0:10]
-        dom = hv.conn.defineXML(ET.tostring(root).decode())
-        return LibvirtDomain(dom, hv)
 
     def root_password(self, root_password=None):
         if root_password:
