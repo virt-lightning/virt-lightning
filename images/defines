@@ -1,7 +1,7 @@
 export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
 
 DISTROS_HANDLERS=./distros
-UPSTREAM_IMAGE_DIR=~/.local/share/libvirt/images/upstream
+UPSTREAM_IMAGE_DIR="$(vl storage_dir)/upstream"
 mkdir -p ${UPSTREAM_IMAGE_DIR}
 
 function download {
