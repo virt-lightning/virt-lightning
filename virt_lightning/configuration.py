@@ -1,10 +1,11 @@
-from abc import ABCMeta, abstractproperty
 import configparser
-import os
 import getpass
+import os
+from abc import ABCMeta, abstractproperty
 
-DEFAULT_CONFIGFILE = '{home}/.config/virt-lightning/config.ini'.format(
-        home=os.environ['HOME'])
+DEFAULT_CONFIGFILE = "{home}/.config/virt-lightning/config.ini".format(
+    home=os.environ["HOME"]
+)
 
 DEFAULT_CONFIGURATION = {
     "main": {
@@ -16,8 +17,9 @@ DEFAULT_CONFIGURATION = {
         "root_password": "root",
         "storage_pool": "default",
         "ssh_key_file": "~/.ssh/id_rsa.pub",
-    },
+    }
 }
+
 
 class AbstractConfiguration(metaclass=ABCMeta):
     @abstractproperty
@@ -54,8 +56,9 @@ class AbstractConfiguration(metaclass=ABCMeta):
 
     def __repr__(self):
         return "Configuration(libvirt_uri={uri}, username={username})".format(
-                    uri=self.libvirt_uri, username=self.username,
-                )
+            uri=self.libvirt_uri, username=self.username
+        )
+
 
 class Configuration(AbstractConfiguration):
     def __init__(self, obj):
@@ -66,51 +69,41 @@ class Configuration(AbstractConfiguration):
 
     @property
     def libvirt_uri(self):
-        try:
+        if self.__get("libvirt_uri"):
             return self.__get("libvirt_uri")
-        except:
-            pass
-
         if os.geteuid() == 0:
-            path = "system"
+            return "qemu:///system"
         else:
-            path = "session"
-
-        return "qemu:///{path}".format(path=path)
+            return "quemu:///session"
 
     @property
     def username(self):
-        try:
-            return self.__get("username")
-        except:
-            return getpass.getuser()
+        return self.__get("username")
 
     @property
     def network(self):
-        return self.__get("network") 
+        return self.__get("network")
 
     @property
     def gateway(self):
-        return self.__get("gateway") 
+        return self.__get("gateway")
 
     @property
     def bridge(self):
-        return self.__get("bridge") 
+        return self.__get("bridge")
 
     @property
     def root_password(self):
-        try:
-            return self.__get("root_password") 
-        except:
-            return None
+        return self.__get("root_password")
 
     @property
     def ssh_key_file(self):
-        return self.__get("ssh_key_file") 
+        return self.__get("ssh_key_file")
 
     @property
     def storage_pool(self):
-        return self.__get("storage_pool") 
+        return self.__get("storage_pool")
+
 
 class ReadConfigShell:
     def __init__(self, filename=None):
@@ -118,8 +111,9 @@ class ReadConfigShell:
         self.data = None
 
     def __readfile(self):
-        if self.filename == DEFAULT_CONFIGFILE and \
-                not os.path.isfile(DEFAULT_CONFIGFILE):
+        if self.filename == DEFAULT_CONFIGFILE and not os.path.isfile(
+            DEFAULT_CONFIGFILE
+        ):
             self.filename = None
         else:
             with open(self.filename, "r", encoding="utf-8") as f:
@@ -140,8 +134,6 @@ class ReadConfigShell:
         config = Configuration(parsed)
 
         return config
-    
+
     def __repr__(self):
-        return "Config(filename={filename})".format(
-                    filename=self.filename,
-                )
+        return "Config(filename={filename})".format(filename=self.filename)
