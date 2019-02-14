@@ -294,4 +294,4 @@ def main():
     elif args.action == "status_live":
         status(configuration, args.context, True)
     elif args.action == "storage_dir":
-        storage_dir()
+        storage_dir(configuration)
