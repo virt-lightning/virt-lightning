@@ -61,10 +61,8 @@ def up(configuration, virt_lightning_yaml_path, context):
         # that symbol more well add to check encoding block
         status_line += "🗲{name} ".format(**host)
         print(status_line)
-        domain = hv.create_domain()
-        domain.distro = host["distro"]
+        domain = hv.create_domain(**host)
         domain.context(context)
-        domain.name(host["name"])
         domain.ssh_key_file(configuration.ssh_key_file)
         domain.username(configuration.username)
 
