@@ -1,0 +1,5 @@
+---
+- hosts: all
+  tasks:
+    - import_role:
+        name: virt_lightning
