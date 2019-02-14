@@ -39,21 +39,16 @@ class LibvirtHypervisor:
         conn = libvirt.open(configuration.libvirt_uri)
 
         if conn is None:
-            print("Failed to open connection to {uri}".format(uri=uri))
+            error_tpl = "Failed to open connection to {uri}"
+            print(error_tpl.format(uri=configuration.libvirt_uri))
             exit(1)
 
         self.conn = conn
         self.configuration = configuration
-        self.network = ipaddress.ip_network(
-            self.configuration.network
-        )
-        self.gateway = ipaddress.IPv4Interface(
-            self.configuration.gateway
-        )
+        self.network = ipaddress.ip_network(self.configuration.network)
+        self.gateway = ipaddress.IPv4Interface(self.configuration.gateway)
         self._last_free_ipv4 = None
-        self.pool = self.conn.storagePoolLookupByName(
-            self.configuration.storage_pool
-        )
+        self.pool = self.conn.storagePoolLookupByName(self.configuration.storage_pool)
         self.get_storage_dir()
         self.wait_for = []
         self.kvm_binary = self.find_kvm_binary()
