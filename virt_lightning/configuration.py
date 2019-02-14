@@ -10,8 +10,6 @@ DEFAULT_CONFIGFILE = "{home}/.config/virt-lightning/config.ini".format(
 DEFAULT_CONFIGURATION = {
     "main": {
         "libvirt_uri": "qemu:///system" if os.geteuid() == 0 else "qemu:///session",
-        "network": "192.168.122.0/24",
-        "gateway": "192.168.122.1/24",
         "bridge": "virbr0",
         "username": getpass.getuser(),
         "root_password": "root",
@@ -28,14 +26,6 @@ class AbstractConfiguration(metaclass=ABCMeta):
 
     @abstractproperty
     def username(self):
-        pass
-
-    @abstractproperty
-    def network(self):
-        pass
-
-    @abstractproperty
-    def gateway(self):
         pass
 
     @abstractproperty
@@ -79,14 +69,6 @@ class Configuration(AbstractConfiguration):
     @property
     def username(self):
         return self.__get("username")
-
-    @property
-    def network(self):
-        return self.__get("network")
-
-    @property
-    def gateway(self):
-        return self.__get("gateway")
 
     @property
     def bridge(self):

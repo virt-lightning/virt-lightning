@@ -96,8 +96,6 @@ You can create your own configuration file like this and save to config.ini
 
 ```
 [main]
-network = 192.168.122.0/24
-gateway = 192.168.122.1/24
 bridge = virbr0
 root_password = root
 storage_pool = default
