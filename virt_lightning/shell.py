@@ -11,23 +11,13 @@ import time
 
 import virt_lightning as vl
 from virt_lightning.symbols import get_symbols
+from virt_lightning.configuration import ReadConfigShell
 
 import yaml
 
 
 CURSOR_UP_ONE = "\x1b[1A"
 ERASE_LINE = "\x1b[2K"
-
-
-configuration = {
-    "libvirt_uri": "qemu:///system" if os.geteuid() == 0 else "qemu:///session",
-    "network": "192.168.122.0/24",
-    "gateway": "192.168.122.1/24",
-    "bridge": "virbr0",
-    "username": getpass.getuser(),
-    "root_password": "root",
-    "storage_pool": "default",
-}
 
 
 def load_vm_config(config_file):
@@ -49,7 +39,7 @@ def load_vm_config(config_file):
     return None
 
 
-def up(virt_lightning_yaml_path, context):
+def up(configuration, virt_lightning_yaml_path, context):
     host_definitions = load_vm_config(virt_lightning_yaml_path)
 
     if not host_definitions:
@@ -75,16 +65,19 @@ def up(virt_lightning_yaml_path, context):
         domain.distro = host["distro"]
         domain.context(context)
         domain.name(host["name"])
-        domain.ssh_key_file(configuration.get("ssh_key_file", "~/.ssh/id_rsa.pub"))
-        domain.username(configuration.get("username", getpass.getuser()))
-        domain.root_password(
-            configuration.get("root_password", host.get("root_password"))
-        )
+        domain.ssh_key_file(configuration.ssh_key_file)
+        domain.username(configuration.username)
+
+        if configuration.root_password:
+            domain.root_password(configuration.root_password)
+        else:
+            domain.root_password(host.get("root_password"))
+
         domain.vcpus(host.get("vcpus"))
         domain.memory(host.get("memory", 768))
         root_disk_path = hv.create_disk(name=host["name"], backing_on=host["distro"])
         domain.add_root_disk(root_disk_path)
-        domain.attachBridge(configuration["bridge"])
+        domain.attachBridge(configuration.bridge)
         domain.set_ip(
             ipv4=hv.get_free_ipv4(), gateway="192.168.122.1", dns="192.168.122.1"
         )
@@ -126,7 +119,7 @@ def up(virt_lightning_yaml_path, context):
             break
 
 
-def ansible_inventory(context):
+def ansible_inventory(configuration, context):
     hv = vl.LibvirtHypervisor(configuration)
 
     for domain in hv.list_domains():
@@ -158,7 +151,7 @@ def get_status(hv, context):
     return status
 
 
-def status(context=None, live=False):
+def status(configuration, context=None, live=False):
     hv = vl.LibvirtHypervisor(configuration)
     results = {}
 
@@ -194,7 +187,7 @@ def status(context=None, live=False):
         time.sleep(0.5)
 
 
-def down(context):
+def down(configuration, context):
     hv = vl.LibvirtHypervisor(configuration)
     for domain in hv.list_domains():
         if context and domain.context() != context:
@@ -202,7 +195,7 @@ def down(context):
         domain.clean_up()
 
 
-def list_distro():
+def list_distro(configuration):
     hv = vl.LibvirtHypervisor(configuration)
     path = hv.get_storage_dir()
     for path in glob.glob(path + "/upstream/*.qcow2"):
@@ -211,7 +204,7 @@ def list_distro():
             print("- distro: {distro}".format(distro=distro))
 
 
-def storage_dir():
+def storage_dir(configuration):
     hv = vl.LibvirtHypervisor(configuration)
     print(hv.get_storage_dir())
 
@@ -266,24 +259,38 @@ def main():
         default="default",
         help="change the name of the context (default: %(default)s)",
     )
+    parser.add_argument(
+        "--config",
+        help="path to configuration file",
+        required=False,
+    )
 
     args = parser.parse_args()
 
+    try:
+        configuration = ReadConfigShell(args.config).load()
+    except FileNotFoundError:
+        print("Configuration file not found")
+        exit(1)
+    except:
+        print("Can not get configuration from file")
+        exit(1)
+
     if args.action == "up":
-        up(args.virt_lightning_yaml, args.context)
+        up(configuration, args.virt_lightning_yaml, args.context)
     elif args.action == "down":
-        down(args.context)
+        down(configuration, args.context)
     elif args.action == "ansible_inventory":
-        ansible_inventory(args.context)
+        ansible_inventory(configuration, args.context)
     elif args.action == "distro":
-        list_distro()
+        list_distro(configuration)
     elif args.action == "clean_all":
-        down()
+        down(configuration)
     elif args.action == "status_all":
-        status()
+        status(configuration)
     elif args.action == "status":
-        status(args.context)
+        status(configuration, args.context)
     elif args.action == "status_live":
-        status(args.context, True)
+        status(configuration, args.context, True)
     elif args.action == "storage_dir":
         storage_dir()

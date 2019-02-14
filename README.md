@@ -89,3 +89,22 @@ time vl up
 vl ansible_inventory > inventory
 ansible all -m shell -a "systemd-analyze blame|head -n 5" -i inventory
 ```
+
+### Configuration from file
+
+You can create your own configuration file like this and save to config.ini
+
+```
+[settings]
+network = 192.168.122.0/24
+gateway = 192.168.122.1/24
+bridge = virbr0
+root_password = root
+storage_pool = default
+```
+
+After creation configuration you can use `vl` command with `--config` argument and provide location to your config file.
+
+```shell
+vl --config config.ini
+```
