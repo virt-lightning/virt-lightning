@@ -13,7 +13,7 @@ DOMAIN_XML = """
   <currentMemory unit='KiB'>786432</currentMemory>
   <vcpu placement='static'>1</vcpu>
   <os>
-    <type arch='x86_64' machine='pc-i440fx-3.0'>hvm</type>
+    <type arch='x86_64' machine='pc'>hvm</type>
     <boot dev='hd'/>
   </os>
   <features>
