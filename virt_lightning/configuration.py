@@ -3,8 +3,11 @@ import configparser
 import os
 import getpass
 
+DEFAULT_CONFIGFILE = '{home}/.config/virt-lightning/config.ini'.format(
+        home=os.environ['HOME'])
+
 DEFAULT_CONFIGURATION = {
-    'settings': {
+    "main": {
         "libvirt_uri": "qemu:///system" if os.geteuid() == 0 else "qemu:///session",
         "network": "192.168.122.0/24",
         "gateway": "192.168.122.1/24",
@@ -59,7 +62,7 @@ class Configuration(AbstractConfiguration):
         self.data = obj
 
     def __get(self, key):
-        return self.data.get("settings", key)
+        return self.data.get("main", key)
 
     @property
     def libvirt_uri(self):
@@ -115,19 +118,23 @@ class ReadConfigShell:
         self.data = None
 
     def __readfile(self):
-        with open(self.filename, "r", encoding="utf-8") as f:
-            self.data = f.read()
+        if self.filename == DEFAULT_CONFIGFILE and \
+                not os.path.isfile(DEFAULT_CONFIGFILE):
+            self.filename = None
+        else:
+            with open(self.filename, "r", encoding="utf-8") as f:
+                self.data = f.read()
 
     def load(self):
         parsed = configparser.ConfigParser()
+
+        self.__readfile()
 
         if not self.filename:
             parsed.read_dict(DEFAULT_CONFIGURATION)
             config = Configuration(parsed)
 
             return config
-
-        self.__readfile()
 
         parsed.read_string(self.data)
         config = Configuration(parsed)

@@ -11,7 +11,7 @@ import time
 
 import virt_lightning as vl
 from virt_lightning.symbols import get_symbols
-from virt_lightning.configuration import ReadConfigShell
+from virt_lightning.configuration import ReadConfigShell, DEFAULT_CONFIGFILE
 
 import yaml
 
@@ -263,6 +263,7 @@ def main():
         "--config",
         help="path to configuration file",
         required=False,
+        default=DEFAULT_CONFIGFILE,
     )
 
     args = parser.parse_args()
