@@ -35,22 +35,24 @@ def run_cmd(cmd, cwd=None):
 
 
 class LibvirtHypervisor:
-    def __init__(self, configuration, uri="qemu:///session"):
-        conn = libvirt.open(configuration.get("libvirt_uri", uri))
+    def __init__(self, configuration):
+        conn = libvirt.open(configuration.libvirt_uri)
+
         if conn is None:
             print("Failed to open connection to {uri}".format(uri=uri))
             exit(1)
+
         self.conn = conn
         self.configuration = configuration
         self.network = ipaddress.ip_network(
-            self.configuration.get("network", "192.168.122.0/24")
+            self.configuration.network
         )
         self.gateway = ipaddress.IPv4Interface(
-            self.configuration.get("gateway", "192.168.122.1/24")
+            self.configuration.gateway
         )
         self._last_free_ipv4 = None
         self.pool = self.conn.storagePoolLookupByName(
-            self.configuration.get("storage_pool", "default")
+            self.configuration.storage_pool
         )
         self.get_storage_dir()
         self.wait_for = []
