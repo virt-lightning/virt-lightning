@@ -12,6 +12,8 @@ import xml.etree.ElementTree as ET
 
 import libvirt
 
+import netifaces
+
 import yaml
 
 
@@ -45,8 +47,7 @@ class LibvirtHypervisor:
 
         self.conn = conn
         self.configuration = configuration
-        self.network = ipaddress.ip_network(self.configuration.network)
-        self.gateway = ipaddress.IPv4Interface(self.configuration.gateway)
+        self.init_network()
         self._last_free_ipv4 = None
         self.pool = self.conn.storagePoolLookupByName(self.configuration.storage_pool)
         self.get_storage_dir()
@@ -132,7 +133,9 @@ class LibvirtHypervisor:
             with open(temp_dir + "/meta-data", "w") as fd:
                 fd.write(
                     domain.meta_data.format(
-                        name=domain.name(), ipv4=domain.ipv4.ip, gateway=domain.gateway
+                        name=domain.name(),
+                        ipv4=str(domain.ipv4.ip),
+                        gateway=str(domain.gateway.ip),
                     )
                 )
             with open(temp_dir + "/network-config", "w") as fd:
@@ -167,6 +170,23 @@ class LibvirtHypervisor:
                 return
         else:
             raise Exception("Failed to find the kvm binary in: ", paths)
+
+    def init_network(self):
+        if self.conn.getURI().startswith("qemu:///session"):
+            bridge_name = self.configuration.bridge
+            try:
+                bridge_netiface = netifaces.ifaddresses(bridge_name)
+            except ValueError:
+                print("Bridge not found:", bridge_name)
+                exit(1)
+            ipconfig = bridge_netiface[netifaces.AF_INET]
+            self.gateway = ipaddress.IPv4Interface(
+                "{addr}/{netmask}".format(**ipconfig[0])
+            )
+            self.dns = self.gateway
+            self.network = self.gateway.network
+        elif self.conn.getURI().startswith("qemu:///system"):
+            print("system")
 
 
 class LibvirtDomain:
@@ -332,8 +352,8 @@ class LibvirtDomain:
                         "match": {"macaddress": primary_mac_addr},
                         "set-name": "interface0",
                         "addresses": [str(self.ipv4)],
-                        "gateway4": self.gateway,
-                        "nameservers": {"addresses": [self.dns]},
+                        "gateway4": str(self.gateway.ip),
+                        "nameservers": {"addresses": [str(self.dns.ip)]},
                     }
                 },
             }
@@ -350,14 +370,13 @@ class LibvirtDomain:
                             {
                                 "type": "static",
                                 "address": str(self.ipv4),
-                                "gateway": self.gateway,
-                                "dns_nameservers": [self.dns],
+                                "gateway": str(self.gateway.ip),
+                                "dns_nameservers": [str(self.dns.ip)],
                             }
                         ],
                     }
                 ],
             }
-
         nm_filter = "(centos|fedora|rhel)"
         if re.match(nm_filter, self.distro):
             nmcli_call = (
@@ -366,7 +385,9 @@ class LibvirtDomain:
             )
             self.cloud_init["runcmd"].append("nmcli -g UUID c|xargs -n 1 nmcli con del")
             self.cloud_init["runcmd"].append(
-                nmcli_call.format(ipv4=self.ipv4, gateway=self.gateway, dns=self.dns)
+                nmcli_call.format(
+                    ipv4=self.ipv4, gateway=str(self.gateway.ip), dns=str(self.dns.ip)
+                )
             )
             # Without that NM, initialize eth0 with a DHCP IP
             self.cloud_init["bootcmd"].append(

@@ -75,9 +75,7 @@ def up(configuration, virt_lightning_yaml_path, context):
         root_disk_path = hv.create_disk(name=host["name"], backing_on=host["distro"])
         domain.add_root_disk(root_disk_path)
         domain.attachBridge(configuration.bridge)
-        domain.set_ip(
-            ipv4=hv.get_free_ipv4(), gateway="192.168.122.1", dns="192.168.122.1"
-        )
+        domain.set_ip(ipv4=hv.get_free_ipv4(), gateway=hv.gateway, dns=hv.dns)
         domain.add_swap_disk(hv.create_disk(host["name"] + "-swap", size=1))
         hv.start(domain)
         sys.stdout.write(CURSOR_UP_ONE)
