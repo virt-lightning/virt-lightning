@@ -13,7 +13,7 @@ DEFAULT_CONFIGURATION = {
         "bridge": "virbr0",
         "username": getpass.getuser(),
         "root_password": "root",
-        "storage_pool": "default",
+        "storage_pool": "virt-lightning",
         "ssh_key_file": "~/.ssh/id_rsa.pub",
     }
 }
