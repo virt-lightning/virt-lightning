@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import getpass
 import glob
 import os
 import pathlib
@@ -10,8 +9,8 @@ import sys
 import time
 
 import virt_lightning as vl
+from virt_lightning.configuration import DEFAULT_CONFIGFILE, ReadConfigShell
 from virt_lightning.symbols import get_symbols
-from virt_lightning.configuration import ReadConfigShell, DEFAULT_CONFIGFILE
 
 import yaml
 
@@ -271,9 +270,9 @@ def main():
     except FileNotFoundError:
         print("Configuration file not found")
         exit(1)
-    except:
+    except Exception as e:
         print("Can not get configuration from file")
-        exit(1)
+        raise (e)
 
     if args.action == "up":
         up(configuration, args.virt_lightning_yaml, args.context)
