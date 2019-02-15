@@ -54,14 +54,18 @@ class LibvirtHypervisor:
         self.wait_for = []
         self.kvm_binary = self.find_kvm_binary()
 
-    def create_domain(self):
+    def create_domain(self, name=None, distro=None):
+        if not name:
+            name = uuid.uuid4().hex[0:10]
         root = ET.fromstring(DOMAIN_XML)
         e = root.find("./name")
-        e.text = uuid.uuid4().hex[0:10]
+        e.text = name
         e = root.find("./devices/emulator")
         e.text = self.find_kvm_binary()
         dom = self.conn.defineXML(ET.tostring(root).decode())
-        return LibvirtDomain(dom)
+        domain = LibvirtDomain(dom)
+        domain.distro = distro
+        return domain
 
     def list_domains(self):
         for i in self.conn.listAllDomains():

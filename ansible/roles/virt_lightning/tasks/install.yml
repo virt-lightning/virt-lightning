@@ -1,0 +1,30 @@
+---
+- name: Install the virt-lightning dependencies
+  package:
+    name:
+      - python3
+      - libvirt
+      - libguestfs-tools
+      - gcc
+      - python3-virtualenv
+      - libvirt-devel
+  become: true
+- name: Start libvirt
+  service:
+    name: libvirtd
+    state: started
+  become: true
+- name: Add the find users to the current users
+  user:
+    name: "{{ansible_user_id}}"
+    groups: qemu,libvirt
+  become: true
+- name: Push the working directory
+  synchronize:
+    src: ../../virt-lightning
+    dest: ~/
+- name: Prepare the virtualenv
+  shell: |
+    python3 -m venv ~/venv
+    source ~/venv/bin/activate
+    pip install -e ~/virt-lightning
