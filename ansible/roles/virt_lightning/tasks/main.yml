@@ -1,0 +1,7 @@
+---
+- name: Install
+  import_tasks: install.yml
+- name: Prepare an image
+  import_tasks: image.yml
+- name: Test
+  import_tasks: test.yml

@@ -1,0 +1,30 @@
+---
+- name: Install Ansible's virt dependencies
+  package:
+    name:
+      - python-libvirt
+      - python-lxml
+  become: true
+- name: Create the pool directory
+  file:
+    path: .local/share/libvirt/images/upstream
+    state: directory
+- name: Create the default storage pool
+  virt_pool:
+    uri: qemu:///session
+    command: define
+    name: default
+    xml: '{{ lookup("template", "pool.xml.j2") }}'
+- name: Record the storage pool location
+  shell: |
+    source ~/venv/bin/activate
+    vl storage_dir
+  register: storage_dir
+
+- name: Build the images
+  shell: |
+    source ~/venv/bin/activate
+    cd ~/virt-lightning/images
+    ./image centos-7 download
+  args:
+    creates: "{{ storage_dir.stdout }}/upstream/centos-7.qcow2"

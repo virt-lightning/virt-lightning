@@ -1,0 +1,23 @@
+---
+- name: Generate a SSH key
+  command : ssh-keygen -q -t rsa -C "" -N "" -f ~/.ssh/id_rsa
+  args:
+    creates: ~/.ssh/id_rsa
+- name: Start the environment
+  shell: |
+    source ~/venv/bin/activate
+    vl distro > virt-lightning.yaml
+    vl up
+    vl ansible_inventory > inventory
+- name: Install Ansible
+  package:
+    name: ansible
+  become: true
+- name: Test the new VM
+  shell: |
+    source ~/venv/bin/activate
+    ansible all -m shell -a "ping -c 1 google.ca" -i inventory
+- name: Destroy the environment
+  shell: |
+    source ~/venv/bin/activate
+    vl down
