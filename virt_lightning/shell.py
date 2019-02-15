@@ -60,7 +60,7 @@ def up(configuration, virt_lightning_yaml_path, context):
         # that symbol more well add to check encoding block
         status_line += "🗲{name} ".format(**host)
         print(status_line)
-        domain = hv.create_domain(**host)
+        domain = hv.create_domain(name=host["name"], distro=host["distro"])
         domain.context(context)
         domain.ssh_key_file(configuration.ssh_key_file)
         domain.username(configuration.username)
@@ -117,10 +117,16 @@ def up(configuration, virt_lightning_yaml_path, context):
 def ansible_inventory(configuration, context):
     hv = vl.LibvirtHypervisor(configuration)
 
+    ssh_cmd_template = (
+        "{name} ansible_host={ipv4} ansible_username={username} "
+        'ansible_ssh_common_args="-o UserKnownHostsFile=/dev/null '
+        '-o StrictHostKeyChecking=no"'
+    )
+
     for domain in hv.list_domains():
         if domain.context() == context:
             print(
-                "{name} ansible_host={ipv4} ansible_username={username}".format(
+                ssh_cmd_template.format(
                     name=domain.name(),
                     ipv4=domain.get_ipv4(),
                     username=domain.username(),
