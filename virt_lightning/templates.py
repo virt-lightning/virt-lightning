@@ -122,3 +122,14 @@ CLOUD_INIT_ENI = """network-interfaces: |
    netmask 255.255.255.0
    gateway {gateway}
 """
+
+STORAGE_POOL_XML = """
+<pool type='dir'>
+  <name></name>
+  <source>
+  </source>
+  <target>
+    <path></path>
+  </target>
+</pool>
+"""

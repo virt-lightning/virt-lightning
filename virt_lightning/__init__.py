@@ -2,6 +2,7 @@
 
 import ipaddress
 import os
+import pathlib
 import re
 import string
 import subprocess
@@ -17,7 +18,13 @@ import netifaces
 import yaml
 
 
-from .templates import BRIDGE_XML, CLOUD_INIT_ENI, DISK_XML, DOMAIN_XML
+from .templates import (
+    BRIDGE_XML,
+    CLOUD_INIT_ENI,
+    DISK_XML,
+    DOMAIN_XML,
+    STORAGE_POOL_XML,
+)
 
 
 def libvirt_callback(userdata, err):
@@ -37,31 +44,38 @@ def run_cmd(cmd, cwd=None):
 
 
 class LibvirtHypervisor:
-    def __init__(self, configuration):
-        conn = libvirt.open(configuration.libvirt_uri)
+    def __init__(self, libvirt_uri):
+        conn = libvirt.open(libvirt_uri)
 
         if conn is None:
             error_tpl = "Failed to open connection to {uri}"
-            print(error_tpl.format(uri=configuration.libvirt_uri))
+            print(error_tpl.format(uri=libvirt_uri))
             exit(1)
 
         self.conn = conn
-        self.configuration = configuration
-        self.init_network()
         self._last_free_ipv4 = None
-        self.pool = self.conn.storagePoolLookupByName(self.configuration.storage_pool)
-        self.get_storage_dir()
         self.wait_for = []
-        self.kvm_binary = self.find_kvm_binary()
+
+    @property
+    def arch(self):
+        caps = self.conn.getCapabilities()
+        root = ET.fromstring(caps)
+        return root.find("./host/cpu/arch").text
+
+    @property
+    def domain_type(self):
+        caps = self.conn.getCapabilities()
+        root = ET.fromstring(caps)
+        return root.find("./guest/arch/domain").attrib["type"]
 
     def create_domain(self, name=None, distro=None):
         if not name:
             name = uuid.uuid4().hex[0:10]
         root = ET.fromstring(DOMAIN_XML)
-        e = root.find("./name")
-        e.text = name
-        e = root.find("./devices/emulator")
-        e.text = self.find_kvm_binary()
+        root.attrib["type"] = self.domain_type
+        root.find("./name").text = name
+        root.find("./devices/emulator").text = self.kvm_binary
+        root.find("./os/type").attrib["arch"] = self.arch
         dom = self.conn.defineXML(ET.tostring(root).decode())
         domain = LibvirtDomain(dom)
         domain.distro = distro
@@ -103,10 +117,10 @@ class LibvirtHypervisor:
                 return interface
 
     def get_storage_dir(self):
-        xml = self.pool.XMLDesc(0)
+        xml = self.storage_pool_obj.XMLDesc(0)
         root = ET.fromstring(xml)
         disk_source = root.find("./target/path")
-        return disk_source.text
+        return pathlib.PosixPath(disk_source.text)
 
     def create_disk(self, name, size=20, backing_on=None):
         disk_path = "{path}/{name}.qcow2".format(path=self.get_storage_dir(), name=name)
@@ -163,17 +177,17 @@ class LibvirtHypervisor:
         domain.attachDisk(meta_data_iso, device="cdrom", disk_type="raw")
         domain.dom.create()
 
-    def find_kvm_binary(self):
-        paths = ["/usr/bin/qemu-kvm", "/usr/bin/kvm"]
+    @property
+    def kvm_binary(self):
+        paths = [pathlib.PosixPath(i) for i in ["/usr/bin/qemu-kvm", "/usr/bin/kvm"]]
         for i in paths:
-            if os.path.exists(i):
-                return
+            if i.exists():
+                return i
         else:
             raise Exception("Failed to find the kvm binary in: ", paths)
 
-    def init_network(self):
+    def init_network(self, bridge_name):
         if self.conn.getURI().startswith("qemu:///session"):
-            bridge_name = self.configuration.bridge
             try:
                 bridge_netiface = netifaces.ifaddresses(bridge_name)
             except ValueError:
@@ -187,6 +201,40 @@ class LibvirtHypervisor:
             self.network = self.gateway.network
         elif self.conn.getURI().startswith("qemu:///system"):
             print("system")
+
+    def init_storage_pool(self, storage_pool):
+        try:
+            self.storage_pool_obj = self.conn.storagePoolLookupByName(storage_pool)
+            if not self.get_storage_dir().is_dir():
+                raise Exception("Missing storage directory:", self.get_storage_dir())
+            return
+        except libvirt.libvirtError as e:
+            if e.get_error_code() == libvirt.VIR_ERR_NO_STORAGE_POOL:
+                print("Storage pool is missing.")
+                pass
+
+        if os.geteuid() == 0:
+            storage_dir = pathlib.PosixPath("/var/lib/virt-lightning/pool")
+        else:
+            storage_dir = pathlib.PosixPath("~/.local/share/virt-lightning/pool")
+            storage_dir = storage_dir.expanduser()
+
+        full_dir = storage_dir / "upstream"
+        full_dir.mkdir(parents=True, exist_ok=True)
+        self.storage_pool_obj = self.create_storage_pool(
+            name=storage_pool, directory=storage_dir
+        )
+
+    def create_storage_pool(self, name, directory):
+        root = ET.fromstring(STORAGE_POOL_XML)
+        root.find("./name").text = name
+        root.find("./target/path").text = str(directory)
+        xml = ET.tostring(root).decode()
+        pool = self.conn.storagePoolDefineXML(xml, 0)
+        if not pool:
+            raise Exception("Failed to create pool:", name, xml)
+        pool.setAutostart(1)
+        return pool
 
 
 class LibvirtDomain:

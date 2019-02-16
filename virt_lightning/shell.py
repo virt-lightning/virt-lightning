@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-import glob
 import os
-import pathlib
 import re
 import sys
 import time
@@ -44,7 +42,9 @@ def up(configuration, virt_lightning_yaml_path, context):
     if not host_definitions:
         return
 
-    hv = vl.LibvirtHypervisor(configuration)
+    hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
+    hv.init_network(configuration.bridge)
+    hv.init_storage_pool(configuration.storage_pool)
 
     status_line = "Starting:"
 
@@ -115,7 +115,7 @@ def up(configuration, virt_lightning_yaml_path, context):
 
 
 def ansible_inventory(configuration, context):
-    hv = vl.LibvirtHypervisor(configuration)
+    hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
 
     ssh_cmd_template = (
         "{name} ansible_host={ipv4} ansible_username={username} "
@@ -153,7 +153,7 @@ def get_status(hv, context):
 
 
 def status(configuration, context=None, live=False):
-    hv = vl.LibvirtHypervisor(configuration)
+    hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
     results = {}
 
     symbols = get_symbols()
@@ -189,7 +189,7 @@ def status(configuration, context=None, live=False):
 
 
 def down(configuration, context):
-    hv = vl.LibvirtHypervisor(configuration)
+    hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
     for domain in hv.list_domains():
         if context and domain.context() != context:
             continue
@@ -197,16 +197,18 @@ def down(configuration, context):
 
 
 def list_distro(configuration):
-    hv = vl.LibvirtHypervisor(configuration)
-    path = hv.get_storage_dir()
-    for path in glob.glob(path + "/upstream/*.qcow2"):
-        distro = pathlib.Path(path).stem
+    hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
+    hv.init_storage_pool(configuration.storage_pool)
+    path = hv.get_storage_dir() / "upstream"
+    for path in sorted(path.glob("*.qcow2")):
+        distro = path.stem
         if "no-cloud-init" not in distro:
             print("- distro: {distro}".format(distro=distro))
 
 
 def storage_dir(configuration):
-    hv = vl.LibvirtHypervisor(configuration)
+    hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
+    hv.init_storage_pool(configuration.storage_pool)
     print(hv.get_storage_dir())
 
 
