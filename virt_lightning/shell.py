@@ -49,6 +49,11 @@ def up(configuration, virt_lightning_yaml_path, context):
     status_line = "Starting:"
 
     for host in host_definitions:
+        if host["distro"] not in hv.distro_available():
+            print("distro not available:", host["distro"])
+            print("Please select on of the following distro:", hv.distro_available())
+            exit()
+
         if "name" not in host:
             host["name"] = re.sub(r"\W+", "", host["distro"])
 
@@ -61,9 +66,9 @@ def up(configuration, virt_lightning_yaml_path, context):
         status_line += "🗲{name} ".format(**host)
         print(status_line)
         domain = hv.create_domain(name=host["name"], distro=host["distro"])
-        domain.context(context)
-        domain.ssh_key_file(configuration.ssh_key_file)
-        domain.username(configuration.username)
+        domain.context = context
+        domain.load_ssh_key_file(configuration.ssh_key_file)
+        domain.username = configuration.username
 
         if configuration.root_password:
             domain.root_password(configuration.root_password)
@@ -124,12 +129,10 @@ def ansible_inventory(configuration, context):
     )
 
     for domain in hv.list_domains():
-        if domain.context() == context:
+        if domain.context == context:
             print(
                 ssh_cmd_template.format(
-                    name=domain.name(),
-                    ipv4=domain.get_ipv4(),
-                    username=domain.username(),
+                    name=domain.name, ipv4=domain.get_ipv4(), username=domain.username
                 )
             )
 
@@ -137,15 +140,15 @@ def ansible_inventory(configuration, context):
 def get_status(hv, context):
     status = []
     for domain in hv.list_domains():
-        if context and context != domain.context():
+        if context and context != domain.context:
             continue
-        name = domain.name()
+        name = domain.name
         status.append(
             {
                 "name": name,
                 "ipv4": domain.get_ipv4(),
-                "context": domain.context(),
-                "username": domain.username(),
+                "context": domain.context,
+                "username": domain.username,
                 "ssh_ping": domain.ssh_ping(),
             }
         )
@@ -191,7 +194,7 @@ def status(configuration, context=None, live=False):
 def down(configuration, context):
     hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
     for domain in hv.list_domains():
-        if context and domain.context() != context:
+        if context and domain.context != context:
             continue
         domain.clean_up()
 
@@ -199,11 +202,8 @@ def down(configuration, context):
 def list_distro(configuration):
     hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
     hv.init_storage_pool(configuration.storage_pool)
-    path = hv.get_storage_dir() / "upstream"
-    for path in sorted(path.glob("*.qcow2")):
-        distro = path.stem
-        if "no-cloud-init" not in distro:
-            print("- distro: {distro}".format(distro=distro))
+    for distro in hv.distro_available():
+        print("- distro: {distro}".format(distro=distro))
 
 
 def storage_dir(configuration):
