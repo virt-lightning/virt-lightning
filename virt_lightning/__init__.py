@@ -74,7 +74,7 @@ class LibvirtHypervisor:
         root = ET.fromstring(DOMAIN_XML)
         root.attrib["type"] = self.domain_type
         root.find("./name").text = name
-        root.find("./devices/emulator").text = self.kvm_binary
+        root.find("./devices/emulator").text = str(self.kvm_binary)
         root.find("./os/type").attrib["arch"] = self.arch
         dom = self.conn.defineXML(ET.tostring(root).decode())
         domain = LibvirtDomain(dom)

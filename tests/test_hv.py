@@ -29,3 +29,11 @@ def test_init_storage_pool():
         mock_exists.return_value = False
         hv.init_storage_pool("foo_bar")
     assert hv.conn.storagePoolLookupByName("foo_bar")
+
+
+def test_create_domain():
+    hv = virt_lightning.LibvirtHypervisor("test:///default")
+    domain = hv.create_domain(name="a", distro="b")
+    print(domain.name)
+    assert domain.name() == "a"
+    assert domain.distro == "b"
