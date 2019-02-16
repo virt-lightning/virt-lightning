@@ -52,7 +52,6 @@ class LibvirtHypervisor:
         self.pool = self.conn.storagePoolLookupByName(self.configuration.storage_pool)
         self.get_storage_dir()
         self.wait_for = []
-        self.kvm_binary = self.find_kvm_binary()
 
     def create_domain(self, name=None, distro=None):
         if not name:
@@ -163,7 +162,8 @@ class LibvirtHypervisor:
         domain.attachDisk(meta_data_iso, device="cdrom", disk_type="raw")
         domain.dom.create()
 
-    def find_kvm_binary(self):
+    @property
+    def kvm_binary(self):
         paths = ["/usr/bin/qemu-kvm", "/usr/bin/kvm"]
         for i in paths:
             if os.path.exists(i):
