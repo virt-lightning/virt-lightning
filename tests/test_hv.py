@@ -26,3 +26,12 @@ def test_init_storage_pool(hv):
 def test_create_domain(hv):
     domain = hv.create_domain(name="a", distro="b")
     assert domain
+
+def test_distro_available(hv, tmpdir):
+    hv.storage_pool_obj = hv.create_storage_pool("foo", tmpdir)
+    assert hv.distro_available() == []
+    upstream_d = tmpdir / "upstream"
+    upstream_d.mkdir()
+    distro_1 = upstream_d / "distro_1.qcow2"
+    distro_1.write(b"a")
+    assert hv.distro_available() == ["distro_1"]

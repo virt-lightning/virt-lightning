@@ -49,6 +49,11 @@ def up(configuration, virt_lightning_yaml_path, context):
     status_line = "Starting:"
 
     for host in host_definitions:
+        if host["distro"] not in hv.distro_available():
+            print("distro not available:", host["distro"])
+            print("Please select on of the following distro:", hv.distro_available())
+            exit()
+
         if "name" not in host:
             host["name"] = re.sub(r"\W+", "", host["distro"])
 
@@ -197,11 +202,8 @@ def down(configuration, context):
 def list_distro(configuration):
     hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
     hv.init_storage_pool(configuration.storage_pool)
-    path = hv.get_storage_dir() / "upstream"
-    for path in sorted(path.glob("*.qcow2")):
-        distro = path.stem
-        if "no-cloud-init" not in distro:
-            print("- distro: {distro}".format(distro=distro))
+    for distro in hv.distro_available():
+        print("- distro: {distro}".format(distro=distro))
 
 
 def storage_dir(configuration):

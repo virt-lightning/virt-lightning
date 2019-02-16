@@ -246,6 +246,10 @@ class LibvirtHypervisor:
         pool.setAutostart(1)
         return pool
 
+    def distro_available(self):
+        path = self.get_storage_dir() / "upstream"
+        return [path.stem for path in sorted(path.glob("*.qcow2"))]
+
 
 class LibvirtDomain:
     def __init__(self, dom):
