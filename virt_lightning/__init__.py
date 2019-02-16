@@ -26,6 +26,8 @@ from .templates import (
     STORAGE_POOL_XML,
 )
 
+KVM_BINARIES = ("/usr/bin/qemu-kvm", "/usr/bin/kvm")
+
 
 def libvirt_callback(userdata, err):
     pass
@@ -66,7 +68,15 @@ class LibvirtHypervisor:
     def domain_type(self):
         caps = self.conn.getCapabilities()
         root = ET.fromstring(caps)
-        return root.find("./guest/arch/domain").attrib["type"]
+        available = [
+            e.attrib["type"] for e in root.findall("./guest/arch/domain[@type]")
+        ]
+        if not available:
+            raise Exception("No domain type available!")
+        if "kvm" not in available:
+            print("kvm mode not available!")
+        # Sorted to get kvm before qemu, assume there is no other type
+        return sorted(available)[0]
 
     def create_domain(self, name=None, distro=None):
         if not name:
@@ -137,7 +147,7 @@ class LibvirtHypervisor:
 
     def prepare_meta_data(self, domain):
         cidata_path = "{path}/{name}-cidata.iso".format(
-            path=self.get_storage_dir(), name=domain.name()
+            path=self.get_storage_dir(), name=domain.name
         )
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -147,7 +157,7 @@ class LibvirtHypervisor:
             with open(temp_dir + "/meta-data", "w") as fd:
                 fd.write(
                     domain.meta_data.format(
-                        name=domain.name(),
+                        name=domain.name,
                         ipv4=str(domain.ipv4.ip),
                         gateway=str(domain.gateway.ip),
                     )
@@ -179,7 +189,7 @@ class LibvirtHypervisor:
 
     @property
     def kvm_binary(self):
-        paths = [pathlib.PosixPath(i) for i in ["/usr/bin/qemu-kvm", "/usr/bin/kvm"]]
+        paths = [pathlib.PosixPath(i) for i in KVM_BINARIES]
         for i in paths:
             if i.exists():
                 return i
@@ -249,9 +259,8 @@ class LibvirtDomain:
         self.meta_data = (
             "dsmode: local\n" "instance-id: iid-{name}\n" "local-hostname: {name}\n"
         )
-        self._username = None
-        self.ssh_key = None
         self.distro = None
+        self._ssh_key = None
 
     def root_password(self, root_password=None):
         if root_password:
@@ -263,7 +272,15 @@ class LibvirtDomain:
         if chpassd:
             return chpassd["list"].split(":")[1]
 
-    def ssh_key_file(self, ssh_key_file):
+    @property
+    def ssh_key(self):
+        return self._ssh_key
+
+    @ssh_key.setter
+    def ssh_key(self, value):
+        self._ssh_key = value
+
+    def load_ssh_key_file(self, ssh_key_file):
         doc_url = "https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/#generating-a-new-ssh-key"  # NOQA
         try:
             with open(os.path.expanduser(ssh_key_file), "r") as fd:
@@ -276,36 +293,37 @@ class LibvirtDomain:
                 ).format(filename=ssh_key_file, doc_url=doc_url)
             )
 
-        if self.ssh_key and len(self.ssh_key) > 0:
-            self.cloud_init["ssh_authorized_keys"] = [self.ssh_key]
-            if "users" in self.cloud_init:
-                self.cloud_init["users"][0]["ssh_authorized_keys"] = [self.ssh_key]
+        self.cloud_init["ssh_authorized_keys"] = [self.ssh_key]
+        if "users" in self.cloud_init:
+            self.cloud_init["users"][0]["ssh_authorized_keys"] = [self.ssh_key]
 
-    def username(self, username=None):
-        if username:
-            if not re.match("[a-z_][a-z0-9_-]{1,32}$", username):
-                raise Exception("Invalid username: ", username)
+    @property
+    def username(self):
+        return self.get_metadata("username")
 
-            self._username = username
-            self.cloud_init["users"] = [
-                {
-                    "name": username,
-                    "gecos": "virt-bootstrap user",
-                    "sudo": "ALL=(ALL) NOPASSWD:ALL",
-                    "ssh_authorized_keys": self.cloud_init.get("ssh_authorized_keys"),
-                }
-            ]
+    @username.setter
+    def username(self, username):
+        if not re.match("[a-z_][a-z0-9_-]{1,32}$", username):
+            raise Exception("Invalid username: ", username)
 
-            self.record_metadata("username", username)
-        elif self._username:
-            return self._username
-        else:
-            return self.get_metadata("username")
+        self.cloud_init["users"] = [
+            {
+                "name": username,
+                "gecos": "virt-bootstrap user",
+                "sudo": "ALL=(ALL) NOPASSWD:ALL",
+                "ssh_authorized_keys": self.ssh_key,
+            }
+        ]
 
-    def name(self, name=None):
-        if name:
-            self.dom.rename(name, 0)
+        self.record_metadata("username", username)
+
+    @property
+    def name(self):
         return self.dom.name()
+
+    @name.setter
+    def name(self, name):
+        self.dom.rename(name, 0)
 
     def vcpus(self, value=None):
         if value:
@@ -350,10 +368,13 @@ class LibvirtDomain:
         elt = ET.fromstring(xml)
         return elt.attrib["name"]
 
-    def context(self, context=None):
-        if context:
-            self.record_metadata("context", context)
+    @property
+    def context(self):
         return self.get_metadata("context")
+
+    @context.setter
+    def context(self, value):
+        self.record_metadata("context", value)
 
     def attachDisk(self, path, device="disk", disk_type="qcow2"):
         device_name = self.getNextBlckDevice()
@@ -381,16 +402,13 @@ class LibvirtDomain:
         self.cloud_init["bootcmd"].append("mkswap /dev/vdb")
         self.cloud_init["bootcmd"].append("swapon /dev/vdb")
 
-    def dump(self):
-        ET.dump(self.root)
-
     def set_ip(self, ipv4, gateway, dns):
         self.ipv4 = ipv4
         self.gateway = gateway
         self.dns = dns
         self.record_metadata("ipv4", ipv4)
 
-        primary_mac_addr = self.get_mac_addresses()[0]
+        primary_mac_addr = self.mac_addresses[0]
         self._network_meta = {"config": "disabled"}
         if "ubuntu-18.04" in self.distro:
             self._network_meta = {
@@ -448,10 +466,11 @@ class LibvirtDomain:
                 )
             )
 
-    def get_mac_addresses(self):
+    @property
+    def mac_addresses(self):
         xml = self.dom.XMLDesc(0)
         root = ET.fromstring(xml)
-        ifaces = root.findall("./devices/interface/mac")
+        ifaces = root.findall("./devices/interface/mac[@address]")
         return [iface.attrib["address"] for iface in ifaces]
 
     def get_ipv4(self):
@@ -502,7 +521,7 @@ class LibvirtDomain:
                 "UserKnownHostsFile=/dev/null",
                 "-o",
                 "ConnectTimeout=1",
-                "{username}@{ipv4}".format(username=self.username(), ipv4=ipv4),
+                "{username}@{ipv4}".format(username=self.username, ipv4=ipv4),
                 "hostname",
             ],
             stdout=subprocess.PIPE,
