@@ -3,5 +3,5 @@ IMAGE_NAME=ubuntu-16.04
 
 function prepare {
     virt-sysprep -a ${UPSTREAM_IMAGE_DIR}/${IMAGE_NAME}.qcow2 \
-        --network --install qemu-guest-agent,python
+        --network --run-command 'echo "nameserver 169.254.2.3" > /etc/resolv.conf && apt update && apt install -y qemu-guest-agent python'
 }
