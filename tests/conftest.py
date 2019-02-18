@@ -4,6 +4,7 @@ import libvirt
 import virt_lightning
 import pathlib
 from unittest.mock import patch
+from unittest.mock import Mock
 
 def clean_up():
     conn = libvirt.open("test:///default")
@@ -18,7 +19,9 @@ def clean_up():
 @pytest.fixture
 def hv(scope="function"):
     libvirt_uri = "test:///default"
-    yield virt_lightning.LibvirtHypervisor(libvirt_uri)
+    hv = virt_lightning.LibvirtHypervisor(libvirt_uri)
+    hv.conn.getURI = Mock(return_value="qemu:///session")
+    yield hv
     clean_up()
 
 
