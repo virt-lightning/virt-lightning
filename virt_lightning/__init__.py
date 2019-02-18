@@ -197,20 +197,15 @@ class LibvirtHypervisor:
             raise Exception("Failed to find the kvm binary in: ", paths)
 
     def init_network(self, bridge_name):
-        if self.conn.getURI().startswith("qemu:///session"):
-            try:
-                bridge_netiface = netifaces.ifaddresses(bridge_name)
-            except ValueError:
-                print("Bridge not found:", bridge_name)
-                exit(1)
-            ipconfig = bridge_netiface[netifaces.AF_INET]
-            self.gateway = ipaddress.IPv4Interface(
-                "{addr}/{netmask}".format(**ipconfig[0])
-            )
-            self.dns = self.gateway
-            self.network = self.gateway.network
-        elif self.conn.getURI().startswith("qemu:///system"):
-            print("system")
+        try:
+            bridge_netiface = netifaces.ifaddresses(bridge_name)
+        except ValueError:
+            print("Bridge not found:", bridge_name)
+            exit(1)
+        ipconfig = bridge_netiface[netifaces.AF_INET]
+        self.gateway = ipaddress.IPv4Interface("{addr}/{netmask}".format(**ipconfig[0]))
+        self.dns = self.gateway
+        self.network = self.gateway.network
 
     def init_storage_pool(self, storage_pool):
         try:
