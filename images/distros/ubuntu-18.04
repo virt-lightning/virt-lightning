@@ -2,7 +2,7 @@ DOWNLOAD_URL=https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudi
 IMAGE_NAME=ubuntu-18.04
 
 function prepare {
-    update-grub because of https://bugs.launchpad.net/cloud-images/+bug/1726476
+    # update-grub because of https://bugs.launchpad.net/cloud-images/+bug/1726476
     virt-sysprep -a ${UPSTREAM_IMAGE_DIR}/${IMAGE_NAME}.qcow2 \
-        --network --install qemu-guest-agent,python --run-command update-grub
+        --network --run-command 'echo "nameserver 169.254.2.3" > /etc/resolv.conf && apt update && apt install -y qemu-guest-agent python' --run-command update-grub
 }

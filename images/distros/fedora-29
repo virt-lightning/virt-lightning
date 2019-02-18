@@ -4,6 +4,6 @@ IMAGE_NAME=fedora-${FEDORA_VERSION}
 
 function prepare {
     virt-sysprep -a ${UPSTREAM_IMAGE_DIR}/${IMAGE_NAME}.qcow2 \
-        --network --update --install qemu-guest-agent,python \
+        --network --run-command 'echo "nameserver 169.254.2.3" > /etc/resolv.conf && dnf update -y && dnf install -y qemu-guest-agent python' \
         --run-command 'systemctl enable qemu-guest-agent' --selinux-relabel
 }
