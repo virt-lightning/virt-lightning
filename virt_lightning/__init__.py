@@ -187,6 +187,21 @@ class LibvirtHypervisor:
         domain.attachDisk(meta_data_iso, device="cdrom", disk_type="raw")
         domain.dom.create()
 
+    def clean_up(self, domain):
+        xml = domain.dom.XMLDesc(0)
+        root = ET.fromstring(xml)
+        for disk in root.findall("./devices/disk[@type='file']/source[@file]"):
+            filepath = disk.attrib["file"]
+            try:
+                self.conn.storageVolLookupByPath(filepath).delete()
+            except libvirt.libvirtError as e:
+                if e.get_error_code() == libvirt.VIR_ERR_NO_STORAGE_VOL:
+                    pass
+        state, _ = domain.dom.state()
+        if state != libvirt.VIR_DOMAIN_SHUTOFF:
+            domain.dom.destroy()
+        domain.dom.undefine()
+
     @property
     def kvm_binary(self):
         paths = [pathlib.PosixPath(i) for i in KVM_BINARIES]
@@ -502,12 +517,6 @@ class LibvirtDomain:
 
     def set_user_password(self, user, password):
         return self.dom.setUserPassword(user, password)
-
-    def clean_up(self):
-        state, _ = self.dom.state()
-        if state != libvirt.VIR_DOMAIN_SHUTOFF:
-            self.dom.destroy()
-        self.dom.undefine()
 
     def ssh_ping(self):
         if hasattr(self, "_ssh_ping"):
