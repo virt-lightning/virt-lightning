@@ -193,10 +193,11 @@ def status(configuration, context=None, live=False):
 
 def down(configuration, context):
     hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
+    hv.init_storage_pool(configuration.storage_pool)
     for domain in hv.list_domains():
         if context and domain.context != context:
             continue
-        domain.clean_up()
+        hv.clean_up(domain)
 
 
 def list_distro(configuration):
