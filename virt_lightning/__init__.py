@@ -235,7 +235,6 @@ class LibvirtHypervisor:
             return
         except libvirt.libvirtError as e:
             if e.get_error_code() == libvirt.VIR_ERR_NO_STORAGE_POOL:
-                print("Storage pool is missing.")
                 pass
 
         if os.geteuid() == 0:
