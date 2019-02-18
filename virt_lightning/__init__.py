@@ -24,6 +24,7 @@ from .templates import (
     DISK_XML,
     DOMAIN_XML,
     STORAGE_POOL_XML,
+    USER_CREATE_STORAGE_POOL_DIR,
 )
 
 KVM_BINARIES = ("/usr/bin/qemu-kvm", "/usr/bin/kvm")
@@ -212,20 +213,27 @@ class LibvirtHypervisor:
             self.storage_pool_obj = self.conn.storagePoolLookupByName(storage_pool)
             if not self.get_storage_dir().is_dir():
                 raise Exception("Missing storage directory:", self.get_storage_dir())
+            if not self.storage_pool_obj.isActive():
+                self.storage_pool_obj.create(0)
             return
         except libvirt.libvirtError as e:
             if e.get_error_code() == libvirt.VIR_ERR_NO_STORAGE_POOL:
                 print("Storage pool is missing.")
                 pass
 
-        if os.geteuid() == 0:
+        if self.conn.getURI().startswith("qemu:///system"):
             storage_dir = pathlib.PosixPath("/var/lib/virt-lightning/pool")
-        else:
+        elif self.conn.getURI().startswith("qemu:///session"):
             storage_dir = pathlib.PosixPath("~/.local/share/virt-lightning/pool")
             storage_dir = storage_dir.expanduser()
+        else:
+            raise Exception("Unsupported libvirt URI")
 
         full_dir = storage_dir / "upstream"
-        full_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            full_dir.mkdir(parents=True, exist_ok=True)
+        except PermissionError:
+            print(USER_CREATE_STORAGE_POOL_DIR.format(storage_dir=storage_dir))
         self.storage_pool_obj = self.create_storage_pool(
             name=storage_pool, directory=storage_dir
         )
@@ -239,6 +247,7 @@ class LibvirtHypervisor:
         if not pool:
             raise Exception("Failed to create pool:", name, xml)
         pool.setAutostart(1)
+        pool.create(0)
         return pool
 
     def distro_available(self):
