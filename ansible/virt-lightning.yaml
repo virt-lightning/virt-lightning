@@ -1,1 +1,18 @@
-- {distro: fedora-29, memory: 3000}
+- distro: fedora-29
+  memory: 3000
+  name: fedora29-user
+- distro: fedora-29
+  memory: 3000
+  name: fedora29-system
+- distro: ubuntu-18.04
+  memory: 3000
+  name: ubuntu1804-system
+- distro: debian-9
+  memory: 3000
+  name: debian9-system
+- distro: debian-9
+  memory: 3000
+  name: debian9-user
+- distro: ubuntu-16.04
+  memory: 3000
+  name: ubuntu1604-system

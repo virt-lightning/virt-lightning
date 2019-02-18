@@ -1,11 +1,5 @@
 ---
 - hosts: all
   tasks:
-    - name: Disable the update repositories
-      command: "dnf config-manager --set-disabled {{ item }}"
-      with_items:
-        - updates
-        - updates-modular
-      become: true
     - import_role:
         name: virt_lightning
