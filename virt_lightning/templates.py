@@ -65,6 +65,14 @@ DOMAIN_XML = """
     <console type='pty'>
       <target type='serial' port='0'/>
     </console>
+    <channel type='unix'>
+      <target type='virtio' name='org.qemu.guest_agent.0'/>
+      <address type='virtio-serial' controller='0' bus='0' port='1'/>
+    </channel>
+    <channel type='spicevmc'>
+      <target type='virtio' name='com.redhat.spice.0'/>
+      <address type='virtio-serial' controller='0' bus='0' port='2'/>
+    </channel>
     <input type='tablet' bus='usb'>
       <address type='usb' bus='0' port='1'/>
     </input>
@@ -98,7 +106,7 @@ BRIDGE_XML = """
 <interface type='bridge'>
   <source bridge='virbr0'/>
   <model type='virtio'/>
-  <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+  <address type='pci'/>
 </interface>
 """
 
