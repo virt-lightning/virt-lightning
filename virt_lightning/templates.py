@@ -125,6 +125,6 @@ STORAGE_POOL_XML = """
 USER_CREATE_STORAGE_POOL_DIR = """
 You need root privilege to create the storage pool, please do:
   sudo mkdir -p {storage_dir}/upstream
-  sudo chown -R qemu:qemu {storage_dir}
+  sudo chown -R {qemu_user}:{qemu_group} {storage_dir}
   sudo chmod 775 {storage_dir} {storage_dir}/upstream
 """

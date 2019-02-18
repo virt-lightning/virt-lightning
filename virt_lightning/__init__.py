@@ -233,7 +233,15 @@ class LibvirtHypervisor:
         try:
             full_dir.mkdir(parents=True, exist_ok=True)
         except PermissionError:
-            print(USER_CREATE_STORAGE_POOL_DIR.format(storage_dir=storage_dir))
+            qemu_dir = pathlib.PosixPath("/var/lib/libvirt/qemu/")
+            print(
+                USER_CREATE_STORAGE_POOL_DIR.format(
+                    qemu_user=qemu_dir.owner(),
+                    qemu_group=qemu_dir.group(),
+                    storage_dir=storage_dir,
+                )
+            )
+            exit(1)
         self.storage_pool_obj = self.create_storage_pool(
             name=storage_pool, directory=storage_dir
         )
