@@ -1,11 +1,12 @@
 import configparser
 import getpass
 import os
+import pathlib
 from abc import ABCMeta, abstractproperty
 
-DEFAULT_CONFIGFILE = "{home}/.config/virt-lightning/config.ini".format(
+DEFAULT_CONFIGFILE = pathlib.PosixPath("{home}/.config/virt-lightning/config.ini".format(
     home=os.environ["HOME"]
-)
+))
 
 DEFAULT_CONFIGURATION = {
     "main": {
@@ -51,8 +52,11 @@ class AbstractConfiguration(metaclass=ABCMeta):
 
 
 class Configuration(AbstractConfiguration):
-    def __init__(self, obj):
-        self.data = obj
+    def __init__(self):
+        self.data = configparser.ConfigParser()
+        self.data["main"] = DEFAULT_CONFIGURATION["main"]
+        if DEFAULT_CONFIGFILE.exists():
+            self.load_file(DEFAULT_CONFIGFILE)
 
     def __get(self, key):
         return self.data.get("main", key)
@@ -86,36 +90,9 @@ class Configuration(AbstractConfiguration):
     def storage_pool(self):
         return self.__get("storage_pool")
 
+    def load_file(self, filepath):
+        with open(self.filename, "r", encoding="utf-8") as f:
+            self.load_fd(f)
 
-class ReadConfigShell:
-    def __init__(self, filename=None):
-        self.filename = filename
-        self.data = None
-
-    def __readfile(self):
-        if self.filename == DEFAULT_CONFIGFILE and not os.path.isfile(
-            DEFAULT_CONFIGFILE
-        ):
-            self.filename = None
-        else:
-            with open(self.filename, "r", encoding="utf-8") as f:
-                self.data = f.read()
-
-    def load(self):
-        parsed = configparser.ConfigParser()
-
-        self.__readfile()
-
-        if not self.filename:
-            parsed.read_dict(DEFAULT_CONFIGURATION)
-            config = Configuration(parsed)
-
-            return config
-
-        parsed.read_string(self.data)
-        config = Configuration(parsed)
-
-        return config
-
-    def __repr__(self):
-        return "Config(filename={filename})".format(filename=self.filename)
+    def load_fd(self, fd):
+        self.data.read_string(fd.read())

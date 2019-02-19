@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 import argparse
-import os
+import pathlib
 import re
 import sys
 import time
 
 import virt_lightning as vl
-from virt_lightning.configuration import DEFAULT_CONFIGFILE, ReadConfigShell
+from virt_lightning.configuration import Configuration
 from virt_lightning.symbols import get_symbols
 
 import yaml
@@ -17,38 +17,14 @@ CURSOR_UP_ONE = "\x1b[1A"
 ERASE_LINE = "\x1b[2K"
 
 
-def load_vm_config(config_file):
-    if not os.path.isfile(config_file):
-        print("Configuration file not found")
-        return None
-
-    try:
-        with open(config_file, "r") as fd:
-            host_definitions = yaml.load(fd)
-
-            return host_definitions
-
-    except IOError:
-        print("Error while open configuration file")
-    except yaml.YAMLError as e:
-        print("Can not parse yaml file", e)
-
-    return None
-
-
-def up(configuration, virt_lightning_yaml_path, context):
-    host_definitions = load_vm_config(virt_lightning_yaml_path)
-
-    if not host_definitions:
-        return
-
+def up(virt_lightning_yaml, configuration, context, **kwargs):
     hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
     hv.init_network(configuration.bridge)
     hv.init_storage_pool(configuration.storage_pool)
 
     status_line = "Starting:"
 
-    for host in host_definitions:
+    for host in virt_lightning_yaml:
         if host["distro"] not in hv.distro_available():
             print("distro not available:", host["distro"])
             print("Please select on of the following distro:", hv.distro_available())
@@ -119,7 +95,7 @@ def up(configuration, virt_lightning_yaml_path, context):
             break
 
 
-def ansible_inventory(configuration, context):
+def ansible_inventory(configuration, context, **kwargs):
     hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
 
     ssh_cmd_template = (
@@ -155,7 +131,7 @@ def get_status(hv, context):
     return status
 
 
-def status(configuration, context=None, live=False):
+def status(configuration, context=None, **kwargs):
     hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
     results = {}
 
@@ -169,29 +145,25 @@ def status(configuration, context=None, live=False):
         else:
             return symbols.CROSS.value
 
-    while True:
-        for status in get_status(hv, context):
-            results[status["name"]] = {
-                "name": status["name"],
-                "ipv4": status["ipv4"] or "waiting",
-                "context": status["context"],
-                "username": status["username"],
-                "ssh_ping": iconify(status["ssh_ping"]),
-            }
+    for status in get_status(hv, context):
+        results[status["name"]] = {
+            "name": status["name"],
+            "ipv4": status["ipv4"] or "waiting",
+            "context": status["context"],
+            "username": status["username"],
+            "ssh_ping": iconify(status["ssh_ping"]),
+        }
 
-        for _ in range(0, len(results) + 1):
-            sys.stdout.write(CURSOR_UP_ONE)
-            sys.stdout.write(ERASE_LINE)
+    for _ in range(0, len(results) + 1):
+        sys.stdout.write(CURSOR_UP_ONE)
+        sys.stdout.write(ERASE_LINE)
 
-        print("[host]        [username@IP]")
-        for _, v in sorted(results.items()):
-            print("{name:<13} {username}@{ipv4:>5} {ssh_ping}".format(**v))
-        if not live:
-            break
-        time.sleep(0.5)
+    print("[host]        [username@IP]")
+    for _, v in sorted(results.items()):
+        print("{name:<13} {username}@{ipv4:>5} {ssh_ping}".format(**v))
 
 
-def down(configuration, context):
+def down(configuration, context, **kwargs):
     hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
     hv.init_storage_pool(configuration.storage_pool)
     for domain in hv.list_domains():
@@ -200,7 +172,7 @@ def down(configuration, context):
         hv.clean_up(domain)
 
 
-def list_distro(configuration):
+def distro_list(configuration, **kwargs):
     hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
     hv.init_storage_pool(configuration.storage_pool)
     for distro in hv.distro_available():
@@ -215,87 +187,96 @@ def storage_dir(configuration):
 
 def main():
 
+    usage = """⚡ Virt-Lightning ⚡
+
+usage: vl [--debug DEBUG] [--config CONFIG]
+          {up,down,status,distro_list,storage_dir,ansible_inventory} ..."""
     example = """
-    Example:
+Example:
 
-      # We export the list of the distro in the virt-lightning.yaml file.
-      $ vl distro > virt-lightning.yaml
+ We export the list of the distro in the virt-lightning.yaml file.
+   $ vl distro_list > virt-lightning.yaml
 
-      # For each line, virt-lightning will start a VM with the associated distro.
-      $ vl up
+ For each line of the virt-lightning.yaml, start a VM with the associated distro.
+   $ vl up
 
-      # Once the VM are up, we can generate an Ansible inventory file:
-      $ vl ansible_inventory
+ Once the VM are up, we can generate an Ansible inventory file:
+   $ vl ansible_inventory
 
-      # The file is ready to be used by Ansible:
-      $ ansible all -m ping -i inventory
+ The file is ready to be used by Ansible:
+   $ ansible all -m ping -i inventory"""
 
+    def list_from_yaml_file(path):
+        with pathlib.PosixPath(path).open(encoding="UTF-8") as fd:
+            content = yaml.load(fd.read())
+            if not isinstance(content, list):
+                raise argparse.ArgumentTypeError("{path} should be a YAML list.".format(path=path))
+            return content
 
-    """
+    vl_lightning_yaml_args = {
+        "default": "virt-lightning.yaml",
+        "help": "point on an alternative virt-lightning.yaml file (default: %(default)s)",
+        "type": list_from_yaml_file,
+        "dest": "virt_lightning_yaml",
+    }
 
-    parser = argparse.ArgumentParser(
-        description="virt-lightning",
-        epilog=example,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+    context_args = {
+        "default": "default",
+        "help": "alternative context (default: %(default)s)",
+        "dest": "context",
+    }
+
+    parent_parser = argparse.ArgumentParser(add_help=False)
+    main_parser = argparse.ArgumentParser()
+    main_parser.add_argument(
+        "--debug", default=False, help="Print extra information (default: %(default)s)"
     )
-    parser.add_argument(
-        "action",
-        choices=[
-            "up",
-            "down",
-            "status",
-            "ansible_inventory",
-            "distro",
-            "clean_all",
-            "status_all",
-            "status_live",
-            "storage_dir",
-        ],
-        help="The action to call.",
-    )
-    parser.add_argument(
-        "--virt-lightning-yaml",
-        default="virt-lightning.yaml",
-        help="point on an alternative virt-lightning.yaml file (default: %(default)s)",
-    )
-    parser.add_argument(
-        "--context",
-        default="default",
-        help="change the name of the context (default: %(default)s)",
-    )
-    parser.add_argument(
+    main_parser.add_argument(
         "--config",
         help="path to configuration file",
         required=False,
-        default=DEFAULT_CONFIGFILE,
+        type=argparse.FileType("r", encoding="UTF-8"),
     )
 
-    args = parser.parse_args()
+    action_subparsers = main_parser.add_subparsers(title="action", dest="action")
 
-    try:
-        configuration = ReadConfigShell(args.config).load()
-    except FileNotFoundError:
-        print("Configuration file not found")
+    up_parser = action_subparsers.add_parser(
+        "up", help="first", parents=[parent_parser]
+    )
+    up_parser.add_argument("--virt-lightning-yaml", **vl_lightning_yaml_args)
+    up_parser.add_argument("--context", **context_args)
+
+    down_parser = action_subparsers.add_parser(
+        "down", help="first", parents=[parent_parser]
+    )
+    down_parser.add_argument("--context", **context_args)
+
+    status_parser = action_subparsers.add_parser(
+        "status", help="first", parents=[parent_parser]
+    )
+    status_parser.add_argument("--context", **context_args)
+
+    action_subparsers.add_parser("distro_list", help="first", parents=[parent_parser])
+
+    action_subparsers.add_parser(
+        "storage_dir", help="Print the storage directory", parents=[parent_parser]
+    )
+
+    ansible_inventory_parser = action_subparsers.add_parser(
+        "ansible_inventory",
+        help="Print an ansible_inventory of the running environment",
+        parents=[parent_parser],
+    )
+    ansible_inventory_parser.add_argument("--context", **context_args)
+
+    args = main_parser.parse_args()
+    if not args.action:
+        print(usage)
+        print(example)
         exit(1)
-    except Exception as e:
-        print("Can not get configuration from file")
-        raise (e)
 
-    if args.action == "up":
-        up(configuration, args.virt_lightning_yaml, args.context)
-    elif args.action == "down":
-        down(configuration, args.context)
-    elif args.action == "ansible_inventory":
-        ansible_inventory(configuration, args.context)
-    elif args.action == "distro":
-        list_distro(configuration)
-    elif args.action == "clean_all":
-        down(configuration)
-    elif args.action == "status_all":
-        status(configuration)
-    elif args.action == "status":
-        status(configuration, args.context)
-    elif args.action == "status_live":
-        status(configuration, args.context, True)
-    elif args.action == "storage_dir":
-        storage_dir(configuration)
+    configuration = Configuration()
+    if args.config:
+        configuration.load_fd(args.config)
+
+    globals()[args.action](configuration=configuration, **vars(args))
