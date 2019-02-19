@@ -7,13 +7,13 @@
   become: true
 - name: Record the storage pool location
   shell: |
-    source ~/venv/bin/activate
+    . ~/venv/bin/activate
     vl storage_dir
   register: storage_dir
 
 - name: Build the images
   shell: |
-    source ~/venv/bin/activate
+    . ~/venv/bin/activate
     cd ~/virt-lightning/images
     ./image centos-7 download
   args:
