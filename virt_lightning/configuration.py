@@ -4,9 +4,9 @@ import os
 import pathlib
 from abc import ABCMeta, abstractproperty
 
-DEFAULT_CONFIGFILE = pathlib.PosixPath("{home}/.config/virt-lightning/config.ini".format(
-    home=os.environ["HOME"]
-))
+DEFAULT_CONFIGFILE = pathlib.PosixPath(
+    "{home}/.config/virt-lightning/config.ini".format(home=os.environ["HOME"])
+)
 
 DEFAULT_CONFIGURATION = {
     "main": {

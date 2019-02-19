@@ -210,7 +210,9 @@ Example:
         with pathlib.PosixPath(path).open(encoding="UTF-8") as fd:
             content = yaml.load(fd.read())
             if not isinstance(content, list):
-                raise argparse.ArgumentTypeError("{path} should be a YAML list.".format(path=path))
+                raise argparse.ArgumentTypeError(
+                    "{path} should be a YAML list.".format(path=path)
+                )
             return content
 
     vl_lightning_yaml_args = {
