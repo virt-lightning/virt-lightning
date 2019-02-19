@@ -6,7 +6,7 @@ import re
 import sys
 import time
 
-import virt_lightning as vl
+import virt_lightning.virt_lightning as vl
 from virt_lightning.configuration import Configuration
 from virt_lightning.symbols import get_symbols
 
