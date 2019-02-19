@@ -1,0 +1,16 @@
+---
+virt_lightning_packages:
+  - gcc
+  - libguestfs-tools
+  - libvirt-bin
+  - libvirt-daemon
+  - libvirt-dev
+  - python3
+  - python3-dev
+  - python3-venv
+virt_lightning_groups:
+  - kvm
+  - libvirtd
+virt_lightning_qemu_uri: qemu:///system
+virt_lightning_qemu_owner: libvirt-qemu
+virt_lightning_qemu_group: kvm
