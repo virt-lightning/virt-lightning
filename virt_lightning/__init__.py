@@ -24,6 +24,7 @@ from .templates import (
     DISK_XML,
     DOMAIN_XML,
     STORAGE_POOL_XML,
+    USER_CREATE_STORAGE_POOL_DIR,
 )
 
 KVM_BINARIES = ("/usr/bin/qemu-kvm", "/usr/bin/kvm")
@@ -187,6 +188,21 @@ class LibvirtHypervisor:
         domain.attachDisk(meta_data_iso, device="cdrom", disk_type="raw")
         domain.dom.create()
 
+    def clean_up(self, domain):
+        xml = domain.dom.XMLDesc(0)
+        root = ET.fromstring(xml)
+        for disk in root.findall("./devices/disk[@type='file']/source[@file]"):
+            filepath = disk.attrib["file"]
+            try:
+                self.conn.storageVolLookupByPath(filepath).delete()
+            except libvirt.libvirtError as e:
+                if e.get_error_code() == libvirt.VIR_ERR_NO_STORAGE_VOL:
+                    pass
+        state, _ = domain.dom.state()
+        if state != libvirt.VIR_DOMAIN_SHUTOFF:
+            domain.dom.destroy()
+        domain.dom.undefine()
+
     @property
     def kvm_binary(self):
         paths = [pathlib.PosixPath(i) for i in KVM_BINARIES]
@@ -197,39 +213,49 @@ class LibvirtHypervisor:
             raise Exception("Failed to find the kvm binary in: ", paths)
 
     def init_network(self, bridge_name):
-        if self.conn.getURI().startswith("qemu:///session"):
-            try:
-                bridge_netiface = netifaces.ifaddresses(bridge_name)
-            except ValueError:
-                print("Bridge not found:", bridge_name)
-                exit(1)
-            ipconfig = bridge_netiface[netifaces.AF_INET]
-            self.gateway = ipaddress.IPv4Interface(
-                "{addr}/{netmask}".format(**ipconfig[0])
-            )
-            self.dns = self.gateway
-            self.network = self.gateway.network
-        elif self.conn.getURI().startswith("qemu:///system"):
-            print("system")
+        try:
+            bridge_netiface = netifaces.ifaddresses(bridge_name)
+        except ValueError:
+            print("Bridge not found:", bridge_name)
+            exit(1)
+        ipconfig = bridge_netiface[netifaces.AF_INET]
+        self.gateway = ipaddress.IPv4Interface("{addr}/{netmask}".format(**ipconfig[0]))
+        self.dns = self.gateway
+        self.network = self.gateway.network
 
     def init_storage_pool(self, storage_pool):
         try:
             self.storage_pool_obj = self.conn.storagePoolLookupByName(storage_pool)
             if not self.get_storage_dir().is_dir():
                 raise Exception("Missing storage directory:", self.get_storage_dir())
+            if not self.storage_pool_obj.isActive():
+                self.storage_pool_obj.create(0)
             return
         except libvirt.libvirtError as e:
             if e.get_error_code() == libvirt.VIR_ERR_NO_STORAGE_POOL:
                 pass
 
-        if os.geteuid() == 0:
+        if self.conn.getURI().startswith("qemu:///system"):
             storage_dir = pathlib.PosixPath("/var/lib/virt-lightning/pool")
-        else:
+        elif self.conn.getURI().startswith("qemu:///session"):
             storage_dir = pathlib.PosixPath("~/.local/share/virt-lightning/pool")
             storage_dir = storage_dir.expanduser()
+        else:
+            raise Exception("Unsupported libvirt URI")
 
         full_dir = storage_dir / "upstream"
-        full_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            full_dir.mkdir(parents=True, exist_ok=True)
+        except PermissionError:
+            qemu_dir = pathlib.PosixPath("/var/lib/libvirt/qemu/")
+            print(
+                USER_CREATE_STORAGE_POOL_DIR.format(
+                    qemu_user=qemu_dir.owner(),
+                    qemu_group=qemu_dir.group(),
+                    storage_dir=storage_dir,
+                )
+            )
+            exit(1)
         self.storage_pool_obj = self.create_storage_pool(
             name=storage_pool, directory=storage_dir
         )
@@ -243,6 +269,7 @@ class LibvirtHypervisor:
         if not pool:
             raise Exception("Failed to create pool:", name, xml)
         pool.setAutostart(1)
+        pool.create(0)
         return pool
 
     def distro_available(self):
@@ -501,12 +528,6 @@ class LibvirtDomain:
 
     def set_user_password(self, user, password):
         return self.dom.setUserPassword(user, password)
-
-    def clean_up(self):
-        state, _ = self.dom.state()
-        if state != libvirt.VIR_DOMAIN_SHUTOFF:
-            self.dom.destroy()
-        self.dom.undefine()
 
     def ssh_ping(self):
         if hasattr(self, "_ssh_ping"):

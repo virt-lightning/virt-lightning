@@ -5,7 +5,7 @@
     creates: ~/.ssh/id_rsa
 - name: Start the environment
   shell: |
-    source ~/venv/bin/activate
+    . ~/venv/bin/activate
     vl distro > virt-lightning.yaml
     vl up
     vl ansible_inventory > inventory
@@ -15,9 +15,9 @@
   become: true
 - name: Test the new VM
   shell: |
-    source ~/venv/bin/activate
+    . ~/venv/bin/activate
     ansible all -m shell -a "ping -c 1 google.ca" -i inventory
 - name: Destroy the environment
   shell: |
-    source ~/venv/bin/activate
+    . ~/venv/bin/activate
     vl down

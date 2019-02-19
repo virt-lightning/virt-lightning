@@ -2,7 +2,8 @@
 set -eux
 
 vl down
-vl up
+time vl up
 vl ansible_inventory > inventory
-ansible-playbook playbook.yml -i inventory
+ansible-playbook playbook.yml -i inventory -e dev_mode=1
 vl down
+rm inventory
