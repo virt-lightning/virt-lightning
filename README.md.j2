@@ -14,77 +14,28 @@ vl ansible_inventory
 ansible all -m ping -i inventory
 ```
 
+[![demo](https://asciinema.org/a/auiusqdLi83LmnqjibmX7ihtg.svg)](https://asciinema.org/a/auiusqdLi83LmnqjibmX7ihtg?autoplay=1)
+
 ## Pre-requirements
 
+{% for distro in distros %}
 
-
-<details><summary>Debian-9</summary>
+<details><summary>{{ distro.name }}</summary>
 <p>
 
 First you need to install libvirt and guestfs:
 ```shell
-sudo apt install -f gcc libguestfs-tools libvirt-daemon libvirt-daemon-system libvirt-dev python3 python3-dev python3-venv rsync
+sudo {% if name == "Fedora" %}dnf{% else %}apt{% endif %} install -f {{ distro.virt_lightning_packages | join(" ") }}
 sudo systemctl start --now libvirtd
 ```
 
 The second step is to grant to your user the ability to use libvirt:
 ```shell
-sudo usermod -a -G kvm,libvirt,libvirt-qemu $USER
+sudo usermod -a -G {{ distro.virt_lightning_groups | join(",") }} $USER
 ```
 </p>
 </details>
-
-
-<details><summary>Fedora-29</summary>
-<p>
-
-First you need to install libvirt and guestfs:
-```shell
-sudo apt install -f gcc libguestfs-tools libselinux-python libvirt libvirt-devel python3 python3-virtualenv
-sudo systemctl start --now libvirtd
-```
-
-The second step is to grant to your user the ability to use libvirt:
-```shell
-sudo usermod -a -G qemu,libvirt $USER
-```
-</p>
-</details>
-
-
-<details><summary>Ubuntu-16.04</summary>
-<p>
-
-First you need to install libvirt and guestfs:
-```shell
-sudo apt install -f gcc libguestfs-tools libvirt-bin libvirt-daemon libvirt-dev python3 python3-dev python3-venv
-sudo systemctl start --now libvirtd
-```
-
-The second step is to grant to your user the ability to use libvirt:
-```shell
-sudo usermod -a -G kvm,libvirtd $USER
-```
-</p>
-</details>
-
-
-<details><summary>Ubuntu-18.04</summary>
-<p>
-
-First you need to install libvirt and guestfs:
-```shell
-sudo apt install -f gcc libguestfs-tools libvirt-bin libvirt-daemon libvirt-dev python3 python3-dev python3-venv
-sudo systemctl start --now libvirtd
-```
-
-The second step is to grant to your user the ability to use libvirt:
-```shell
-sudo usermod -a -G kvm,libvirt $USER
-```
-</p>
-</details>
-
+{% endfor %}
 
 
 ## Installation
