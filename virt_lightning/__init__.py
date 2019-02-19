@@ -201,7 +201,9 @@ class LibvirtHypervisor:
         state, _ = domain.dom.state()
         if state != libvirt.VIR_DOMAIN_SHUTOFF:
             domain.dom.destroy()
-        domain.dom.undefine()
+        flag = libvirt.VIR_DOMAIN_UNDEFINE_MANAGED_SAVE
+        flag |= libvirt.VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
+        domain.dom.undefineFlags(flag)
 
     @property
     def kvm_binary(self):
