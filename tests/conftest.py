@@ -1,7 +1,7 @@
 import pytest
 
 import libvirt
-import virt_lightning
+import virt_lightning.virt_lightning as vl
 import pathlib
 from unittest.mock import patch
 from unittest.mock import Mock
@@ -19,7 +19,7 @@ def clean_up():
 @pytest.fixture
 def hv(scope="function"):
     libvirt_uri = "test:///default"
-    hv = virt_lightning.LibvirtHypervisor(libvirt_uri)
+    hv = vl.LibvirtHypervisor(libvirt_uri)
     hv.conn.getURI = Mock(return_value="qemu:///session")
     yield hv
     clean_up()
@@ -35,4 +35,4 @@ def kvm_binaries(tmp_path):
     kvm_f = tmp_path / "kvm-dummy"
     with kvm_f.open(mode='wt') as fd:
         fd.write("aa")
-    virt_lightning.KVM_BINARIES = (kvm_f,)
+    vl.KVM_BINARIES = (kvm_f,)
