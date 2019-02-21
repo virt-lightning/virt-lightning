@@ -10,6 +10,5 @@ virt_lightning_packages:
 virt_lightning_groups:
   - qemu
   - libvirt
-virt_lightning_qemu_uri: qemu:///session
 virt_lightning_qemu_owner: qemu
 virt_lightning_qemu_group: qemu
