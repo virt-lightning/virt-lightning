@@ -190,6 +190,13 @@ class LibvirtHypervisor:
 
     def clean_up(self, domain):
         xml = domain.dom.XMLDesc(0)
+        state, _ = domain.dom.state()
+        if state != libvirt.VIR_DOMAIN_SHUTOFF:
+            domain.dom.destroy()
+        flag = libvirt.VIR_DOMAIN_UNDEFINE_MANAGED_SAVE
+        flag |= libvirt.VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
+        domain.dom.undefineFlags(flag)
+
         root = ET.fromstring(xml)
         for disk in root.findall("./devices/disk[@type='file']/source[@file]"):
             filepath = disk.attrib["file"]
@@ -198,12 +205,6 @@ class LibvirtHypervisor:
             except libvirt.libvirtError as e:
                 if e.get_error_code() == libvirt.VIR_ERR_NO_STORAGE_VOL:
                     pass
-        state, _ = domain.dom.state()
-        if state != libvirt.VIR_DOMAIN_SHUTOFF:
-            domain.dom.destroy()
-        flag = libvirt.VIR_DOMAIN_UNDEFINE_MANAGED_SAVE
-        flag |= libvirt.VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
-        domain.dom.undefineFlags(flag)
 
     @property
     def kvm_binary(self):
