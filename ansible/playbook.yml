@@ -1,5 +1,12 @@
 ---
 - hosts: all
   tasks:
+    - name: Add the find users to the current users
+      user:
+        name: "{{ansible_user_id}}"
+        shell: /bin/bash
+      become: true
     - import_role:
         name: virt_lightning
+      vars:
+        virt_lightning_run_tests: true
