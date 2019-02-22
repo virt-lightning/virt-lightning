@@ -562,3 +562,9 @@ class LibvirtDomain:
             return True
         else:
             return False
+
+    def __gt__(self, other):
+        return self.name > other.name
+
+    def __lt__(self, other):
+        return self.name < other.name
