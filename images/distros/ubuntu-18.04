@@ -1,4 +1,4 @@
-DOWNLOAD_URL=https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img
+DOWNLOAD_URL=${MIRROR_URL:-https://cloud-images.ubuntu.com}/bionic/current/bionic-server-cloudimg-amd64.img
 IMAGE_NAME=ubuntu-18.04
 
 function prepare {
