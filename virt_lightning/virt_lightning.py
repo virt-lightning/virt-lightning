@@ -524,6 +524,9 @@ class LibvirtDomain:
         except libvirt.libvirtError as e:
             if e.get_error_code() == libvirt.VIR_ERR_AGENT_UNRESPONSIVE:
                 pass
+            elif "internal error: Guest agent returned ID" in e.get_error_message():
+                # workaround for ubuntu 16.04
+                pass
             else:
                 print(e.get_error_code())
                 raise (e)
