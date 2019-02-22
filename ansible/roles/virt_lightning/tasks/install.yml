@@ -2,18 +2,52 @@
 - name: Install the virt-lightning dependencies
   package:
     name: "{{ virt_lightning_packages }}"
-
+  become: true
+- name: Install git, setup.py needs it
+  package:
+    name: git
+  become: true
+- name: Install the dependencies of the virt_net Ansible module
+  package:
+    name:
+      - python-libvirt
+      - python-lxml
+  become: true
+- name: Avoid any conflict with the master network
+  command: sed -i s,122,124,g /etc/libvirt/qemu/networks/default.xml
   become: true
 - name: Start libvirt
   service:
     name: libvirtd
     state: started
   become: true
-- name: Add the find users to the current users
+- name: Create the virt-lightning network
+  virt_net:
+    command: define
+    name: virt-lightning
+    uri: "{{ virt_lightning_qemu_uri }}"
+    xml: "{{lookup('file', 'virt-lightning.xml')}}"
+  become: true
+- name: Start the virt-lightning network
+  virt_net:
+    command: create
+    name: virt-lightning
+  become: true
+  register: virt_net_start
+  failed_when: false
+- name: Add the fine users to the current users
   user:
     name: "{{ansible_user_id}}"
     groups: "{{ virt_lightning_groups }}"
   become: true
+- name: Write the polkit configuration
+  template:
+    src: polkit.rules.j2
+    dest: /etc/polkit-1/rules.d/80-libvirt.rules
+  become: true
+  when:
+    - ansible_distribution == "Fedora"
+    - virt_lightning_qemu_uri == "qemu:///system"
 - name: reset ssh connection to reload the groups
   meta: reset_connection
 - name: Push the working directory
