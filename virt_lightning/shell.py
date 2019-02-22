@@ -6,7 +6,7 @@ import re
 import sys
 import time
 
-import virt_lightning as vl
+import virt_lightning.virt_lightning as vl
 from virt_lightning.configuration import Configuration
 from virt_lightning.symbols import get_symbols
 
@@ -179,7 +179,7 @@ def distro_list(configuration, **kwargs):
         print("- distro: {distro}".format(distro=distro))
 
 
-def storage_dir(configuration):
+def storage_dir(configuration, **kwargs):
     hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
     hv.init_storage_pool(configuration.storage_pool)
     print(hv.get_storage_dir())
@@ -206,11 +206,13 @@ Example:
  The file is ready to be used by Ansible:
    $ ansible all -m ping -i inventory"""
 
-    def list_from_yaml_file(path):
-        with pathlib.PosixPath(path).open(encoding="UTF-8") as fd:
+    def list_from_yaml_file(value):
+        with pathlib.PosixPath(value).open(encoding="UTF-8") as fd:
             content = yaml.load(fd.read())
             if not isinstance(content, list):
-                raise argparse.ArgumentTypeError("{path} should be a YAML list.".format(path=path))
+                raise argparse.ArgumentTypeError(
+                    "{path} should be a YAML list.".format(path=value)
+                )
             return content
 
     vl_lightning_yaml_args = {
@@ -235,7 +237,7 @@ Example:
         "--config",
         help="path to configuration file",
         required=False,
-        type=argparse.FileType("r", encoding="UTF-8"),
+        type=pathlib.PosixPath,
     )
 
     action_subparsers = main_parser.add_subparsers(title="action", dest="action")
@@ -277,6 +279,6 @@ Example:
 
     configuration = Configuration()
     if args.config:
-        configuration.load_fd(args.config)
+        configuration.load_file(args.config)
 
     globals()[args.action](configuration=configuration, **vars(args))

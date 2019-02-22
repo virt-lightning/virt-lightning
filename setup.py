@@ -45,16 +45,21 @@ setuptools.setup(
     author_email="goneri@lebouder.net",
     description="Deploy your testing VM in a couple of sections",
     long_description=_get_readme(),
+    long_description_content_type="text/markdown",
     install_requires=_get_requirements(),
     url="https://github.com/virt-lightning/virt-lightning",
+    use_scm_version={"write_to": "virt_lightning/version.py"},
     license="Apache v2.0",
+    platforms=["linux"],
     classifiers=[
         "Environment :: Console",
         "Intended Audience :: Developers",
         "Intended Audience :: Information Technology",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "Topic :: System :: Distributed Computing",
     ],
     entry_points={
@@ -63,4 +68,5 @@ setuptools.setup(
             "vl = virt_lightning.shell:main",
         ]
     },
+    setup_requires=["setuptools_scm"],
 )

@@ -1,12 +1,11 @@
 import configparser
 import getpass
 import os
-import pathlib
 from abc import ABCMeta, abstractproperty
+from pathlib import PosixPath
 
-DEFAULT_CONFIGFILE = pathlib.PosixPath("{home}/.config/virt-lightning/config.ini".format(
-    home=os.environ["HOME"]
-))
+DEFAULT_CONFIGFILE = PosixPath("~/.config/virt-lightning/config.ini")
+
 
 DEFAULT_CONFIGURATION = {
     "main": {
@@ -55,8 +54,8 @@ class Configuration(AbstractConfiguration):
     def __init__(self):
         self.data = configparser.ConfigParser()
         self.data["main"] = DEFAULT_CONFIGURATION["main"]
-        if DEFAULT_CONFIGFILE.exists():
-            self.load_file(DEFAULT_CONFIGFILE)
+        if DEFAULT_CONFIGFILE.expanduser().exists():
+            self.load_file(DEFAULT_CONFIGFILE.expanduser())
 
     def __get(self, key):
         return self.data.get("main", key)
@@ -90,9 +89,5 @@ class Configuration(AbstractConfiguration):
     def storage_pool(self):
         return self.__get("storage_pool")
 
-    def load_file(self, filepath):
-        with open(self.filename, "r", encoding="utf-8") as f:
-            self.load_fd(f)
-
-    def load_fd(self, fd):
-        self.data.read_string(fd.read())
+    def load_file(self, config_file):
+        self.data.read_string(config_file.read_text())
