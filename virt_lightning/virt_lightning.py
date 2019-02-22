@@ -27,7 +27,7 @@ from .templates import (
     USER_CREATE_STORAGE_POOL_DIR,
 )
 
-KVM_BINARIES = ("/usr/bin/qemu-kvm", "/usr/bin/kvm")
+KVM_BINARIES = ("/usr/bin/qemu-system-x86_64", "/usr/bin/qemu-kvm", "/usr/bin/kvm")
 
 
 def libvirt_callback(userdata, err):
