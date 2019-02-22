@@ -106,7 +106,6 @@ BRIDGE_XML = """
 <interface type='bridge'>
   <source bridge='virbr0'/>
   <model type='virtio'/>
-  <address type='pci'/>
 </interface>
 """
 
