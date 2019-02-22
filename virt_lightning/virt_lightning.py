@@ -197,14 +197,13 @@ class LibvirtHypervisor:
         flag |= libvirt.VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
         domain.dom.undefineFlags(flag)
 
+        self.storage_pool_obj.refresh()
         root = ET.fromstring(xml)
         for disk in root.findall("./devices/disk[@type='file']/source[@file]"):
-            filepath = disk.attrib["file"]
-            try:
-                self.conn.storageVolLookupByPath(filepath).delete()
-            except libvirt.libvirtError as e:
-                if e.get_error_code() == libvirt.VIR_ERR_NO_STORAGE_VOL:
-                    pass
+            filepath = pathlib.PosixPath(disk.attrib["file"])
+            if filepath.exists():
+                vol = self.storage_pool_obj.storageVolLookupByName(filepath.name)
+                vol.delete()
 
     @property
     def kvm_binary(self):
