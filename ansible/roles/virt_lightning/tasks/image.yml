@@ -15,6 +15,6 @@
   shell: |
     . ~/venv/bin/activate
     cd ~/virt-lightning/images
-    ./image centos-7 download
+    MIRROR_URL=http://192.168.122.1 ./image centos-7 download
   args:
     creates: "{{ storage_dir.stdout }}/upstream/centos-7.qcow2"
