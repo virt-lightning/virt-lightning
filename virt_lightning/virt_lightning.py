@@ -430,7 +430,7 @@ class LibvirtDomain:
 
     def add_swap_disk(self, swap_path):
         device_name = self.attachDisk(swap_path)
-        self.cloud_init["mounts"] = [device_name, "none", "swap", "sw", 0, 0]
+        self.cloud_init["mounts"] = [[device_name, "none", "swap", "sw", 0, 0]]
         self.cloud_init["bootcmd"].append("mkswap /dev/vdb")
         self.cloud_init["bootcmd"].append("swapon /dev/vdb")
 
