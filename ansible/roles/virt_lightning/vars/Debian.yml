@@ -8,7 +8,6 @@ virt_lightning_packages:
   - python3
   - python3-dev
   - python3-venv
-  - rsync
 virt_lightning_groups:
   - kvm
   - libvirt
