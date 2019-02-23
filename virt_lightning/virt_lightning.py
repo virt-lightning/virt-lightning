@@ -197,14 +197,13 @@ class LibvirtHypervisor:
         flag |= libvirt.VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
         domain.dom.undefineFlags(flag)
 
+        self.storage_pool_obj.refresh()
         root = ET.fromstring(xml)
         for disk in root.findall("./devices/disk[@type='file']/source[@file]"):
-            filepath = disk.attrib["file"]
-            try:
-                self.conn.storageVolLookupByPath(filepath).delete()
-            except libvirt.libvirtError as e:
-                if e.get_error_code() == libvirt.VIR_ERR_NO_STORAGE_VOL:
-                    pass
+            filepath = pathlib.PosixPath(disk.attrib["file"])
+            if filepath.exists():
+                vol = self.storage_pool_obj.storageVolLookupByName(filepath.name)
+                vol.delete()
 
     @property
     def kvm_binary(self):
@@ -432,7 +431,7 @@ class LibvirtDomain:
 
     def add_swap_disk(self, swap_path):
         device_name = self.attachDisk(swap_path)
-        self.cloud_init["mounts"] = [device_name, "none", "swap", "sw", 0, 0]
+        self.cloud_init["mounts"] = [[device_name, "none", "swap", "sw", 0, 0]]
         self.cloud_init["bootcmd"].append("mkswap /dev/vdb")
         self.cloud_init["bootcmd"].append("swapon /dev/vdb")
 
@@ -525,6 +524,9 @@ class LibvirtDomain:
             pass
         except libvirt.libvirtError as e:
             if e.get_error_code() == libvirt.VIR_ERR_AGENT_UNRESPONSIVE:
+                pass
+            elif "internal error: Guest agent returned ID" in e.get_error_message():
+                # workaround for ubuntu 16.04
                 pass
             else:
                 print(e.get_error_code())
