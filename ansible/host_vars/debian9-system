@@ -1,2 +1,3 @@
 ---
-virt_lightning_qemu_uri: qemu:///session
+virt_lightning_qemu_uri: qemu:///system
+virt_lightning_bridge: virt-lightning0

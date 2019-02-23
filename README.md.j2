@@ -14,7 +14,18 @@ vl ansible_inventory
 ansible all -m ping -i inventory
 ```
 
+In this example, we:
+
+1. use the list of distribution to generate a virt-lightning.yaml file.
+2. we than create a environment based on this file
+3. once the environment is ready, we generate an Ansible inventory file
+4. and we use it to call Ansible's ping module on all the host.
+
 [![demo](https://asciinema.org/a/auiusqdLi83LmnqjibmX7ihtg.svg)](https://asciinema.org/a/auiusqdLi83LmnqjibmX7ihtg?autoplay=1)
+
+This example show up how to use the host selector to quickly connect to a host.
+
+[![ssh host selector](https://asciinema.org/a/228996.svg)](https://asciinema.org/a/228996?autoplay=1)
 
 ## Pre-requirements
 

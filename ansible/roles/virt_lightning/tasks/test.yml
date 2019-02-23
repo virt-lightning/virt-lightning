@@ -6,7 +6,7 @@
 - name: Start the environment
   shell: |
     . ~/venv/bin/activate
-    vl distro > virt-lightning.yaml
+    vl distro_list > virt-lightning.yaml
     vl up
     vl ansible_inventory > inventory
 - name: Install Ansible
@@ -17,7 +17,21 @@
   shell: |
     . ~/venv/bin/activate
     ansible all -m shell -a "ping -c 1 google.ca" -i inventory
+- name: List the VM
+  command: "virsh -c {{ virt_lightning_qemu_uri }} list"
+  register: list_vm
+- name: Assert the VM is in the list
+  assert:
+    that:
+      - "'centos' in list_vm.stdout"
 - name: Destroy the environment
   shell: |
     . ~/venv/bin/activate
     vl down
+- name: List the VM
+  command: "virsh -c {{ virt_lightning_qemu_uri }} list"
+  register: list_vm
+- name: Assert the VM is not in the list
+  assert:
+    that:
+      - "'centos' not in list_vm.stdout"

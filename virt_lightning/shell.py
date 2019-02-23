@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
 import argparse
+import os
 import pathlib
 import re
 import sys
 import time
 
+import virt_lightning.ui as ui
 import virt_lightning.virt_lightning as vl
 from virt_lightning.configuration import Configuration
 from virt_lightning.symbols import get_symbols
@@ -163,6 +165,28 @@ def status(configuration, context=None, **kwargs):
         print("{name:<13} {username}@{ipv4:>5} {ssh_ping}".format(**v))
 
 
+def ssh(configuration, name=None, **kwargs):
+    hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
+
+    def go_ssh(domain):
+        os.execlp(
+            "ssh",
+            "ssh",
+            "-o",
+            "StrictHostKeyChecking=no",
+            "-o",
+            "UserKnownHostsFile=/dev/null",
+            "{username}@{ipv4}".format(
+                username=domain.username, ipv4=domain.get_ipv4()
+            ),
+        )
+
+    if name:
+        go_ssh(hv.get_domain_by_name(name))
+
+    ui.Selector(sorted(hv.list_domains()), go_ssh)
+
+
 def down(configuration, context, **kwargs):
     hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
     hv.init_storage_pool(configuration.storage_pool)
@@ -270,6 +294,11 @@ Example:
         parents=[parent_parser],
     )
     ansible_inventory_parser.add_argument("--context", **context_args)
+
+    ssh_parser = action_subparsers.add_parser(
+        "ssh", help="Connect to a given VM", parents=[parent_parser]
+    )
+    ssh_parser.add_argument("name", help="Name of the VM", type=str, nargs="?")
 
     args = main_parser.parse_args()
     if not args.action:
