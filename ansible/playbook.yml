@@ -1,7 +1,21 @@
 ---
 - hosts: all
   tasks:
-    - name: Add the find users to the current users
+    - name: Disable Fedora's update repositories
+      command: "dnf config-manager --set-disabled {{ item }}"
+      with_items:
+        - updates
+        - updates-modular
+      become: true
+      when: ansible_distribution == 'Fedora'
+    - name: Disable Debian's backports repositories
+      lineinfile:
+        path: /etc/apt/sources.list
+        state: absent
+        regexp: '.*backports.*'
+      become: true
+      when: ansible_distribution == 'Debian'
+    - name: Adjust the shell of the user
       user:
         name: "{{ansible_user_id}}"
         shell: /bin/bash

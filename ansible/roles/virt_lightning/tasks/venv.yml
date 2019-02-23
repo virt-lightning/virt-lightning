@@ -1,0 +1,16 @@
+---
+- name: Push the working directory
+  synchronize:
+    src: ../../virt-lightning
+    dest: ~/
+  when: dev_mode is defined
+- name: Fetch virt-lightning master branch
+  git:
+    repo: 'https://github.com/virt-lightning/virt-lightning'
+    dest: ~/virt-lightning
+  when: dev_mode is not defined
+- name: Prepare the virtualenv
+  shell: |
+    python3 -m venv ~/venv
+    . ~/venv/bin/activate
+    pip install -e ~/virt-lightning
