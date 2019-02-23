@@ -1,0 +1,9 @@
+DOWNLOAD_URL=${MIRROR_URL:-https://cloud-images.ubuntu.com}/cosmic/current/cosmic-server-cloudimg-amd64.img
+IMAGE_NAME=ubuntu-18.10
+
+echo $DOWNLOAD_URL
+function prepare {
+    # update-grub because of https://bugs.launchpad.net/cloud-images/+bug/1726476
+    virt-sysprep -a ${UPSTREAM_IMAGE_DIR}/${IMAGE_NAME}.qcow2 \
+        --network --run-command 'echo "nameserver 169.254.2.3" > /etc/resolv.conf && apt update && apt install -y qemu-guest-agent python' --run-command update-grub
+}

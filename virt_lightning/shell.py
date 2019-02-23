@@ -47,11 +47,7 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
         domain.context = context
         domain.load_ssh_key_file(configuration.ssh_key_file)
         domain.username = configuration.username
-
-        if configuration.root_password:
-            domain.root_password(configuration.root_password)
-        else:
-            domain.root_password(host.get("root_password"))
+        domain.root_password = host.get("root_password", configuration.root_password)
 
         domain.vcpus(host.get("vcpus"))
         domain.memory(host.get("memory", 768))

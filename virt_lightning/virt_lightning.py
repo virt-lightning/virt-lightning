@@ -27,7 +27,7 @@ from .templates import (
     USER_CREATE_STORAGE_POOL_DIR,
 )
 
-KVM_BINARIES = ("/usr/bin/qemu-kvm", "/usr/bin/kvm")
+KVM_BINARIES = ("/usr/bin/qemu-system-x86_64", "/usr/bin/qemu-kvm", "/usr/bin/kvm")
 
 
 def libvirt_callback(userdata, err):
@@ -295,15 +295,16 @@ class LibvirtDomain:
         self.distro = None
         self._ssh_key = None
 
-    def root_password(self, root_password=None):
-        if root_password:
-            self.cloud_init["chpassd"] = {
-                "list": "root:{root_password}".format(root_password=root_password),
-                "expire": False,
-            }
-        chpassd = self.cloud_init.get("chpassd")
-        if chpassd:
-            return chpassd["list"].split(":")[1]
+    @property
+    def root_password(self):
+        return self.cloud_init.get("password")
+
+    @root_password.setter
+    def root_password(self, value):
+        self.cloud_init["disable_root"] = False
+        self.cloud_init["password"] = value
+        self.cloud_init["chpasswd"] = {"expire": False}
+        self.cloud_init["ssh_pwauth"] = True
 
     @property
     def ssh_key(self):
