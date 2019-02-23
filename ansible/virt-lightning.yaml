@@ -7,12 +7,12 @@
 - distro: ubuntu-18.04
   memory: 3000
   name: ubuntu1804-system
-- distro: debian-9
+- distro: debian-10
   memory: 3000
-  name: debian9-system
-- distro: debian-9
+  name: debian10-system
+- distro: debian-10
   memory: 3000
-  name: debian9-user
+  name: debian10-user
 - distro: ubuntu-16.04
   memory: 3000
   name: ubuntu1604-system
