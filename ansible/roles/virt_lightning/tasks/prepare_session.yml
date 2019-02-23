@@ -1,0 +1,27 @@
+---
+- name: Avoid any conflict with the master network
+  command: sed -i s,122,124,g /etc/libvirt/qemu/networks/default.xml
+  become: true
+- name: restart libvirt
+  service:
+    name: libvirtd
+    state: restarted
+  become: true
+- name: Ensure the user can access the virbr0 bridge
+  copy:
+    dest: /etc/qemu/bridge.conf
+    content: "allow {{ virt_lightning_bridge }}"
+  become: true
+  when: virt_lightning_qemu_uri == "qemu:///session"
+- name: Set the suid flag on qemu-bridge-helper
+  file:
+    path: /usr/lib/qemu/qemu-bridge-helper
+    mode: "u+s"
+  become: true
+  when: ansible_distribution == 'Debian'
+- name: Start the bridge
+  virt_net:
+    command: create
+    name: default
+  become: true
+  failed_when: false

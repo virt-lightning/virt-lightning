@@ -1,0 +1,32 @@
+---
+- name: Create the virt-lightning bridge
+  virt_net:
+    command: define
+    name: virt-lightning
+    uri: "{{ virt_lightning_qemu_uri }}"
+    xml: "{{lookup('file', 'virt-lightning.xml')}}"
+  become: true
+- name: Start the bridge
+  virt_net:
+    command: create
+    name: virt-lightning
+  become: true
+  failed_when: false
+- name: Write the polkit configuration
+  template:
+    src: polkit.rules.j2
+    dest: /etc/polkit-1/rules.d/80-libvirt.rules
+  become: true
+  when:
+    - ansible_distribution == "Fedora"
+- name: Create the pool directory
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ virt_lightning_qemu_owner }}"
+    group: "{{ virt_lightning_qemu_group }}"
+    mode: "0775"
+  with_items:
+    - /var/lib/virt-lightning/pool
+    - /var/lib/virt-lightning/pool/upstream
+  become: true
