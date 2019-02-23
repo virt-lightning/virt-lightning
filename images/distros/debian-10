@@ -1,0 +1,11 @@
+IMAGE_NAME=debian-10
+DOWNLOAD_URL=${MIRROR_URL:-https://cdimage.debian.org}/cdimage/openstack/testing/debian-testing-openstack-amd64.qcow2
+
+function prepare {
+    # We need resolvconf otherwise, the 'dns-nameservers' value in the /etc/network/interfaces
+    # is ignored.
+    virt-sysprep -a ${UPSTREAM_IMAGE_DIR}/${IMAGE_NAME}.qcow2 \
+        --network --run-command 'echo "nameserver 169.254.2.3" > /etc/resolv.conf && apt update && apt install -y qemu-guest-agent python resolvconf' --run-command 'echo "auto eth0
+allow-hotplug eth0
+source /etc/network/interfaces.d/*" > /etc/network/interfaces' --firstboot-command 'rm /etc/resolv.conf; ln -s /etc/resolvconf/run/resolv.conf /etc/resolv.conf'
+}

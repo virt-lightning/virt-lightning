@@ -47,11 +47,7 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
         domain.context = context
         domain.load_ssh_key_file(configuration.ssh_key_file)
         domain.username = configuration.username
-
-        if configuration.root_password:
-            domain.root_password(configuration.root_password)
-        else:
-            domain.root_password(host.get("root_password"))
+        domain.root_password = host.get("root_password", configuration.root_password)
 
         domain.vcpus(host.get("vcpus"))
         domain.memory(host.get("memory", 768))
@@ -187,6 +183,20 @@ def ssh(configuration, name=None, **kwargs):
     ui.Selector(sorted(hv.list_domains()), go_ssh)
 
 
+def console(configuration, name=None, **kwargs):
+    hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
+
+    def go_console(domain):
+        os.execlp(
+            "virsh", "virsh", "-c", configuration.libvirt_uri, "console", domain.name
+        )
+
+    if name:
+        go_console(hv.get_domain_by_name(name))
+
+    ui.Selector(sorted(hv.list_domains()), go_console)
+
+
 def down(configuration, context, **kwargs):
     hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
     hv.init_storage_pool(configuration.storage_pool)
@@ -296,9 +306,14 @@ Example:
     ansible_inventory_parser.add_argument("--context", **context_args)
 
     ssh_parser = action_subparsers.add_parser(
-        "ssh", help="Connect to a given VM", parents=[parent_parser]
+        "ssh", help="SSH to a given host", parents=[parent_parser]
     )
-    ssh_parser.add_argument("name", help="Name of the VM", type=str, nargs="?")
+    ssh_parser.add_argument("name", help="Name of the host", type=str, nargs="?")
+
+    ssh_parser = action_subparsers.add_parser(
+        "console", help="Open the console of a given host", parents=[parent_parser]
+    )
+    ssh_parser.add_argument("name", help="Name of the host", type=str, nargs="?")
 
     args = main_parser.parse_args()
     if not args.action:
