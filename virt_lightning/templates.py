@@ -140,6 +140,18 @@ STORAGE_POOL_XML = """
 </pool>
 """
 
+STORAGE_VOLUME_XML = """
+<volume>
+  <name></name>
+  <allocation>0</allocation>
+  <capacity unit="G">1</capacity>
+  <target>
+    <format type='qcow2'/>
+    <path></path>
+  </target>
+</volume>
+"""
+
 USER_CREATE_STORAGE_POOL_DIR = """
 You need root privilege to create the storage pool, please do:
   sudo mkdir -p {storage_dir}/upstream

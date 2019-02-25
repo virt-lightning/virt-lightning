@@ -23,6 +23,7 @@ from .templates import (
     DOMAIN_XML,
     NETWORK_XML,
     STORAGE_POOL_XML,
+    STORAGE_VOLUME_XML,
     USER_CREATE_STORAGE_POOL_DIR,
 )
 
@@ -138,22 +139,29 @@ class LibvirtHypervisor:
         return pathlib.PosixPath(disk_source.text)
 
     def create_disk(self, name, size=20, backing_on=None):
-        disk_path = "{path}/{name}.qcow2".format(path=self.get_storage_dir(), name=name)
-        cmd = ["qemu-img", "create", "-f", "qcow2"]
-        if backing_on:
-            backing_disk = "{path}/upstream/{name}.qcow2".format(
-                path=self.get_storage_dir(), name=backing_on
-            )
-            cmd += ["-b", backing_disk]
-        cmd += [disk_path, "{size}G".format(size=size)]
+        disk_path = pathlib.PosixPath(
+            "{path}/{name}.qcow2".format(path=self.get_storage_dir(), name=name)
+        )
+        root = ET.fromstring(STORAGE_VOLUME_XML)
+        root.find("./name").text = disk_path.name
+        root.find("./capacity").text = str(size)
+        root.find("./target/path").text = str(disk_path)
 
-        run_cmd(cmd)
-        return disk_path
+        if backing_on:
+            backing_file = pathlib.PosixPath(
+                "{path}/upstream/{backing_on}.qcow2".format(
+                    path=self.get_storage_dir(), backing_on=backing_on
+                )
+            )
+            backing = ET.SubElement(root, "backingStore")
+            ET.SubElement(backing, "path").text = str(backing_file)
+            ET.SubElement(backing, "format").attrib = {"type": "qcow2"}
+
+        xml = ET.tostring(root).decode()
+        return self.storage_pool_obj.createXML(xml)
 
     def prepare_cloud_init_iso(self, domain):
-        cidata_path = "{path}/{name}-cidata.iso".format(
-            path=self.get_storage_dir(), name=domain.name
-        )
+        cidata_file = "{name}-cidata.iso".format(name=domain.name)
 
         with tempfile.TemporaryDirectory() as temp_dir:
             with open(temp_dir + "/user-data", "w") as fd:
@@ -175,7 +183,7 @@ class LibvirtHypervisor:
                 [
                     "genisoimage",
                     "-output",
-                    cidata_path,
+                    cidata_file,
                     "-volid",
                     "cidata",
                     "-joliet",
@@ -186,7 +194,14 @@ class LibvirtHypervisor:
                 ],
                 cwd=temp_dir,
             )
-        return cidata_path
+
+            cdrom = self.create_disk(name=cidata_file, size=1)
+            with open(temp_dir + "/" + cidata_file, "br") as fd:
+                st = self.conn.newStream(0)
+                cdrom.upload(st, 0, 1024 * 1024)
+                st.send(fd.read())
+                st.finish()
+            return cdrom
 
     def start(self, domain):
         cloud_init_iso = self.prepare_cloud_init_iso(domain)
@@ -432,7 +447,18 @@ class LibvirtDomain:
     def context(self, value):
         self.record_metadata("context", value)
 
-    def attachDisk(self, path, device="disk", disk_type="qcow2"):
+    def attachDisk(self, volume, device="disk", disk_type="qcow2"):
+        device_name = self.getNextBlckDevice()
+        disk_root = ET.fromstring(DISK_XML)
+        disk_root.attrib["device"] = device
+        disk_root.findall("./driver")[0].attrib = {"name": "qemu", "type": disk_type}
+        disk_root.findall("./source")[0].attrib = {"file": volume.path()}
+        disk_root.findall("./target")[0].attrib = {"dev": device_name}
+        xml = ET.tostring(disk_root).decode()
+        self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
+        return device_name
+
+    def attachCDROM(self, path, device="disk", disk_type="qcow2"):
         device_name = self.getNextBlckDevice()
         disk_root = ET.fromstring(DISK_XML)
         disk_root.attrib["device"] = device
