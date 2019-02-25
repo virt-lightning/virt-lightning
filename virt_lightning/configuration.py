@@ -12,7 +12,8 @@ DEFAULT_CONFIGURATION = {
         "username": getpass.getuser(),
         "root_password": "root",
         "storage_pool": "virt-lightning",
-        "network": "virt-lightning",
+        "network_name": "virt-lightning",
+        "network_cidr": "192.168.123.0/24",
         "ssh_key_file": "~/.ssh/id_rsa.pub",
     }
 }
@@ -28,7 +29,11 @@ class AbstractConfiguration(metaclass=ABCMeta):
         pass
 
     @abstractproperty
-    def network(self):
+    def network_name(self):
+        pass
+
+    @abstractproperty
+    def network_cidr(self):
         pass
 
     @abstractproperty
@@ -68,8 +73,12 @@ class Configuration(AbstractConfiguration):
         return self.__get("username")
 
     @property
-    def network(self):
-        return self.__get("network")
+    def network_name(self):
+        return self.__get("network_name")
+
+    @property
+    def network_cidr(self):
+        return self.__get("network_cidr")
 
     @property
     def root_password(self):

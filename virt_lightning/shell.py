@@ -22,7 +22,7 @@ symbols = get_symbols()
 
 def up(virt_lightning_yaml, configuration, context, **kwargs):
     hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
-    hv.init_network(configuration.network)
+    hv.init_network(configuration.network_name, configuration.network_cidr)
     hv.init_storage_pool(configuration.storage_pool)
 
     status_line = "Starting:"
@@ -55,7 +55,7 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
         domain.memory(host.get("memory", 768))
         root_disk_path = hv.create_disk(name=host["name"], backing_on=host["distro"])
         domain.add_root_disk(root_disk_path)
-        domain.attachNetwork(configuration.network)
+        domain.attachNetwork(configuration.network_name)
         domain.set_ip(ipv4=hv.get_free_ipv4(), gateway=hv.gateway, dns=hv.dns)
         domain.add_swap_disk(hv.create_disk(host["name"] + "-swap", size=1))
         hv.start(domain)

@@ -59,6 +59,9 @@ class LibvirtHypervisor:
         self.wait_for = []
         self.storage_pool_obj = None
         self.network_obj = None
+        self.gateway = None
+        self.dns = None
+        self.network = None
 
     @property
     def arch(self):
@@ -147,7 +150,7 @@ class LibvirtHypervisor:
         run_cmd(cmd)
         return disk_path
 
-    def prepare_meta_data(self, domain):
+    def prepare_cloud_init_iso(self, domain):
         cidata_path = "{path}/{name}-cidata.iso".format(
             path=self.get_storage_dir(), name=domain.name
         )
@@ -161,7 +164,8 @@ class LibvirtHypervisor:
                     domain.meta_data.format(
                         name=domain.name,
                         ipv4=str(domain.ipv4.ip),
-                        gateway=str(domain.gateway.ip),
+                        gateway=str(self.gateway.ip),
+                        network=str(self.network),
                     )
                 )
             with open(temp_dir + "/network-config", "w") as fd:
@@ -185,8 +189,8 @@ class LibvirtHypervisor:
         return cidata_path
 
     def start(self, domain):
-        meta_data_iso = self.prepare_meta_data(domain)
-        domain.attachDisk(meta_data_iso, device="cdrom", disk_type="raw")
+        cloud_init_iso = self.prepare_cloud_init_iso(domain)
+        domain.attachDisk(cloud_init_iso, device="cdrom", disk_type="raw")
         domain.dom.create()
 
     def clean_up(self, domain):
@@ -215,7 +219,7 @@ class LibvirtHypervisor:
         else:
             raise Exception("Failed to find the kvm binary in: ", paths)
 
-    def init_network(self, network_name):
+    def init_network(self, network_name, network_cidr):
         try:
             self.network_obj = self.conn.networkLookupByName(network_name)
         except libvirt.libvirtError as e:
@@ -223,7 +227,7 @@ class LibvirtHypervisor:
                 pass
 
         if not self.network_obj:
-            self.create_network(network_name)
+            self.network_obj = self.create_network(network_name, network_cidr)
 
         if not self.network_obj.isActive():
             self.network_obj.create(0)
@@ -238,12 +242,17 @@ class LibvirtHypervisor:
         self.dns = self.gateway
         self.network = self.gateway.network
 
-    def create_network(self, network_name):
+    def create_network(self, network_name, network_cidr):
+        network = ipaddress.ip_network(network_cidr)
         root = ET.fromstring(NETWORK_XML)
         root.find("./name").text = network_name
         root.find("./bridge").attrib["name"] = network_name
+        root.find("./ip").attrib = {
+            "address": network[1].exploded,
+            "netmask": network.netmask.exploded,
+        }
         xml = ET.tostring(root).decode()
-        self.conn.networkCreateXML(xml)
+        return self.conn.networkCreateXML(xml)
 
     def init_storage_pool(self, storage_pool):
         try:
@@ -451,8 +460,6 @@ class LibvirtDomain:
 
     def set_ip(self, ipv4, gateway, dns):
         self.ipv4 = ipv4
-        self.gateway = gateway
-        self.dns = dns
         self.record_metadata("ipv4", ipv4)
 
         primary_mac_addr = self.mac_addresses[0]
@@ -465,8 +472,8 @@ class LibvirtDomain:
                         "match": {"macaddress": primary_mac_addr},
                         "set-name": "interface0",
                         "addresses": [str(self.ipv4)],
-                        "gateway4": str(self.gateway.ip),
-                        "nameservers": {"addresses": [str(self.dns.ip)]},
+                        "gateway4": str(gateway.ip),
+                        "nameservers": {"addresses": [str(dns.ip)]},
                     }
                 },
             }
@@ -483,8 +490,8 @@ class LibvirtDomain:
                             {
                                 "type": "static",
                                 "address": str(self.ipv4),
-                                "gateway": str(self.gateway.ip),
-                                "dns_nameservers": [str(self.dns.ip)],
+                                "gateway": str(gateway.ip),
+                                "dns_nameservers": [str(dns.ip)],
                             }
                         ],
                     }
@@ -499,7 +506,7 @@ class LibvirtDomain:
             self.cloud_init["runcmd"].append("nmcli -g UUID c|xargs -n 1 nmcli con del")
             self.cloud_init["runcmd"].append(
                 nmcli_call.format(
-                    ipv4=self.ipv4, gateway=str(self.gateway.ip), dns=str(self.dns.ip)
+                    ipv4=self.ipv4, gateway=str(gateway.ip), dns=str(dns.ip)
                 )
             )
             # Without that NM, initialize eth0 with a DHCP IP
@@ -543,7 +550,6 @@ class LibvirtDomain:
                 # workaround for ubuntu 16.04
                 pass
             else:
-                print(e.get_error_code())
                 raise (e)
 
     def set_user_password(self, user, password):

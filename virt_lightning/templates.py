@@ -124,7 +124,7 @@ NETWORK_XML = """
 CLOUD_INIT_ENI = """network-interfaces: |
    iface eth0 inet static
    address {ipv4}
-   network 192.168.122.0
+   network {network}
    netmask 255.255.255.0
    gateway {gateway}
 """
