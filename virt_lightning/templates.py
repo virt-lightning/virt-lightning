@@ -103,11 +103,22 @@ DOMAIN_XML = """
 """  # NOQA
 
 BRIDGE_XML = """
-<interface type='bridge'>
-  <source bridge='virbr0'/>
+<interface type='network'>
+  <source network='virt-lightning'/>
   <model type='virtio'/>
 </interface>
 """
+
+NETWORK_XML = """
+<network>
+  <name></name>
+  <forward mode='nat'/>
+  <bridge name='virbr0' stp='off' delay='0'/>
+  <ip address='192.168.123.1' netmask='255.255.255.0'>
+  </ip>
+</network>
+"""
+
 
 # TODO
 CLOUD_INIT_ENI = """network-interfaces: |
@@ -133,5 +144,6 @@ USER_CREATE_STORAGE_POOL_DIR = """
 You need root privilege to create the storage pool, please do:
   sudo mkdir -p {storage_dir}/upstream
   sudo chown -R {qemu_user}:{qemu_group} {storage_dir}
+  sudo chmod 775 /var/lib/virt-lightning
   sudo chmod 775 {storage_dir} {storage_dir}/upstream
 """

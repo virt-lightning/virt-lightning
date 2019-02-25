@@ -11,10 +11,6 @@
   meta: reset_connection
 - name: Prepare for qemu:///system
   import_tasks: prepare_system.yml
-  when: virt_lightning_qemu_uri == "qemu:///system"
-- name: Prepare for qemu:///session
-  import_tasks: prepare_session.yml
-  when: virt_lightning_qemu_uri == "qemu:///session"
 - name: venv 
   import_tasks: venv.yml
 - name: config 

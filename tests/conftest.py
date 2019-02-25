@@ -27,7 +27,7 @@ def clean_up():
 def hv(scope="function"):
     libvirt_uri = "test:///default"
     hv = vl.LibvirtHypervisor(libvirt_uri)
-    hv.conn.getURI = Mock(return_value="qemu:///session")
+    hv.conn.getURI = Mock(return_value="qemu:///system")
     yield hv
     clean_up()
 

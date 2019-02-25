@@ -13,8 +13,6 @@ import xml.etree.ElementTree as ET
 
 import libvirt
 
-import netifaces
-
 import yaml
 
 
@@ -23,6 +21,7 @@ from .templates import (
     CLOUD_INIT_ENI,
     DISK_XML,
     DOMAIN_XML,
+    NETWORK_XML,
     STORAGE_POOL_XML,
     USER_CREATE_STORAGE_POOL_DIR,
 )
@@ -58,6 +57,8 @@ class LibvirtHypervisor:
         self.conn = conn
         self._last_free_ipv4 = None
         self.wait_for = []
+        self.storage_pool_obj = None
+        self.network_obj = None
 
     @property
     def arch(self):
@@ -214,53 +215,68 @@ class LibvirtHypervisor:
         else:
             raise Exception("Failed to find the kvm binary in: ", paths)
 
-    def init_network(self, bridge_name):
+    def init_network(self, network_name):
         try:
-            bridge_netiface = netifaces.ifaddresses(bridge_name)
-        except ValueError:
-            print("Bridge not found:", bridge_name)
-            exit(1)
-        ipconfig = bridge_netiface[netifaces.AF_INET]
-        self.gateway = ipaddress.IPv4Interface("{addr}/{netmask}".format(**ipconfig[0]))
+            self.network_obj = self.conn.networkLookupByName(network_name)
+        except libvirt.libvirtError as e:
+            if e.get_error_code() == libvirt.VIR_ERR_NO_NETWORK:
+                pass
+
+        if not self.network_obj:
+            self.create_network(network_name)
+
+        if not self.network_obj.isActive():
+            self.network_obj.create(0)
+
+        xml = self.network_obj.XMLDesc(0)
+        root = ET.fromstring(xml)
+        ip = root.find("./ip")
+
+        self.gateway = ipaddress.IPv4Interface(
+            "{address}/{netmask}".format(**ip.attrib)
+        )
         self.dns = self.gateway
         self.network = self.gateway.network
+
+    def create_network(self, network_name):
+        root = ET.fromstring(NETWORK_XML)
+        root.find("./name").text = network_name
+        root.find("./bridge").attrib["name"] = network_name
+        xml = ET.tostring(root).decode()
+        self.conn.networkCreateXML(xml)
 
     def init_storage_pool(self, storage_pool):
         try:
             self.storage_pool_obj = self.conn.storagePoolLookupByName(storage_pool)
-            if not self.get_storage_dir().is_dir():
-                raise Exception("Missing storage directory:", self.get_storage_dir())
-            if not self.storage_pool_obj.isActive():
-                self.storage_pool_obj.create(0)
-            return
         except libvirt.libvirtError as e:
             if e.get_error_code() == libvirt.VIR_ERR_NO_STORAGE_POOL:
                 pass
 
-        if self.conn.getURI().startswith("qemu:///system"):
+        if not self.storage_pool_obj:
             storage_dir = pathlib.PosixPath("/var/lib/virt-lightning/pool")
-        elif self.conn.getURI().startswith("qemu:///session"):
-            storage_dir = pathlib.PosixPath("~/.local/share/virt-lightning/pool")
-            storage_dir = storage_dir.expanduser()
-        else:
-            raise Exception("Unsupported libvirt URI")
+            self.storage_pool_obj = self.create_storage_pool(
+                name=storage_pool, directory=storage_dir
+            )
 
-        full_dir = storage_dir / "upstream"
         try:
-            full_dir.mkdir(parents=True, exist_ok=True)
+            full_dir = self.get_storage_dir() / "upstream"
+            dir_exists = full_dir.is_dir()
         except PermissionError:
+            dir_exists = False
+
+        if not dir_exists:
             qemu_dir = pathlib.PosixPath("/var/lib/libvirt/qemu/")
             print(
                 USER_CREATE_STORAGE_POOL_DIR.format(
                     qemu_user=qemu_dir.owner(),
                     qemu_group=qemu_dir.group(),
-                    storage_dir=storage_dir,
+                    storage_dir=self.get_storage_dir(),
                 )
             )
             exit(1)
-        self.storage_pool_obj = self.create_storage_pool(
-            name=storage_pool, directory=storage_dir
-        )
+
+        if not self.storage_pool_obj.isActive():
+            self.storage_pool_obj.create(0)
 
     def create_storage_pool(self, name, directory):
         root = ET.fromstring(STORAGE_POOL_XML)
@@ -270,8 +286,6 @@ class LibvirtHypervisor:
         pool = self.conn.storagePoolDefineXML(xml, 0)
         if not pool:
             raise Exception("Failed to create pool:", name, xml)
-        pool.setAutostart(1)
-        pool.create(0)
         return pool
 
     def distro_available(self):
@@ -420,9 +434,9 @@ class LibvirtDomain:
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
         return device_name
 
-    def attachBridge(self, bridge):
+    def attachNetwork(self, network=None):
         disk_root = ET.fromstring(BRIDGE_XML)
-        disk_root.findall("./source")[0].attrib = {"bridge": bridge}
+        disk_root.findall("./source")[0].attrib = {"network": network}
         xml = ET.tostring(disk_root).decode()
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
 
