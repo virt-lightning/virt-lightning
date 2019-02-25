@@ -65,3 +65,6 @@ target/
 
 # maintain by setuptools-scm
 virt_lightning/version.py
+
+.mypy_cache
+.pytest_cache
