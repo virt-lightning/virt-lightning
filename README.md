@@ -31,12 +31,12 @@ This example show up how to use the host selector to quickly connect to a host.
 
 
 
-<details><summary>Debian-9</summary>
+<details><summary>Debian</summary>
 <p>
 
 First you need to install libvirt and guestfs:
 ```shell
-sudo apt install -f gcc libguestfs-tools libvirt-daemon libvirt-daemon-system libvirt-dev python3 python3-dev python3-venv rsync
+sudo apt install -f libguestfs-tools libvirt-daemon libvirt-daemon-system python3 python3-libvirt python3-pip
 sudo systemctl start --now libvirtd
 ```
 
@@ -53,7 +53,7 @@ sudo usermod -a -G kvm,libvirt,libvirt-qemu $USER
 
 First you need to install libvirt and guestfs:
 ```shell
-sudo apt install -f gcc libguestfs-tools libselinux-python libvirt libvirt-devel python3 python3-virtualenv
+sudo apt install -f libguestfs-tools libselinux-python libvirt python3 python3-libvirt python3-pip
 sudo systemctl start --now libvirtd
 ```
 
@@ -70,7 +70,7 @@ sudo usermod -a -G qemu,libvirt $USER
 
 First you need to install libvirt and guestfs:
 ```shell
-sudo apt install -f gcc libguestfs-tools libvirt-bin libvirt-daemon libvirt-dev python3 python3-dev python3-venv
+sudo apt install -f libguestfs-tools libvirt-bin libvirt-daemon python3 python3-libvirt python3-pip
 sudo systemctl start --now libvirtd
 ```
 
@@ -87,7 +87,24 @@ sudo usermod -a -G kvm,libvirtd $USER
 
 First you need to install libvirt and guestfs:
 ```shell
-sudo apt install -f gcc libguestfs-tools libvirt-bin libvirt-daemon libvirt-dev python3 python3-dev python3-venv
+sudo apt install -f libguestfs-tools libvirt-bin libvirt-daemon python3 python3-libvirt python3-pip
+sudo systemctl start --now libvirtd
+```
+
+The second step is to grant to your user the ability to use libvirt:
+```shell
+sudo usermod -a -G kvm,libvirt $USER
+```
+</p>
+</details>
+
+
+<details><summary>Ubuntu-18.10</summary>
+<p>
+
+First you need to install libvirt and guestfs:
+```shell
+sudo apt install -f libguestfs-tools libvirt-daemon libvirt-daemon-system python3 python3-libvirt python3-pip
 sudo systemctl start --now libvirtd
 ```
 
@@ -103,9 +120,17 @@ sudo usermod -a -G kvm,libvirt $USER
 ## Installation
 
 ```shell
-python3 -m venv venv
-source venv/bin/activate
-pip install git+https://github.com/virt-lightning/virt-lightning
+pip3 install --user --no-deps git+https://github.com/virt-lightning/virt-lightning
+```
+
+The `--no-deps` argument is only required on Ubuntu (See: https://github.com/pypa/pip/issues/4222).
+
+`virt-lightning` will be installed in ~/.local/bin/. Add it in your `$PATH` if
+it's not already the case. For instance if you use:
+
+```shell
+echo "export PATH=$PATH:~/.local/bin/" >> ~/.bashrc
+source ~/.bashrc
 ```
 
 ## Fetch some images

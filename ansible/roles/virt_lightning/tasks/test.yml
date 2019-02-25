@@ -5,18 +5,21 @@
     creates: ~/.ssh/id_rsa
 - name: Start the environment
   shell: |
-    . ~/venv/bin/activate
+    echo $PATH
     vl distro_list > virt-lightning.yaml
     vl up
     vl ansible_inventory > inventory
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ ansible_env.HOME }}/.local/bin"
 - name: Install Ansible
   package:
     name: ansible
   become: true
 - name: Test the new VM
   shell: |
-    . ~/venv/bin/activate
     ansible all -m shell -a "ping -c 1 google.ca" -i inventory
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ ansible_env.HOME }}/.local/bin"
 - name: List the VM
   command: "virsh -c {{ virt_lightning_qemu_uri }} list"
   register: list_vm
@@ -26,8 +29,9 @@
       - "'centos' in list_vm.stdout"
 - name: Destroy the environment
   shell: |
-    . ~/venv/bin/activate
     vl down
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ ansible_env.HOME }}/.local/bin"
 - name: List the VM
   command: "virsh -c {{ virt_lightning_qemu_uri }} list"
   register: list_vm

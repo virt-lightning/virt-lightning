@@ -20,6 +20,11 @@
         name: "{{ansible_user_id}}"
         shell: /bin/bash
       become: true
+    - name: Add ~/.local/bin in the $PATH
+      lineinfile:
+        path: ~/.bashrc
+        regexp: '# .local/bin path'
+        line: 'export PATH=$PATH:~/.local/bin/  # .local/bin path'
     - import_role:
         name: virt_lightning
       vars:
