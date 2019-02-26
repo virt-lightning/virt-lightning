@@ -8,6 +8,12 @@
         - updates-modular
       become: true
       when: ansible_distribution == 'Fedora'
+    - name: Install libselinux-python
+      package:
+        name: libselinux-python
+        state: present
+      become: true
+      when: ansible_distribution == 'Fedora'
     - name: Disable Debian's backports repositories
       lineinfile:
         path: /etc/apt/sources.list
