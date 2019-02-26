@@ -44,6 +44,22 @@ def kvm_binaries(tmp_path):
         fd.write("aa")
     vl.KVM_BINARIES = (kvm_f,)
 
+@pytest.fixture(autouse=True)
+def qemu_dir(tmp_path):
+    qemu_dir = tmp_path / "kvm-dummy"
+    if not qemu_dir.exists():
+        qemu_dir.mkdir()
+    vl.QEMU_DIR = str(qemu_dir)
+
+@pytest.fixture(autouse=True)
+def storage_dir(tmp_path):
+    pool_dir = tmp_path / "pool"
+    upstream_dir = pool_dir / "upstream"
+    if not pool_dir.exists():
+        pool_dir.mkdir()
+    if not upstream_dir.exists():
+        upstream_dir.mkdir()
+    vl.DEFAULT_STORAGE_DIR = str(pool_dir)
 
 @pytest.fixture
 def config_file(tmp_path):

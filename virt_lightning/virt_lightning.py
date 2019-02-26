@@ -28,6 +28,8 @@ from .templates import (
     USER_CREATE_STORAGE_POOL_DIR,
 )
 
+DEFAULT_STORAGE_DIR = "/var/lib/virt-lightning/pool"
+QEMU_DIR = "/var/lib/libvirt/qemu/"
 KVM_BINARIES = ("/usr/bin/qemu-system-x86_64", "/usr/bin/qemu-kvm", "/usr/bin/kvm")
 
 
@@ -336,20 +338,20 @@ class LibvirtHypervisor:
             if e.get_error_code() == libvirt.VIR_ERR_NO_STORAGE_POOL:
                 pass
 
+        storage_dir = pathlib.PosixPath(DEFAULT_STORAGE_DIR)
         if not self.storage_pool_obj:
-            storage_dir = pathlib.PosixPath("/var/lib/virt-lightning/pool")
             self.storage_pool_obj = self.create_storage_pool(
                 name=storage_pool, directory=storage_dir
             )
 
         try:
-            full_dir = self.get_storage_dir() / "upstream"
+            full_dir = storage_dir / "upstream"
             dir_exists = full_dir.is_dir()
         except PermissionError:
             dir_exists = False
 
         if not dir_exists:
-            qemu_dir = pathlib.PosixPath("/var/lib/libvirt/qemu/")
+            qemu_dir = pathlib.PosixPath(QEMU_DIR)
             print(
                 USER_CREATE_STORAGE_POOL_DIR.format(
                     qemu_user=qemu_dir.owner(),
