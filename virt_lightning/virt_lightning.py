@@ -7,7 +7,6 @@ import re
 import string
 import subprocess
 import tempfile
-import time
 import uuid
 import xml.etree.ElementTree as ET
 
@@ -15,6 +14,8 @@ import libvirt
 
 import yaml
 
+import libvirtaio
+import asyncio
 
 from .templates import (
     BRIDGE_XML,
@@ -57,7 +58,6 @@ class LibvirtHypervisor:
 
         self.conn = conn
         self._last_free_ipv4 = None
-        self.wait_for = []
         self.storage_pool_obj = None
         self.network_obj = None
         self.gateway = None
@@ -162,6 +162,66 @@ class LibvirtHypervisor:
 
     def prepare_cloud_init_iso(self, domain):
         cidata_file = "{name}-cidata.iso".format(name=domain.name)
+
+        primary_mac_addr = domain.mac_addresses[0]
+        self._network_meta = {"config": "disabled"}
+        if "ubuntu-18.04" in domain.distro:
+            domain._network_meta = {
+                "version": 2,
+                "ethernets": {
+                    "interface0": {
+                        "match": {"macaddress": primary_mac_addr},
+                        "set-name": "interface0",
+                        "addresses": [str(domain.ipv4)],
+                        "gateway4": str(self.gateway.ip),
+                        "nameservers": {"addresses": [str(self.dns.ip)]},
+                    }
+                },
+            }
+        else:
+            domain.meta_data += CLOUD_INIT_ENI
+            domain._network_meta = {
+                "version": 1,
+                "config": [
+                    {
+                        "type": "physical",
+                        "name": "eth0",
+                        "mac_address": primary_mac_addr,
+                        "subnets": [
+                            {
+                                "type": "static",
+                                "address": str(domain.ipv4),
+                                "gateway": str(self.gateway.ip),
+                                "dns_nameservers": [str(self.dns.ip)],
+                            }
+                        ],
+                    }
+                ],
+            }
+        nm_filter = "(centos|fedora|rhel)"
+        if re.match(nm_filter, domain.distro):
+            nmcli_call = (
+                "nmcli c add type ethernet con-name eth0 ifname eth0 ip4 {ipv4} "
+                "ipv4.gateway {gateway} ipv4.dns {dns} ipv4.method manual"
+            )
+            domain.cloud_init["runcmd"].append(
+                "nmcli -g UUID c|xargs -n 1 nmcli con del"
+            )
+            domain.cloud_init["runcmd"].append(
+                nmcli_call.format(
+                    ipv4=domain.ipv4, gateway=str(self.gateway.ip), dns=str(self.dns.ip)
+                )
+            )
+            # Without that NM, initialize eth0 with a DHCP IP
+            domain.cloud_init["bootcmd"].append(
+                'echo "[main]" > /etc/NetworkManager/conf.d/no-auto-default.conf'
+            )
+            domain.cloud_init["bootcmd"].append(
+                (
+                    'echo "no-auto-default=eth0" >> '
+                    "/etc/NetworkManager/conf.d/no-auto-default.conf"
+                )
+            )
 
         with tempfile.TemporaryDirectory() as temp_dir:
             with open(temp_dir + "/user-data", "w") as fd:
@@ -484,67 +544,13 @@ class LibvirtDomain:
         self.cloud_init["bootcmd"].append("mkswap /dev/vdb")
         self.cloud_init["bootcmd"].append("swapon /dev/vdb")
 
-    def set_ip(self, ipv4, gateway, dns):
-        self.ipv4 = ipv4
-        self.record_metadata("ipv4", ipv4)
+    @property
+    def ipv4(self):
+        return ipaddress.IPv4Interface(self.get_metadata("ipv4"))
 
-        primary_mac_addr = self.mac_addresses[0]
-        self._network_meta = {"config": "disabled"}
-        if "ubuntu-18.04" in self.distro:
-            self._network_meta = {
-                "version": 2,
-                "ethernets": {
-                    "interface0": {
-                        "match": {"macaddress": primary_mac_addr},
-                        "set-name": "interface0",
-                        "addresses": [str(self.ipv4)],
-                        "gateway4": str(gateway.ip),
-                        "nameservers": {"addresses": [str(dns.ip)]},
-                    }
-                },
-            }
-        else:
-            self.meta_data += CLOUD_INIT_ENI
-            self._network_meta = {
-                "version": 1,
-                "config": [
-                    {
-                        "type": "physical",
-                        "name": "eth0",
-                        "mac_address": primary_mac_addr,
-                        "subnets": [
-                            {
-                                "type": "static",
-                                "address": str(self.ipv4),
-                                "gateway": str(gateway.ip),
-                                "dns_nameservers": [str(dns.ip)],
-                            }
-                        ],
-                    }
-                ],
-            }
-        nm_filter = "(centos|fedora|rhel)"
-        if re.match(nm_filter, self.distro):
-            nmcli_call = (
-                "nmcli c add type ethernet con-name eth0 ifname eth0 ip4 {ipv4} "
-                "ipv4.gateway {gateway} ipv4.dns {dns} ipv4.method manual"
-            )
-            self.cloud_init["runcmd"].append("nmcli -g UUID c|xargs -n 1 nmcli con del")
-            self.cloud_init["runcmd"].append(
-                nmcli_call.format(
-                    ipv4=self.ipv4, gateway=str(gateway.ip), dns=str(dns.ip)
-                )
-            )
-            # Without that NM, initialize eth0 with a DHCP IP
-            self.cloud_init["bootcmd"].append(
-                'echo "[main]" > /etc/NetworkManager/conf.d/no-auto-default.conf'
-            )
-            self.cloud_init["bootcmd"].append(
-                (
-                    'echo "no-auto-default=eth0" >> '
-                    "/etc/NetworkManager/conf.d/no-auto-default.conf"
-                )
-            )
+    @ipv4.setter
+    def ipv4(self, value):
+        self.record_metadata("ipv4", value)
 
     @property
     def mac_addresses(self):
@@ -553,67 +559,28 @@ class LibvirtDomain:
         ifaces = root.findall("./devices/interface/mac[@address]")
         return [iface.attrib["address"] for iface in ifaces]
 
-    def get_ipv4(self):
-        if not self.dom.isActive():
-            return
-        try:
-            ifaces = self.dom.interfaceAddresses(
-                libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT, 0
-            )
-            for (_, val) in ifaces.items():
-                for addr in val["addrs"]:
-                    if addr["type"] != 0:  # 1 == IPv6
-                        continue
-                    if addr["addr"].startswith("127."):
-                        continue
-                    return addr["addr"]
-        except (KeyError, TypeError):
-            pass
-        except libvirt.libvirtError as e:
-            if e.get_error_code() == libvirt.VIR_ERR_AGENT_UNRESPONSIVE:
-                pass
-            elif "internal error: Guest agent returned ID" in e.get_error_message():
-                # workaround for ubuntu 16.04
-                pass
-            else:
-                raise (e)
-
     def set_user_password(self, user, password):
         return self.dom.setUserPassword(user, password)
-
-    def ssh_ping(self):
-        if hasattr(self, "_ssh_ping"):
-            return self._ssh_ping
-        ipv4 = self.get_ipv4()
-        if not ipv4:
-            return
-
-        proc = subprocess.Popen(
-            [
-                "ssh",
-                "-o",
-                "StrictHostKeyChecking=no",
-                "-o",
-                "UserKnownHostsFile=/dev/null",
-                "-o",
-                "ConnectTimeout=1",
-                "{username}@{ipv4}".format(username=self.username, ipv4=ipv4),
-                "hostname",
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        time.sleep(1)
-        status = proc.poll()
-        proc.kill()
-        if status == 0:
-            self._ssh_ping = True
-            return True
-        else:
-            return False
 
     def __gt__(self, other):
         return self.name > other.name
 
     def __lt__(self, other):
         return self.name < other.name
+
+    async def reachable(self):
+        while True:
+            try:
+                reader, _ = await asyncio.open_connection(str(self.ipv4.ip), 22)
+                data = await reader.read(10)
+                if data.decode().startswith("SSH"):
+                    print(
+                        "{name} found at {ipv4}!".format(
+                            name=self.name, ipv4=self.ipv4.ip
+                        )
+                    )
+                    return
+                print("Close the connection")
+            except (OSError, ConnectionRefusedError):
+                pass
+        await asyncio.sleep(0.2)

@@ -1,22 +1,21 @@
 #!/usr/bin/env python3
 
+from concurrent.futures import ThreadPoolExecutor
 import argparse
+import asyncio
 import os
 import pathlib
 import re
 import sys
-import time
 
-import virt_lightning.ui as ui
-import virt_lightning.virt_lightning as vl
-from virt_lightning.configuration import Configuration
-from virt_lightning.symbols import get_symbols
-
+import libvirt
+import libvirtaio
 import yaml
 
-
-CURSOR_UP_ONE = "\x1b[1A"
-ERASE_LINE = "\x1b[2K"
+from virt_lightning.configuration import Configuration
+from virt_lightning.symbols import get_symbols
+import virt_lightning.ui as ui
+import virt_lightning.virt_lightning as vl
 
 symbols = get_symbols()
 
@@ -25,9 +24,7 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
     hv.init_network(configuration.network_name, configuration.network_cidr)
     hv.init_storage_pool(configuration.storage_pool)
 
-    status_line = "Starting:"
-
-    for host in virt_lightning_yaml:
+    def start_domain(host):
         if host["distro"] not in hv.distro_available():
             print("distro not available:", host["distro"])
             print("Please select on of the following distro:", hv.distro_available())
@@ -40,11 +37,9 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
             print("Domain {name} already exists!".format(**host))
             exit(1)
 
-        status_line += "{lightning}{name} ".format(
-            lightning=symbols.LIGHTNING.value, **host)
-
-        print(status_line)
-
+        # Unfortunatly, i can't decode that symbol
+        # that symbol more well add to check encoding block
+        sys.stdout.write("{lightning}{name} ".format(lightning=symbols.LIGHTNING.value, **host))
         domain = hv.create_domain(name=host["name"], distro=host["distro"])
         domain.context = context
         domain.load_ssh_key_file(configuration.ssh_key_file)
@@ -56,43 +51,42 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
         root_disk_path = hv.create_disk(name=host["name"], backing_on=host["distro"])
         domain.add_root_disk(root_disk_path)
         domain.attachNetwork(configuration.network_name)
-        domain.set_ip(ipv4=hv.get_free_ipv4(), gateway=hv.gateway, dns=hv.dns)
+        domain.ipv4 = hv.get_free_ipv4()
         domain.add_swap_disk(hv.create_disk(host["name"] + "-swap", size=1))
         hv.start(domain)
-        sys.stdout.write(CURSOR_UP_ONE)
-        sys.stdout.write(ERASE_LINE)
+        return domain
 
-    time.sleep(2)
-    status_line_template = (
-        "{icon}IPv4 ready: {with_ipv4}/{all_vms}    "
-        "{icon}SSH ready: {with_ssh}/{all_vms}"
+    def myDomainEventAgentLifecycleCallback(conn, dom, state, reason, opaque):
+        if state == 1:
+            dom.setUserPassword("root", "root")
+            print("{name} agent is online".format(name=dom.name()))
+
+    async def deploy():
+        futures = []
+        for host in virt_lightning_yaml:
+            futures.append(loop.run_in_executor(pool, start_domain, host))
+
+        domain_reachable_futures = []
+        for f in futures:
+            await f
+            domain_reachable_futures.append(f.result().reachable())
+        print("... ok Waiting...")
+
+        for f in domain_reachable_futures:
+            await f
+
+    pool = ThreadPoolExecutor(max_workers=10)
+    loop = asyncio.get_event_loop()
+    libvirtaio.virEventRegisterAsyncIOImpl(loop=loop)
+    vc = libvirt.open("qemu:///system")
+    vc.setKeepAlive(5, 3)
+    vc.domainEventRegisterAny(
+        None,
+        libvirt.VIR_DOMAIN_EVENT_ID_AGENT_LIFECYCLE,
+        myDomainEventAgentLifecycleCallback,
+        None,
     )
-    print(status_line)
-    icons = ["☆", "★"]
-    while True:
-        icons.reverse()
-        status = get_status(hv, context=context)
-        all_vms = len(status)
-        with_ipv4 = len([i for i in status if i["ipv4"]])
-        with_ssh = len([i for i in status if i["ssh_ping"]])
-        status_line = status_line_template.format(
-            icon=icons[0], all_vms=all_vms, with_ipv4=with_ipv4, with_ssh=with_ssh
-        )
-        sys.stdout.write(CURSOR_UP_ONE)
-        sys.stdout.write(ERASE_LINE)
-        print(status_line)
-        time.sleep(0.5)
-        if all_vms == with_ssh:
-            print("Done! You can now follow the deployment:")
-            print("You can also access the serial console of the VM:\n\n")
-            for host in status:
-                print(
-                    (
-                        "⚈ {name}:\n    console⇝ virsh console {name}\n"
-                        "    ssh⇝ ssh {username}@{ipv4}"
-                    ).format(**host)
-                )
-            break
+    loop.run_until_complete(deploy())
 
 
 def ansible_inventory(configuration, context, **kwargs):
@@ -108,7 +102,7 @@ def ansible_inventory(configuration, context, **kwargs):
         if domain.context == context:
             print(
                 ssh_cmd_template.format(
-                    name=domain.name, ipv4=domain.get_ipv4(), username=domain.username
+                    name=domain.name, ipv4=domain.ipv4.ip, username=domain.username
                 )
             )
 
@@ -122,10 +116,9 @@ def get_status(hv, context):
         status.append(
             {
                 "name": name,
-                "ipv4": domain.get_ipv4(),
+                "ipv4": str(domain.ipv4.ip),
                 "context": domain.context,
                 "username": domain.username,
-                "ssh_ping": domain.ssh_ping(),
             }
         )
     return status
@@ -149,16 +142,10 @@ def status(configuration, context=None, **kwargs):
             "ipv4": status["ipv4"] or "waiting",
             "context": status["context"],
             "username": status["username"],
-            "ssh_ping": iconify(status["ssh_ping"]),
         }
 
-    for _ in range(0, len(results) + 1):
-        sys.stdout.write(CURSOR_UP_ONE)
-        sys.stdout.write(ERASE_LINE)
-
-    print("[host]        [username@IP]")
     for _, v in sorted(results.items()):
-        print("{name:<13} {username}@{ipv4:>5} {ssh_ping}".format(**v))
+        print("  {name:<13}   ⇛   {username}@{ipv4:>5}".format(**v))
 
 
 def ssh(configuration, name=None, **kwargs):
@@ -172,9 +159,7 @@ def ssh(configuration, name=None, **kwargs):
             "StrictHostKeyChecking=no",
             "-o",
             "UserKnownHostsFile=/dev/null",
-            "{username}@{ipv4}".format(
-                username=domain.username, ipv4=domain.get_ipv4()
-            ),
+            "{username}@{ipv4}".format(username=domain.username, ipv4=domain.ipv4.ip),
         )
 
     if name:
