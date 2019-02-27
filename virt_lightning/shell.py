@@ -18,6 +18,7 @@ import virt_lightning.virt_lightning as vl
 
 symbols = get_symbols()
 
+
 def up(virt_lightning_yaml, configuration, context, **kwargs):
     hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
     hv.init_network(configuration.network_name, configuration.network_cidr)
@@ -38,7 +39,9 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
 
         # Unfortunatly, i can't decode that symbol
         # that symbol more well add to check encoding block
-        sys.stdout.write("{lightning}{name} ".format(lightning=symbols.LIGHTNING.value, **host))
+        sys.stdout.write(
+            "{lightning}{name} ".format(lightning=symbols.LIGHTNING.value, **host)
+        )
         domain = hv.create_domain(name=host["name"], distro=host["distro"])
         domain.context = context
         domain.load_ssh_key_file(configuration.ssh_key_file)
@@ -78,6 +81,7 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
     loop = asyncio.get_event_loop()
     try:
         import libvirtaio
+
         libvirtaio.virEventRegisterAsyncIOImpl(loop=loop)
     except ImportError:
         pass
@@ -210,7 +214,8 @@ def storage_dir(configuration, **kwargs):
 def main():
 
     title = "{lightning} Virt-Lightning {lightning}".format(
-        lightning=symbols.LIGHTNING.value)
+        lightning=symbols.LIGHTNING.value
+    )
 
     usage = """
 usage: vl [--debug DEBUG] [--config CONFIG]

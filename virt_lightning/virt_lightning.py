@@ -14,7 +14,6 @@ import libvirt
 
 import yaml
 
-import libvirtaio
 import asyncio
 
 from .templates import (
