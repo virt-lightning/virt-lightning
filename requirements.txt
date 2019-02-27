@@ -1,3 +1,4 @@
 libvirt-python
 netifaces
 pyyaml
+urwid
