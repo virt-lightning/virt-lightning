@@ -17,14 +17,13 @@ def test_kvm_binary(hv):
 
 
 def test_init_storage_pool(hv):
-    with patch.object(pathlib.Path, 'exists') as mock_exists:
-        mock_exists.return_value = False
-        hv.init_storage_pool("foo_bar")
     assert hv.conn.storagePoolLookupByName("foo_bar")
+
 
 def test_create_domain(hv):
     domain = hv.create_domain(name="a", distro="b")
     assert domain
+
 
 def test_distro_available(hv, tmpdir):
     hv.storage_pool_obj = hv.create_storage_pool("foo", tmpdir)
@@ -34,3 +33,13 @@ def test_distro_available(hv, tmpdir):
     distro_1 = upstream_d / "distro_1.qcow2"
     distro_1.write(b"a")
     assert hv.distro_available() == ["distro_1"]
+
+
+def test_get_storage_dir(hv):
+    assert hv.get_storage_dir().name == "pool"
+
+
+def test_create_disk(hv):
+    disk = hv.create_disk("foo")
+    assert disk.name() == "foo.qcow2"
+    assert disk.path().endswith("/pool/foo.qcow2")
