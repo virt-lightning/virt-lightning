@@ -7,26 +7,29 @@ import re
 import string
 import subprocess
 import tempfile
-import time
 import uuid
 import xml.etree.ElementTree as ET
 
 import libvirt
 
-import netifaces
-
 import yaml
 
+import libvirtaio
+import asyncio
 
 from .templates import (
     BRIDGE_XML,
     CLOUD_INIT_ENI,
     DISK_XML,
     DOMAIN_XML,
+    NETWORK_XML,
     STORAGE_POOL_XML,
+    STORAGE_VOLUME_XML,
     USER_CREATE_STORAGE_POOL_DIR,
 )
 
+DEFAULT_STORAGE_DIR = "/var/lib/virt-lightning/pool"
+QEMU_DIR = "/var/lib/libvirt/qemu/"
 KVM_BINARIES = ("/usr/bin/qemu-system-x86_64", "/usr/bin/qemu-kvm", "/usr/bin/kvm")
 
 
@@ -57,7 +60,11 @@ class LibvirtHypervisor:
 
         self.conn = conn
         self._last_free_ipv4 = None
-        self.wait_for = []
+        self.storage_pool_obj = None
+        self.network_obj = None
+        self.gateway = None
+        self.dns = None
+        self.network = None
 
     @property
     def arch(self):
@@ -134,22 +141,89 @@ class LibvirtHypervisor:
         return pathlib.PosixPath(disk_source.text)
 
     def create_disk(self, name, size=20, backing_on=None):
-        disk_path = "{path}/{name}.qcow2".format(path=self.get_storage_dir(), name=name)
-        cmd = ["qemu-img", "create", "-f", "qcow2"]
-        if backing_on:
-            backing_disk = "{path}/upstream/{name}.qcow2".format(
-                path=self.get_storage_dir(), name=backing_on
-            )
-            cmd += ["-b", backing_disk]
-        cmd += [disk_path, "{size}G".format(size=size)]
-
-        run_cmd(cmd)
-        return disk_path
-
-    def prepare_meta_data(self, domain):
-        cidata_path = "{path}/{name}-cidata.iso".format(
-            path=self.get_storage_dir(), name=domain.name
+        disk_path = pathlib.PosixPath(
+            "{path}/{name}.qcow2".format(path=self.get_storage_dir(), name=name)
         )
+        root = ET.fromstring(STORAGE_VOLUME_XML)
+        root.find("./name").text = disk_path.name
+        root.find("./capacity").text = str(size)
+        root.find("./target/path").text = str(disk_path)
+
+        if backing_on:
+            backing_file = pathlib.PosixPath(
+                "{path}/upstream/{backing_on}.qcow2".format(
+                    path=self.get_storage_dir(), backing_on=backing_on
+                )
+            )
+            backing = ET.SubElement(root, "backingStore")
+            ET.SubElement(backing, "path").text = str(backing_file)
+            ET.SubElement(backing, "format").attrib = {"type": "qcow2"}
+
+        xml = ET.tostring(root).decode()
+        return self.storage_pool_obj.createXML(xml)
+
+    def prepare_cloud_init_iso(self, domain):
+        cidata_file = "{name}-cidata.iso".format(name=domain.name)
+
+        primary_mac_addr = domain.mac_addresses[0]
+        self._network_meta = {"config": "disabled"}
+        if "ubuntu-18.04" in domain.distro:
+            domain._network_meta = {
+                "version": 2,
+                "ethernets": {
+                    "interface0": {
+                        "match": {"macaddress": primary_mac_addr},
+                        "set-name": "interface0",
+                        "addresses": [str(domain.ipv4)],
+                        "gateway4": str(self.gateway.ip),
+                        "nameservers": {"addresses": [str(self.dns.ip)]},
+                    }
+                },
+            }
+        else:
+            domain.meta_data += CLOUD_INIT_ENI
+            domain._network_meta = {
+                "version": 1,
+                "config": [
+                    {
+                        "type": "physical",
+                        "name": "eth0",
+                        "mac_address": primary_mac_addr,
+                        "subnets": [
+                            {
+                                "type": "static",
+                                "address": str(domain.ipv4),
+                                "gateway": str(self.gateway.ip),
+                                "dns_nameservers": [str(self.dns.ip)],
+                            }
+                        ],
+                    }
+                ],
+            }
+        nm_filter = "(centos|fedora|rhel)"
+        if re.match(nm_filter, domain.distro):
+            nmcli_call = (
+                "nmcli c add type ethernet con-name eth0 ifname eth0 ip4 {ipv4} "
+                "ipv4.gateway {gateway} ipv4.dns {dns} ipv4.method manual"
+            )
+            domain.cloud_init["runcmd"].append(
+                "nmcli -g UUID c|xargs -n 1 nmcli con del"
+            )
+            domain.cloud_init["runcmd"].append(
+                nmcli_call.format(
+                    ipv4=domain.ipv4, gateway=str(self.gateway.ip), dns=str(self.dns.ip)
+                )
+            )
+            # Without that NM, initialize eth0 with a DHCP IP
+            domain.cloud_init["bootcmd"].append(
+                'echo "[main]" > /etc/NetworkManager/conf.d/no-auto-default.conf'
+            )
+            domain.cloud_init["bootcmd"].append(
+                (
+                    'echo "no-auto-default=eth0" >> '
+                    "/etc/NetworkManager/conf.d/no-auto-default.conf"
+                )
+            )
 
         with tempfile.TemporaryDirectory() as temp_dir:
             with open(temp_dir + "/user-data", "w") as fd:
@@ -160,7 +234,8 @@ class LibvirtHypervisor:
                     domain.meta_data.format(
                         name=domain.name,
                         ipv4=str(domain.ipv4.ip),
-                        gateway=str(domain.gateway.ip),
+                        gateway=str(self.gateway.ip),
+                        network=str(self.network),
                     )
                 )
             with open(temp_dir + "/network-config", "w") as fd:
@@ -170,7 +245,7 @@ class LibvirtHypervisor:
                 [
                     "genisoimage",
                     "-output",
-                    cidata_path,
+                    cidata_file,
                     "-volid",
                     "cidata",
                     "-joliet",
@@ -181,11 +256,18 @@ class LibvirtHypervisor:
                 ],
                 cwd=temp_dir,
             )
-        return cidata_path
+
+            cdrom = self.create_disk(name=cidata_file, size=1)
+            with open(temp_dir + "/" + cidata_file, "br") as fd:
+                st = self.conn.newStream(0)
+                cdrom.upload(st, 0, 1024 * 1024)
+                st.send(fd.read())
+                st.finish()
+            return cdrom
 
     def start(self, domain):
-        meta_data_iso = self.prepare_meta_data(domain)
-        domain.attachDisk(meta_data_iso, device="cdrom", disk_type="raw")
+        cloud_init_iso = self.prepare_cloud_init_iso(domain)
+        domain.attachDisk(cloud_init_iso, device="cdrom", disk_type="raw")
         domain.dom.create()
 
     def clean_up(self, domain):
@@ -214,53 +296,73 @@ class LibvirtHypervisor:
         else:
             raise Exception("Failed to find the kvm binary in: ", paths)
 
-    def init_network(self, bridge_name):
+    def init_network(self, network_name, network_cidr):
         try:
-            bridge_netiface = netifaces.ifaddresses(bridge_name)
-        except ValueError:
-            print("Bridge not found:", bridge_name)
-            exit(1)
-        ipconfig = bridge_netiface[netifaces.AF_INET]
-        self.gateway = ipaddress.IPv4Interface("{addr}/{netmask}".format(**ipconfig[0]))
+            self.network_obj = self.conn.networkLookupByName(network_name)
+        except libvirt.libvirtError as e:
+            if e.get_error_code() == libvirt.VIR_ERR_NO_NETWORK:
+                pass
+
+        if not self.network_obj:
+            self.network_obj = self.create_network(network_name, network_cidr)
+
+        if not self.network_obj.isActive():
+            self.network_obj.create(0)
+
+        xml = self.network_obj.XMLDesc(0)
+        root = ET.fromstring(xml)
+        ip = root.find("./ip")
+
+        self.gateway = ipaddress.IPv4Interface(
+            "{address}/{netmask}".format(**ip.attrib)
+        )
         self.dns = self.gateway
         self.network = self.gateway.network
+
+    def create_network(self, network_name, network_cidr):
+        network = ipaddress.ip_network(network_cidr)
+        root = ET.fromstring(NETWORK_XML)
+        root.find("./name").text = network_name
+        root.find("./bridge").attrib["name"] = network_name
+        root.find("./ip").attrib = {
+            "address": network[1].exploded,
+            "netmask": network.netmask.exploded,
+        }
+        xml = ET.tostring(root).decode()
+        return self.conn.networkCreateXML(xml)
 
     def init_storage_pool(self, storage_pool):
         try:
             self.storage_pool_obj = self.conn.storagePoolLookupByName(storage_pool)
-            if not self.get_storage_dir().is_dir():
-                raise Exception("Missing storage directory:", self.get_storage_dir())
-            if not self.storage_pool_obj.isActive():
-                self.storage_pool_obj.create(0)
-            return
         except libvirt.libvirtError as e:
             if e.get_error_code() == libvirt.VIR_ERR_NO_STORAGE_POOL:
                 pass
 
-        if self.conn.getURI().startswith("qemu:///system"):
-            storage_dir = pathlib.PosixPath("/var/lib/virt-lightning/pool")
-        elif self.conn.getURI().startswith("qemu:///session"):
-            storage_dir = pathlib.PosixPath("~/.local/share/virt-lightning/pool")
-            storage_dir = storage_dir.expanduser()
-        else:
-            raise Exception("Unsupported libvirt URI")
+        storage_dir = pathlib.PosixPath(DEFAULT_STORAGE_DIR)
+        if not self.storage_pool_obj:
+            self.storage_pool_obj = self.create_storage_pool(
+                name=storage_pool, directory=storage_dir
+            )
 
-        full_dir = storage_dir / "upstream"
         try:
-            full_dir.mkdir(parents=True, exist_ok=True)
+            full_dir = storage_dir / "upstream"
+            dir_exists = full_dir.is_dir()
         except PermissionError:
-            qemu_dir = pathlib.PosixPath("/var/lib/libvirt/qemu/")
+            dir_exists = False
+
+        if not dir_exists:
+            qemu_dir = pathlib.PosixPath(QEMU_DIR)
             print(
                 USER_CREATE_STORAGE_POOL_DIR.format(
                     qemu_user=qemu_dir.owner(),
                     qemu_group=qemu_dir.group(),
-                    storage_dir=storage_dir,
+                    storage_dir=self.get_storage_dir(),
                 )
             )
             exit(1)
-        self.storage_pool_obj = self.create_storage_pool(
-            name=storage_pool, directory=storage_dir
-        )
+
+        if not self.storage_pool_obj.isActive():
+            self.storage_pool_obj.create(0)
 
     def create_storage_pool(self, name, directory):
         root = ET.fromstring(STORAGE_POOL_XML)
@@ -270,8 +372,6 @@ class LibvirtHypervisor:
         pool = self.conn.storagePoolDefineXML(xml, 0)
         if not pool:
             raise Exception("Failed to create pool:", name, xml)
-        pool.setAutostart(1)
-        pool.create(0)
         return pool
 
     def distro_available(self):
@@ -409,7 +509,18 @@ class LibvirtDomain:
     def context(self, value):
         self.record_metadata("context", value)
 
-    def attachDisk(self, path, device="disk", disk_type="qcow2"):
+    def attachDisk(self, volume, device="disk", disk_type="qcow2"):
+        device_name = self.getNextBlckDevice()
+        disk_root = ET.fromstring(DISK_XML)
+        disk_root.attrib["device"] = device
+        disk_root.findall("./driver")[0].attrib = {"name": "qemu", "type": disk_type}
+        disk_root.findall("./source")[0].attrib = {"file": volume.path()}
+        disk_root.findall("./target")[0].attrib = {"dev": device_name}
+        xml = ET.tostring(disk_root).decode()
+        self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
+        return device_name
+
+    def attachCDROM(self, path, device="disk", disk_type="qcow2"):
         device_name = self.getNextBlckDevice()
         disk_root = ET.fromstring(DISK_XML)
         disk_root.attrib["device"] = device
@@ -420,9 +531,9 @@ class LibvirtDomain:
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
         return device_name
 
-    def attachBridge(self, bridge):
+    def attachNetwork(self, network=None):
         disk_root = ET.fromstring(BRIDGE_XML)
-        disk_root.findall("./source")[0].attrib = {"bridge": bridge}
+        disk_root.findall("./source")[0].attrib = {"network": network}
         xml = ET.tostring(disk_root).decode()
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
 
@@ -435,69 +546,13 @@ class LibvirtDomain:
         self.cloud_init["bootcmd"].append("mkswap /dev/vdb")
         self.cloud_init["bootcmd"].append("swapon /dev/vdb")
 
-    def set_ip(self, ipv4, gateway, dns):
-        self.ipv4 = ipv4
-        self.gateway = gateway
-        self.dns = dns
-        self.record_metadata("ipv4", ipv4)
+    @property
+    def ipv4(self):
+        return ipaddress.IPv4Interface(self.get_metadata("ipv4"))
 
-        primary_mac_addr = self.mac_addresses[0]
-        self._network_meta = {"config": "disabled"}
-        if "ubuntu-18.04" in self.distro:
-            self._network_meta = {
-                "version": 2,
-                "ethernets": {
-                    "interface0": {
-                        "match": {"macaddress": primary_mac_addr},
-                        "set-name": "interface0",
-                        "addresses": [str(self.ipv4)],
-                        "gateway4": str(self.gateway.ip),
-                        "nameservers": {"addresses": [str(self.dns.ip)]},
-                    }
-                },
-            }
-        else:
-            self.meta_data += CLOUD_INIT_ENI
-            self._network_meta = {
-                "version": 1,
-                "config": [
-                    {
-                        "type": "physical",
-                        "name": "eth0",
-                        "mac_address": primary_mac_addr,
-                        "subnets": [
-                            {
-                                "type": "static",
-                                "address": str(self.ipv4),
-                                "gateway": str(self.gateway.ip),
-                                "dns_nameservers": [str(self.dns.ip)],
-                            }
-                        ],
-                    }
-                ],
-            }
-        nm_filter = "(centos|fedora|rhel)"
-        if re.match(nm_filter, self.distro):
-            nmcli_call = (
-                "nmcli c add type ethernet con-name eth0 ifname eth0 ip4 {ipv4} "
-                "ipv4.gateway {gateway} ipv4.dns {dns} ipv4.method manual"
-            )
-            self.cloud_init["runcmd"].append("nmcli -g UUID c|xargs -n 1 nmcli con del")
-            self.cloud_init["runcmd"].append(
-                nmcli_call.format(
-                    ipv4=self.ipv4, gateway=str(self.gateway.ip), dns=str(self.dns.ip)
-                )
-            )
-            # Without that NM, initialize eth0 with a DHCP IP
-            self.cloud_init["bootcmd"].append(
-                'echo "[main]" > /etc/NetworkManager/conf.d/no-auto-default.conf'
-            )
-            self.cloud_init["bootcmd"].append(
-                (
-                    'echo "no-auto-default=eth0" >> '
-                    "/etc/NetworkManager/conf.d/no-auto-default.conf"
-                )
-            )
+    @ipv4.setter
+    def ipv4(self, value):
+        self.record_metadata("ipv4", value)
 
     @property
     def mac_addresses(self):
@@ -506,68 +561,28 @@ class LibvirtDomain:
         ifaces = root.findall("./devices/interface/mac[@address]")
         return [iface.attrib["address"] for iface in ifaces]
 
-    def get_ipv4(self):
-        if not self.dom.isActive():
-            return
-        try:
-            ifaces = self.dom.interfaceAddresses(
-                libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT, 0
-            )
-            for (_, val) in ifaces.items():
-                for addr in val["addrs"]:
-                    if addr["type"] != 0:  # 1 == IPv6
-                        continue
-                    if addr["addr"].startswith("127."):
-                        continue
-                    return addr["addr"]
-        except (KeyError, TypeError):
-            pass
-        except libvirt.libvirtError as e:
-            if e.get_error_code() == libvirt.VIR_ERR_AGENT_UNRESPONSIVE:
-                pass
-            elif "internal error: Guest agent returned ID" in e.get_error_message():
-                # workaround for ubuntu 16.04
-                pass
-            else:
-                print(e.get_error_code())
-                raise (e)
-
     def set_user_password(self, user, password):
         return self.dom.setUserPassword(user, password)
-
-    def ssh_ping(self):
-        if hasattr(self, "_ssh_ping"):
-            return self._ssh_ping
-        ipv4 = self.get_ipv4()
-        if not ipv4:
-            return
-
-        proc = subprocess.Popen(
-            [
-                "ssh",
-                "-o",
-                "StrictHostKeyChecking=no",
-                "-o",
-                "UserKnownHostsFile=/dev/null",
-                "-o",
-                "ConnectTimeout=1",
-                "{username}@{ipv4}".format(username=self.username, ipv4=ipv4),
-                "hostname",
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        time.sleep(1)
-        status = proc.poll()
-        proc.kill()
-        if status == 0:
-            self._ssh_ping = True
-            return True
-        else:
-            return False
 
     def __gt__(self, other):
         return self.name > other.name
 
     def __lt__(self, other):
         return self.name < other.name
+
+    async def reachable(self):
+        while True:
+            try:
+                reader, _ = await asyncio.open_connection(str(self.ipv4.ip), 22)
+                data = await reader.read(10)
+                if data.decode().startswith("SSH"):
+                    print(
+                        "{name} found at {ipv4}!".format(
+                            name=self.name, ipv4=self.ipv4.ip
+                        )
+                    )
+                    return
+                print("Close the connection")
+            except (OSError, ConnectionRefusedError):
+                pass
+        await asyncio.sleep(0.2)

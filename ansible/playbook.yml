@@ -8,6 +8,12 @@
         - updates-modular
       become: true
       when: ansible_distribution == 'Fedora'
+    - name: Install libselinux-python
+      package:
+        name: libselinux-python
+        state: present
+      become: true
+      when: ansible_distribution == 'Fedora'
     - name: Disable Debian's backports repositories
       lineinfile:
         path: /etc/apt/sources.list
@@ -20,6 +26,11 @@
         name: "{{ansible_user_id}}"
         shell: /bin/bash
       become: true
+    - name: Add ~/.local/bin in the $PATH
+      lineinfile:
+        path: ~/.bashrc
+        regexp: '# .local/bin path'
+        line: 'export PATH=$PATH:~/.local/bin/  # .local/bin path'
     - import_role:
         name: virt_lightning
       vars:

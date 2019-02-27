@@ -10,6 +10,5 @@ virt_lightning_packages:
 virt_lightning_groups:
   - kvm
   - libvirt
-  - libvirt-qemu
 virt_lightning_qemu_owner: libvirt-qemu
-virt_lightning_qemu_group: libvirt-qemu
+virt_lightning_qemu_group: kvm

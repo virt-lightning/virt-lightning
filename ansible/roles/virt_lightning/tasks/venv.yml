@@ -9,8 +9,7 @@
     repo: 'https://github.com/virt-lightning/virt-lightning'
     dest: ~/virt-lightning
   when: dev_mode is not defined
-- name: Prepare the virtualenv
+- name: Pip install
+  # --no-deps because of Ubuntu: https://github.com/pypa/pip/issues/4222
   shell: |
-    python3 -m venv ~/venv
-    . ~/venv/bin/activate
-    pip install -e ~/virt-lightning
+    pip3 install --no-deps --user ~/virt-lightning

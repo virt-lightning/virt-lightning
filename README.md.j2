@@ -52,9 +52,17 @@ sudo usermod -a -G {{ distro.virt_lightning_groups | join(",") }} $USER
 ## Installation
 
 ```shell
-python3 -m venv venv
-source venv/bin/activate
-pip install git+https://github.com/virt-lightning/virt-lightning
+pip3 install --user --no-deps git+https://github.com/virt-lightning/virt-lightning
+```
+
+The `--no-deps` argument is only required on Ubuntu (See: https://github.com/pypa/pip/issues/4222).
+
+`virt-lightning` will be installed in ~/.local/bin/. Add it in your `$PATH` if
+it's not already the case. For instance if you use:
+
+```shell
+echo "export PATH=$PATH:~/.local/bin/" >> ~/.bashrc
+source ~/.bashrc
 ```
 
 ## Fetch some images
@@ -116,9 +124,9 @@ You can create your own configuration file like this and save to config.ini
 
 ```
 [main]
-bridge = virbr0
+network_name = virt-lightning
 root_password = root
-storage_pool = default
+storage_pool = virt-lightning
 ```
 
 After creation configuration you can use `vl` command with `--config` argument and provide location to your config file.
