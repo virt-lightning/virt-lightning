@@ -3,6 +3,7 @@
 from concurrent.futures import ThreadPoolExecutor
 import argparse
 import asyncio
+import logging
 import os
 import pathlib
 import re
@@ -18,6 +19,7 @@ import virt_lightning.virt_lightning as vl
 
 symbols = get_symbols()
 
+
 def up(virt_lightning_yaml, configuration, context, **kwargs):
     hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
     hv.init_network(configuration.network_name, configuration.network_cidr)
@@ -25,20 +27,24 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
 
     def start_domain(host):
         if host["distro"] not in hv.distro_available():
-            print("distro not available:", host["distro"])
-            print("Please select on of the following distro:", hv.distro_available())
+            logging.error("distro not available:", host["distro"])
+            logging.info(
+                "Please select on of the following distro:", hv.distro_available()
+            )
             exit()
 
         if "name" not in host:
             host["name"] = re.sub(r"\W+", "", host["distro"])
 
         if hv.get_domain_by_name(host["name"]):
-            print("Domain {name} already exists!".format(**host))
+            logging.error("Domain {name} already exists!".format(**host))
             exit(1)
 
         # Unfortunatly, i can't decode that symbol
         # that symbol more well add to check encoding block
-        sys.stdout.write("{lightning}{name} ".format(lightning=symbols.LIGHTNING.value, **host))
+        sys.stdout.write(
+            "{lightning}{name} ".format(lightning=symbols.LIGHTNING.value, **host)
+        )
         domain = hv.create_domain(name=host["name"], distro=host["distro"])
         domain.context = context
         domain.load_ssh_key_file(configuration.ssh_key_file)
@@ -58,7 +64,7 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
     def myDomainEventAgentLifecycleCallback(conn, dom, state, reason, opaque):
         if state == 1:
             dom.setUserPassword("root", "root")
-            print("{name} agent is online".format(name=dom.name()))
+            logging.info("{name} agent is online".format(name=dom.name()))
 
     async def deploy():
         futures = []
@@ -69,7 +75,7 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
         for f in futures:
             await f
             domain_reachable_futures.append(f.result().reachable())
-        print("... ok Waiting...")
+        logging.info("... ok Waiting...")
 
         for f in domain_reachable_futures:
             await f
@@ -78,6 +84,7 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
     loop = asyncio.get_event_loop()
     try:
         import libvirtaio
+
         libvirtaio.virEventRegisterAsyncIOImpl(loop=loop)
     except ImportError:
         pass
@@ -103,7 +110,7 @@ def ansible_inventory(configuration, context, **kwargs):
 
     for domain in hv.list_domains():
         if domain.context == context:
-            print(
+            print(  # noqa: T001
                 ssh_cmd_template.format(
                     name=domain.name, ipv4=domain.ipv4.ip, username=domain.username
                 )
@@ -148,7 +155,7 @@ def status(configuration, context=None, **kwargs):
         }
 
     for _, v in sorted(results.items()):
-        print("  {name:<13}   ⇛   {username}@{ipv4:>5}".format(**v))
+        print("  {name:<13}   ⇛   {username}@{ipv4:>5}".format(**v))  # noqa: T001
 
 
 def ssh(configuration, name=None, **kwargs):
@@ -198,19 +205,20 @@ def distro_list(configuration, **kwargs):
     hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
     hv.init_storage_pool(configuration.storage_pool)
     for distro in hv.distro_available():
-        print("- distro: {distro}".format(distro=distro))
+        print("- distro: {distro}".format(distro=distro))  # noqa: T001
 
 
 def storage_dir(configuration, **kwargs):
     hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
     hv.init_storage_pool(configuration.storage_pool)
-    print(hv.get_storage_dir())
+    print(hv.get_storage_dir())  # noqa: T001
 
 
 def main():
 
     title = "{lightning} Virt-Lightning {lightning}".format(
-        lightning=symbols.LIGHTNING.value)
+        lightning=symbols.LIGHTNING.value
+    )
 
     usage = """
 usage: vl [--debug DEBUG] [--config CONFIG]
@@ -231,7 +239,12 @@ Example:
    $ ansible all -m ping -i inventory"""
 
     def list_from_yaml_file(value):
-        with pathlib.PosixPath(value).open(encoding="UTF-8") as fd:
+        file_path = pathlib.PosixPath(value)
+        if not file_path.exists():
+            raise argparse.ArgumentTypeError(
+                "{path} does not exist.".format(path=value)
+            )
+        with file_path.open(encoding="UTF-8") as fd:
             content = yaml.load(fd.read())
             if not isinstance(content, list):
                 raise argparse.ArgumentTypeError(
@@ -307,9 +320,9 @@ Example:
 
     args = main_parser.parse_args()
     if not args.action:
-        print(title)
-        print(usage)
-        print(example)
+        print(title)  # noqa: T001
+        print(usage)  # noqa: T001
+        print(example)  # noqa: T001
         exit(1)
 
     configuration = Configuration()

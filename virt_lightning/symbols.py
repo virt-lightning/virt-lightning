@@ -15,6 +15,7 @@ class SymbolsDefault(Enum):
     CHECKMARK = "+"
     LIGHTNING = ""
 
+
 def get_symbols():
     lang, encoding = locale.getdefaultlocale()
 

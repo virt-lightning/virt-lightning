@@ -1,3 +1,5 @@
+import logging
+
 try:
     import urwid
 except ImportError:
@@ -26,7 +28,7 @@ class Selector:
         self.title = title
 
         if not urwid_found:
-            print("Please install the urwid package.")
+            logging.error("Please install the urwid package.")
             exit(1)
 
         main = urwid.Padding(self.menu(), left=2, right=2)
