@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import ipaddress
+import logging
 import os
 import pathlib
 import re
@@ -54,7 +55,7 @@ class LibvirtHypervisor:
 
         if conn is None:
             error_tpl = "Failed to open connection to {uri}"
-            print(error_tpl.format(uri=libvirt_uri))
+            logging.error(error_tpl.format(uri=libvirt_uri))
             exit(1)
 
         self.conn = conn
@@ -81,7 +82,7 @@ class LibvirtHypervisor:
         if not available:
             raise Exception("No domain type available!")
         if "kvm" not in available:
-            print("kvm mode not available!")
+            logging.warning("kvm mode not available!")
         # Sorted to get kvm before qemu, assume there is no other type
         return sorted(available)[0]
 
@@ -351,7 +352,7 @@ class LibvirtHypervisor:
 
         if not dir_exists:
             qemu_dir = pathlib.PosixPath(QEMU_DIR)
-            print(
+            logging.error(
                 USER_CREATE_STORAGE_POOL_DIR.format(
                     qemu_user=qemu_dir.owner(),
                     qemu_group=qemu_dir.group(),
@@ -464,8 +465,8 @@ class LibvirtDomain:
     def memory(self, value=None):
         if value:
             if value < 256:
-                print(
-                    "Warning: low memory {value} for VM {name}".format(
+                logging.warning(
+                    "low memory {value} for VM {name}".format(
                         value=value, name=self.name
                     )
                 )
@@ -575,13 +576,12 @@ class LibvirtDomain:
                 reader, _ = await asyncio.open_connection(str(self.ipv4.ip), 22)
                 data = await reader.read(10)
                 if data.decode().startswith("SSH"):
-                    print(
+                    logging.info(
                         "{name} found at {ipv4}!".format(
                             name=self.name, ipv4=self.ipv4.ip
                         )
                     )
                     return
-                print("Close the connection")
             except (OSError, ConnectionRefusedError):
                 pass
         await asyncio.sleep(0.2)
