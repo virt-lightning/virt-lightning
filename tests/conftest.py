@@ -31,6 +31,7 @@ def hv(scope="function"):
     with patch.object(pathlib.Path, 'exists') as mock_exists:
         mock_exists.return_value = False
         hv.init_storage_pool("foo_bar")
+    hv.init_network("my_network", "1.0.0.0/24")
     yield hv
     clean_up()
 
