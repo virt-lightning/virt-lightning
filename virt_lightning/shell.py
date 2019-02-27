@@ -18,6 +18,7 @@ import yaml
 CURSOR_UP_ONE = "\x1b[1A"
 ERASE_LINE = "\x1b[2K"
 
+symbols = get_symbols()
 
 def up(virt_lightning_yaml, configuration, context, **kwargs):
     hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
@@ -39,10 +40,11 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
             print("Domain {name} already exists!".format(**host))
             exit(1)
 
-        # Unfortunatly, i can't decode that symbol
-        # that symbol more well add to check encoding block
-        status_line += "🗲{name} ".format(**host)
+        status_line += "{lightning}{name} ".format(
+            lightning=symbols.LIGHTNING.value, **host)
+
         print(status_line)
+
         domain = hv.create_domain(name=host["name"], distro=host["distro"])
         domain.context = context
         domain.load_ssh_key_file(configuration.ssh_key_file)
@@ -133,8 +135,6 @@ def status(configuration, context=None, **kwargs):
     hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
     results = {}
 
-    symbols = get_symbols()
-
     def iconify(v):
         if isinstance(v, str):
             return v
@@ -221,8 +221,10 @@ def storage_dir(configuration, **kwargs):
 
 def main():
 
-    usage = """⚡ Virt-Lightning ⚡
+    title = "{lightning} Virt-Lightning {lightning}".format(
+        lightning=symbols.LIGHTNING.value)
 
+    usage = """
 usage: vl [--debug DEBUG] [--config CONFIG]
           {up,down,status,distro_list,storage_dir,ansible_inventory} ..."""
     example = """
@@ -317,6 +319,7 @@ Example:
 
     args = main_parser.parse_args()
     if not args.action:
+        print(title)
         print(usage)
         print(example)
         exit(1)
