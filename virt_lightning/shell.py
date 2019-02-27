@@ -9,7 +9,6 @@ import re
 import sys
 
 import libvirt
-import libvirtaio
 import yaml
 
 from virt_lightning.configuration import Configuration
@@ -77,7 +76,11 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
 
     pool = ThreadPoolExecutor(max_workers=10)
     loop = asyncio.get_event_loop()
-    libvirtaio.virEventRegisterAsyncIOImpl(loop=loop)
+    try:
+        import libvirtaio
+        libvirtaio.virEventRegisterAsyncIOImpl(loop=loop)
+    except ImportError:
+        pass
     vc = libvirt.open("qemu:///system")
     vc.setKeepAlive(5, 3)
     vc.domainEventRegisterAny(

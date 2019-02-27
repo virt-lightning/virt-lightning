@@ -22,7 +22,6 @@ def test_init_storage_pool(hv):
         hv.init_storage_pool("foo_bar")
     assert hv.conn.storagePoolLookupByName("foo_bar")
 
-
 def test_create_domain(hv):
     domain = hv.create_domain(name="a", distro="b")
     assert domain
