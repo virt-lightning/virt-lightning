@@ -36,7 +36,7 @@ This example show up how to use the host selector to quickly connect to a host.
 
 First you need to install libvirt and guestfs:
 ```shell
-sudo apt install -f libguestfs-tools libvirt-daemon libvirt-daemon-system python3 python3-libvirt python3-pip
+sudo apt install -f libguestfs-tools libvirt-daemon libvirt-daemon-system python3 python3-libvirt python3-pip python3-urwid
 sudo systemctl start --now libvirtd
 ```
 
@@ -53,7 +53,7 @@ sudo usermod -a -G kvm,libvirt,libvirt-qemu $USER
 
 First you need to install libvirt and guestfs:
 ```shell
-sudo apt install -f libguestfs-tools libselinux-python libvirt python3 python3-libvirt python3-pip
+sudo apt install -f libguestfs-tools libselinux-python libvirt python3 python3-libvirt python3-pip python3-urwid
 sudo systemctl start --now libvirtd
 ```
 
@@ -70,7 +70,7 @@ sudo usermod -a -G qemu,libvirt $USER
 
 First you need to install libvirt and guestfs:
 ```shell
-sudo apt install -f libguestfs-tools libvirt-bin libvirt-daemon python3 python3-libvirt python3-pip
+sudo apt install -f libguestfs-tools libvirt-bin libvirt-daemon python3 python3-libvirt python3-pip python3-urwid
 sudo systemctl start --now libvirtd
 ```
 
@@ -87,7 +87,7 @@ sudo usermod -a -G kvm,libvirtd $USER
 
 First you need to install libvirt and guestfs:
 ```shell
-sudo apt install -f libguestfs-tools libvirt-bin libvirt-daemon python3 python3-libvirt python3-pip
+sudo apt install -f libguestfs-tools libvirt-bin libvirt-daemon python3 python3-libvirt python3-pip python3-urwid
 sudo systemctl start --now libvirtd
 ```
 
@@ -104,7 +104,7 @@ sudo usermod -a -G kvm,libvirt $USER
 
 First you need to install libvirt and guestfs:
 ```shell
-sudo apt install -f libguestfs-tools libvirt-daemon libvirt-daemon-system python3 python3-libvirt python3-pip
+sudo apt install -f libguestfs-tools libvirt-daemon libvirt-daemon-system python3 python3-libvirt python3-pip python3-urwid
 sudo systemctl start --now libvirtd
 ```
 
