@@ -25,7 +25,7 @@ In the video below, we:
 3. once the environment is ready, we generate an Ansible inventory file
 4. and we use it to call Ansible's ping module on all the host.
 
-[![demo](https://asciinema.org/a/auiusqdLi83LmnqjibmX7ihtg.svg)](https://asciinema.org/a/auiusqdLi83LmnqjibmX7ihtg?autoplay=1)
+[![demo](https://asciinema.org/a/230671.svg)](https://asciinema.org/a/230671?autoplay=1)
 
 This example show up how to use the host selector to quickly connect to a host.
 
