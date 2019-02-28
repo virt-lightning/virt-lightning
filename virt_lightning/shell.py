@@ -23,8 +23,14 @@ ch = logging.StreamHandler()
 logger.addHandler(ch)
 
 
-def up(virt_lightning_yaml, configuration, context, **kwargs):
+def libvirt_callback(userdata, err):
+    pass
 
+
+libvirt.registerErrorHandler(f=libvirt_callback, ctx=None)
+
+
+def up(virt_lightning_yaml, configuration, context, **kwargs):
     def myDomainEventAgentLifecycleCallback(conn, dom, state, reason, opaque):
         if state == 1:
             logger.info("🛃 %s agent found", dom.name())
@@ -53,7 +59,7 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
         libvirt.virEventRegisterDefaultImpl()
         pass
     conn = libvirt.open(configuration.libvirt_uri)
-    hv = vl.LibvirtHypervisor(conn=conn)
+    hv = vl.LibvirtHypervisor(conn)
 
     conn.setKeepAlive(5, 3)
     conn.domainEventRegisterAny(
@@ -108,7 +114,8 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
 
 
 def ansible_inventory(configuration, context, **kwargs):
-    hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
+    conn = libvirt.open(configuration.libvirt_uri)
+    hv = vl.LibvirtHypervisor(conn)
 
     ssh_cmd_template = (
         "{name} ansible_host={ipv4} ansible_username={username} "
@@ -143,7 +150,8 @@ def get_status(hv, context):
 
 
 def status(configuration, context=None, **kwargs):
-    hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
+    conn = libvirt.open(configuration.libvirt_uri)
+    hv = vl.LibvirtHypervisor(conn)
     results = {}
 
     def iconify(v):
@@ -167,7 +175,8 @@ def status(configuration, context=None, **kwargs):
 
 
 def ssh(configuration, name=None, **kwargs):
-    hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
+    conn = libvirt.open(configuration.libvirt_uri)
+    hv = vl.LibvirtHypervisor(conn)
 
     def go_ssh(domain):
         os.execlp(
@@ -187,7 +196,8 @@ def ssh(configuration, name=None, **kwargs):
 
 
 def console(configuration, name=None, **kwargs):
-    hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
+    conn = libvirt.open(configuration.libvirt_uri)
+    hv = vl.LibvirtHypervisor(conn)
 
     def go_console(domain):
         os.execlp(
@@ -201,7 +211,8 @@ def console(configuration, name=None, **kwargs):
 
 
 def down(configuration, context, **kwargs):
-    hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
+    conn = libvirt.open(configuration.libvirt_uri)
+    hv = vl.LibvirtHypervisor(conn)
     hv.init_storage_pool(configuration.storage_pool)
     for domain in hv.list_domains():
         if context and domain.context != context:
@@ -211,14 +222,16 @@ def down(configuration, context, **kwargs):
 
 
 def distro_list(configuration, **kwargs):
-    hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
+    conn = libvirt.open(configuration.libvirt_uri)
+    hv = vl.LibvirtHypervisor(conn)
     hv.init_storage_pool(configuration.storage_pool)
     for distro in hv.distro_available():
         print("- distro: {distro}".format(distro=distro))  # noqa: T001
 
 
 def storage_dir(configuration, **kwargs):
-    hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
+    conn = libvirt.open(configuration.libvirt_uri)
+    hv = vl.LibvirtHypervisor(conn)
     hv.init_storage_pool(configuration.storage_pool)
     print(hv.get_storage_dir())  # noqa: T001
 

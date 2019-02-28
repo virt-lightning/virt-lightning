@@ -35,13 +35,6 @@ KVM_BINARIES = ("/usr/bin/qemu-system-x86_64", "/usr/bin/qemu-kvm", "/usr/bin/kv
 logger = logging.getLogger("virt_lightning")
 
 
-def libvirt_callback(userdata, err):
-    pass
-
-
-libvirt.registerErrorHandler(f=libvirt_callback, ctx=None)
-
-
 def run_cmd(cmd, cwd=None):
     proc = subprocess.Popen(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd
@@ -52,13 +45,9 @@ def run_cmd(cmd, cwd=None):
 
 
 class LibvirtHypervisor:
-    def __init__(self, libvirt_uri=None, conn=None):
-        if conn == None:
-            conn = libvirt.open(libvirt_uri)
-
+    def __init__(self, conn):
         if conn is None:
-            error_tpl = "Failed to open connection to {uri}"
-            logger.error(error_tpl.format(uri=libvirt_uri))
+            logger.error("Failed to open connection to libvirt")
             exit(1)
 
         self.conn = conn
