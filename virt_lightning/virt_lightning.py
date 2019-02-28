@@ -116,7 +116,6 @@ class LibvirtHypervisor:
                 raise (e)
 
     def get_free_ipv4(self):
-        # TODO: extend the list with ARP table
         used_ips = [self.gateway]
         for dom in self.list_domains():
             ipstr = dom.get_metadata("ipv4")
