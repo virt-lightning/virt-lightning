@@ -24,7 +24,45 @@ logger.addHandler(ch)
 
 
 def up(virt_lightning_yaml, configuration, context, **kwargs):
-    hv = vl.LibvirtHypervisor(configuration.libvirt_uri)
+
+    def myDomainEventAgentLifecycleCallback(conn, dom, state, reason, opaque):
+        if state == 1:
+            logger.info("🛃 %s agent found", dom.name())
+            dom.setUserPassword("root", "root")
+            logger.debug("  %s root password updated", dom.name())
+
+    async def deploy():
+        futures = []
+        for host in virt_lightning_yaml:
+            futures.append(loop.run_in_executor(pool, start_domain, host))
+
+        domain_reachable_futures = []
+        for f in futures:
+            await f
+            domain_reachable_futures.append(f.result().reachable())
+        logger.info("⌛ ok Waiting...")
+
+        await asyncio.gather(*domain_reachable_futures)
+
+    loop = asyncio.get_event_loop()
+    try:
+        import libvirtaio
+
+        libvirtaio.virEventRegisterAsyncIOImpl(loop=loop)
+    except ImportError:
+        libvirt.virEventRegisterDefaultImpl()
+        pass
+    conn = libvirt.open(configuration.libvirt_uri)
+    hv = vl.LibvirtHypervisor(conn=conn)
+
+    conn.setKeepAlive(5, 3)
+    conn.domainEventRegisterAny(
+        None,
+        libvirt.VIR_DOMAIN_EVENT_ID_AGENT_LIFECYCLE,
+        myDomainEventAgentLifecycleCallback,
+        None,
+    )
+
     hv.init_network(configuration.network_name, configuration.network_cidr)
     hv.init_storage_pool(configuration.storage_pool)
 
@@ -64,40 +102,7 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
         hv.start(domain)
         return domain
 
-    def myDomainEventAgentLifecycleCallback(conn, dom, state, reason, opaque):
-        if state == 1:
-            logger.info("🛃 %s agent found", dom.name())
-            dom.setUserPassword("root", "root")
-            logger.debug("  %s root password updated", dom.name())
-
-    async def deploy():
-        futures = []
-        for host in virt_lightning_yaml:
-            futures.append(loop.run_in_executor(pool, start_domain, host))
-
-        domain_reachable_futures = []
-        for f in futures:
-            await f
-            domain_reachable_futures.append(f.result().reachable())
-        logger.info("⌛ ok Waiting...")
-
-        await asyncio.gather(*domain_reachable_futures)
-
     pool = ThreadPoolExecutor(max_workers=10)
-    loop = asyncio.get_event_loop()
-    try:
-        import libvirtaio
-
-        libvirtaio.virEventRegisterAsyncIOImpl(loop=loop)
-    except ImportError:
-        pass
-    hv.conn.setKeepAlive(5, 3)
-    hv.conn.domainEventRegisterAny(
-        None,
-        libvirt.VIR_DOMAIN_EVENT_ID_AGENT_LIFECYCLE,
-        myDomainEventAgentLifecycleCallback,
-        None,
-    )
     loop.run_until_complete(deploy())
     logger.info("👍 You are all set")
 
