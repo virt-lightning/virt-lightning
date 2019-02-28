@@ -1,5 +1,8 @@
 # 🗲 Ride the Lightning!🗲
 
+![Logo](logo/logo_no_text.png)
+
+
 Virt-Lightning can quickly deployment a bunch of new VM. It
 can also prepare the Ansible inventory file!
 
