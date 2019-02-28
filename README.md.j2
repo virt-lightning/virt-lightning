@@ -2,13 +2,14 @@
 
 ![Logo](logo/logo_no_text.png)
 
+Virt-Lightning can quickly deploy a bunch of new VM. It
+also prepares the Ansible inventory file!
 
-Virt-Lightning can quickly deployment a bunch of new VM. It
-can also prepare the Ansible inventory file!
+This is really handy to quickly validate a new Ansible playbook, or a role on a large number of environments.
 
-This is really handy to quickly validate a new playbook or a role on a large number of environments.
+## example: test an Ansible command on a new env in ONE minute ⚡
 
-## Example ⚡
+In a nutshell:
 
 ```shell
 echo "- distro: centos-7" > virt-lightning.yaml
@@ -17,10 +18,10 @@ vl ansible_inventory
 ansible all -m ping -i inventory
 ```
 
-In this example, we:
+In the video below, we:
 
 1. use the list of distribution to generate a virt-lightning.yaml file.
-2. we than create a environment based on this file
+2. we then create a environment based on this file
 3. once the environment is ready, we generate an Ansible inventory file
 4. and we use it to call Ansible's ping module on all the host.
 
