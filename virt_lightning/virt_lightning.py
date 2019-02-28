@@ -32,6 +32,8 @@ DEFAULT_STORAGE_DIR = "/var/lib/virt-lightning/pool"
 QEMU_DIR = "/var/lib/libvirt/qemu/"
 KVM_BINARIES = ("/usr/bin/qemu-system-x86_64", "/usr/bin/qemu-kvm", "/usr/bin/kvm")
 
+logger = logging.getLogger("virt_lightning")
+
 
 def libvirt_callback(userdata, err):
     pass
@@ -55,7 +57,7 @@ class LibvirtHypervisor:
 
         if conn is None:
             error_tpl = "Failed to open connection to {uri}"
-            logging.error(error_tpl.format(uri=libvirt_uri))
+            logger.error(error_tpl.format(uri=libvirt_uri))
             exit(1)
 
         self.conn = conn
@@ -82,7 +84,7 @@ class LibvirtHypervisor:
         if not available:
             raise Exception("No domain type available!")
         if "kvm" not in available:
-            logging.warning("kvm mode not available!")
+            logger.warning("kvm mode not available!")
         # Sorted to get kvm before qemu, assume there is no other type
         return sorted(available)[0]
 
@@ -144,6 +146,7 @@ class LibvirtHypervisor:
         disk_path = pathlib.PosixPath(
             "{path}/{name}.qcow2".format(path=self.get_storage_dir(), name=name)
         )
+        logger.debug("create_disk:", disk_path)
         root = ET.fromstring(STORAGE_VOLUME_XML)
         root.find("./name").text = disk_path.name
         root.find("./capacity").text = str(size)
@@ -284,6 +287,7 @@ class LibvirtHypervisor:
         for disk in root.findall("./devices/disk[@type='file']/source[@file]"):
             filepath = pathlib.PosixPath(disk.attrib["file"])
             if filepath.exists():
+                logger.debug("Purge volume: %s", str(filepath))
                 vol = self.storage_pool_obj.storageVolLookupByName(filepath.name)
                 vol.delete()
 
@@ -352,7 +356,7 @@ class LibvirtHypervisor:
 
         if not dir_exists:
             qemu_dir = pathlib.PosixPath(QEMU_DIR)
-            logging.error(
+            logger.error(
                 USER_CREATE_STORAGE_POOL_DIR.format(
                     qemu_user=qemu_dir.owner(),
                     qemu_group=qemu_dir.group(),
@@ -465,7 +469,7 @@ class LibvirtDomain:
     def memory(self, value=None):
         if value:
             if value < 256:
-                logging.warning(
+                logger.warning(
                     "low memory {value} for VM {name}".format(
                         value=value, name=self.name
                     )
@@ -576,8 +580,8 @@ class LibvirtDomain:
                 reader, _ = await asyncio.open_connection(str(self.ipv4.ip), 22)
                 data = await reader.read(10)
                 if data.decode().startswith("SSH"):
-                    logging.info(
-                        "{name} found at {ipv4}!".format(
+                    logger.info(
+                        "💻 {name} found at {ipv4}!".format(
                             name=self.name, ipv4=self.ipv4.ip
                         )
                     )

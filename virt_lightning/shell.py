@@ -7,7 +7,6 @@ import logging
 import os
 import pathlib
 import re
-import sys
 
 import libvirt
 import yaml
@@ -18,6 +17,10 @@ import virt_lightning.ui as ui
 import virt_lightning.virt_lightning as vl
 
 symbols = get_symbols()
+logger = logging.getLogger("virt_lightning")
+logger.setLevel(logging.INFO)
+ch = logging.StreamHandler()
+logger.addHandler(ch)
 
 
 def up(virt_lightning_yaml, configuration, context, **kwargs):
@@ -27,8 +30,8 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
 
     def start_domain(host):
         if host["distro"] not in hv.distro_available():
-            logging.error("distro not available:", host["distro"])
-            logging.info(
+            logger.error("distro not available:", host["distro"])
+            logger.info(
                 "Please select on of the following distro:", hv.distro_available()
             )
             exit()
@@ -37,13 +40,13 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
             host["name"] = re.sub(r"\W+", "", host["distro"])
 
         if hv.get_domain_by_name(host["name"]):
-            logging.error("Domain {name} already exists!".format(**host))
+            logger.error("Domain {name} already exists!".format(**host))
             exit(1)
 
         # Unfortunatly, i can't decode that symbol
         # that symbol more well add to check encoding block
-        sys.stdout.write(
-            "{lightning}{name} ".format(lightning=symbols.LIGHTNING.value, **host)
+        logger.info(
+            "{lightning} {name} ".format(lightning=symbols.LIGHTNING.value, **host)
         )
         domain = hv.create_domain(name=host["name"], distro=host["distro"])
         domain.context = context
@@ -63,8 +66,9 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
 
     def myDomainEventAgentLifecycleCallback(conn, dom, state, reason, opaque):
         if state == 1:
+            logger.info("🛃 %s agent found", dom.name())
             dom.setUserPassword("root", "root")
-            logging.info("{name} agent is online".format(name=dom.name()))
+            logger.debug("  %s root password updated", dom.name())
 
     async def deploy():
         futures = []
@@ -75,10 +79,9 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
         for f in futures:
             await f
             domain_reachable_futures.append(f.result().reachable())
-        logging.info("... ok Waiting...")
+        logger.info("⌛ ok Waiting...")
 
-        for f in domain_reachable_futures:
-            await f
+        await asyncio.gather(*domain_reachable_futures)
 
     pool = ThreadPoolExecutor(max_workers=10)
     loop = asyncio.get_event_loop()
@@ -97,6 +100,7 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
         None,
     )
     loop.run_until_complete(deploy())
+    logger.info("👍 You are all set")
 
 
 def ansible_inventory(configuration, context, **kwargs):
@@ -155,7 +159,7 @@ def status(configuration, context=None, **kwargs):
         }
 
     for _, v in sorted(results.items()):
-        print("  {name:<13}   ⇛   {username}@{ipv4:>5}".format(**v))  # noqa: T001
+        print("💻 {name:<13}   ⇛   {username}@{ipv4:>5}".format(**v))  # noqa: T001
 
 
 def ssh(configuration, name=None, **kwargs):
@@ -198,6 +202,7 @@ def down(configuration, context, **kwargs):
     for domain in hv.list_domains():
         if context and domain.context != context:
             continue
+        logger.info("🗑 purging %s", domain.name)
         hv.clean_up(domain)
 
 
@@ -268,7 +273,10 @@ Example:
     parent_parser = argparse.ArgumentParser(add_help=False)
     main_parser = argparse.ArgumentParser()
     main_parser.add_argument(
-        "--debug", default=False, help="Print extra information (default: %(default)s)"
+        "--debug",
+        action="store_true",
+        default=False,
+        help="Print extra information (default: %(default)s)",
     )
     main_parser.add_argument(
         "--config",
@@ -328,5 +336,8 @@ Example:
     configuration = Configuration()
     if args.config:
         configuration.load_file(args.config)
+
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
 
     globals()[args.action](configuration=configuration, **vars(args))
