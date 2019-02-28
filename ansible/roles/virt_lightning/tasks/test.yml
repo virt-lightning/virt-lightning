@@ -5,6 +5,7 @@
     creates: ~/.ssh/id_rsa
 - name: Start the environment
   shell: |
+    set -eux
     echo $PATH
     vl distro_list > virt-lightning.yaml
     vl up
