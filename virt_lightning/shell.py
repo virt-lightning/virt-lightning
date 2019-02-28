@@ -91,9 +91,8 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
         libvirtaio.virEventRegisterAsyncIOImpl(loop=loop)
     except ImportError:
         pass
-    vc = libvirt.open("qemu:///system")
-    vc.setKeepAlive(5, 3)
-    vc.domainEventRegisterAny(
+    hv.conn.setKeepAlive(5, 3)
+    hv.conn.domainEventRegisterAny(
         None,
         libvirt.VIR_DOMAIN_EVENT_ID_AGENT_LIFECYCLE,
         myDomainEventAgentLifecycleCallback,

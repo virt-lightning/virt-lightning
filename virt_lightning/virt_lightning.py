@@ -53,6 +53,7 @@ def run_cmd(cmd, cwd=None):
 
 class LibvirtHypervisor:
     def __init__(self, libvirt_uri):
+        libvirt.virEventRegisterDefaultImpl()
         conn = libvirt.open(libvirt_uri)
 
         if conn is None:
