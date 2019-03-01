@@ -25,9 +25,9 @@ def clean_up():
 
 @pytest.fixture
 def hv(scope="function"):
-    libvirt_uri = "test:///default"
-    hv = vl.LibvirtHypervisor(libvirt_uri)
-    hv.conn.getURI = Mock(return_value="qemu:///system")
+    conn = libvirt.open("test:///default")
+    conn.getURI = Mock(return_value="qemu:///system")
+    hv = vl.LibvirtHypervisor(conn)
     with patch.object(pathlib.Path, 'exists') as mock_exists:
         mock_exists.return_value = False
         hv.init_storage_pool("foo_bar")
