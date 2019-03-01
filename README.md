@@ -27,10 +27,6 @@ In the video below, we:
 
 [![demo](https://asciinema.org/a/230671.svg)](https://asciinema.org/a/230671?autoplay=1)
 
-This example show up how to use the host selector to quickly connect to a host.
-
-[![ssh host selector](https://asciinema.org/a/228996.svg)](https://asciinema.org/a/228996?autoplay=1)
-
 ## Pre-requirements
 
 
@@ -137,7 +133,7 @@ echo "export PATH=$PATH:~/.local/bin/" >> ~/.bashrc
 source ~/.bashrc
 ```
 
-## Fetch some images
+# Fetch some images
 
 Before you start your first VM, you need to fetch the images. To do so,
 you just need these scripts:
@@ -148,47 +144,25 @@ git clone https://github.com/virt-lightning/virt-lightning
 cd virt-lightning/images
 ./image centos-7 build
 ./image debian-9 build
-(etc)
+(…)
 ```
 
-## Actions
+You can also use your own images as soon as they embed cloud-init, just copy them in the QCOW2
+format in /var/lib/virt-lightning/pool/upstream/. It's also a good idea to include qemu-guest-agent,
+virt-lightning uses it to set the root password and it offers some other benefits.
+
+# Actions
 
 `vl` is an alias for `virt-lightning`, you can us both. In the rest of the document
 we use the shortest version.
 
-### vl up
-
-`virt-lightning` will read the `virt-lightning.yaml` file from the current directory and prepare the associated VM.
-
-### vl down
-
-Destroy the VM.
-
-	Flash before my eyes
-	Now it's time to die
-	Burning in my brain
-	I can feel the flame
-
-### vl status
-
-List the VM, their IP and if they are reachable.
-
-### vl ansible_inventory
-
-Export an inventory in the Ansible format.
-
-### vl distro
-
-List the distro images that can be used. Its output is compatible with `vl up`.
-You can initialize a new configuration with: `vl distro > virt-lightning.yaml`.
-
-### Performance profiling
-
-```shell
-time vl up
-vl ansible_inventory > inventory
-ansible all -m shell -a "systemd-analyze blame|head -n 5" -i inventory
-```
+- **vl distro_list**: List the distro images that can be used. Its output is compatible with `vl up`. You can initialize a new configuration with: `vl distro > virt-lightning.yaml`.
+- **vl up**: `virt-lightning` will read the `virt-lightning.yaml` file from the current directory and prepare the associated VM.
+- **vl down**: Destroy all the VM.
+- **vl status**: List the VM, their IP and if they are reachable.
+- **vl ansible_inventory**: Export an inventory in the Ansible format.
+- **vl ssh**: Show up a menu to select a host and open a ssh connection [![vl ssh](https://asciinema.org/a/230675.svg)](https://asciinema.org/a/230675?autoplay=1)
+- **vl console**: Like `vl ssh` but with the serial console of the VM [![vl ssh](https://asciinema.org/a/230677.svg)](https://asciinema.org/a/230677?autoplay=1)
 
 ### Configuration from file
 
@@ -199,10 +173,4 @@ You can create your own configuration file like this and save to config.ini
 network_name = virt-lightning
 root_password = root
 storage_pool = virt-lightning
-```
-
-After creation configuration you can use `vl` command with `--config` argument and provide location to your config file.
-
-```shell
-vl --config config.ini
 ```
