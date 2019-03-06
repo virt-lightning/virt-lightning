@@ -1,8 +1,0 @@
-- distro: centos-7
-- distro: debian-9
-- distro: fedora-29
-- distro: rhel-7.4
-- distro: rhel-7.5
-- distro: rhel-7.6
-- distro: ubuntu-16.04
-- distro: ubuntu-18.04

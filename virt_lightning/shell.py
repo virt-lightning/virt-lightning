@@ -33,7 +33,7 @@ libvirt.registerErrorHandler(f=libvirt_callback, ctx=None)
 def up(virt_lightning_yaml, configuration, context, **kwargs):
     def myDomainEventAgentLifecycleCallback(conn, dom, state, reason, opaque):
         if state == 1:
-            logger.info("🛃 %s agent found", dom.name())
+            logger.info("%s %s agent found", symbols.CUSTOMS.value, dom.name())
             dom.setUserPassword("root", "root")
             logger.debug("  %s root password updated", dom.name())
 
@@ -46,7 +46,7 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
         for f in futures:
             await f
             domain_reachable_futures.append(f.result().reachable())
-        logger.info("⌛ ok Waiting...")
+        logger.info("%s ok Waiting...", symbols.HOURGLASS.value)
 
         await asyncio.gather(*domain_reachable_futures)
 
@@ -110,7 +110,7 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
 
     pool = ThreadPoolExecutor(max_workers=10)
     loop.run_until_complete(deploy())
-    logger.info("👍 You are all set")
+    logger.info("%s You are all set", symbols.THUMBS_UP.value)
 
 
 def ansible_inventory(configuration, context, **kwargs):
@@ -171,7 +171,9 @@ def status(configuration, context=None, **kwargs):
         }
 
     for _, v in sorted(results.items()):
-        print("💻 {name:<13}   ⇛   {username}@{ipv4:>5}".format(**v))  # noqa: T001
+        print("{computer} {name:<13}   {arrow}   {username}@{ipv4:>5}".format(
+            computer=symbols.COMPUTER.value,
+            arrow=symbols.RIGHT_ARROW.value, **v))  # noqa: T001
 
 
 def ssh(configuration, name=None, **kwargs):
@@ -217,7 +219,7 @@ def down(configuration, context, **kwargs):
     for domain in hv.list_domains():
         if context and domain.context != context:
             continue
-        logger.info("🗑 purging %s", domain.name)
+        logger.info("%s purging %s", symbols.TRASHBIN.value, domain.name)
         hv.clean_up(domain)
 
 

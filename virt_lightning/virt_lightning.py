@@ -17,6 +17,8 @@ import yaml
 
 import asyncio
 
+from virt_lightning.symbols import get_symbols
+
 from .templates import (
     BRIDGE_XML,
     CLOUD_INIT_ENI,
@@ -34,6 +36,7 @@ KVM_BINARIES = ("/usr/bin/qemu-system-x86_64", "/usr/bin/qemu-kvm", "/usr/bin/kv
 
 logger = logging.getLogger("virt_lightning")
 
+symbols = get_symbols()
 
 def run_cmd(cmd, cwd=None):
     proc = subprocess.Popen(
@@ -570,7 +573,8 @@ class LibvirtDomain:
                 data = await reader.read(10)
                 if data.decode().startswith("SSH"):
                     logger.info(
-                        "💻 {name} found at {ipv4}!".format(
+                        "{computer} {name} found at {ipv4}!".format(
+                            computer=symbols.COMPUTER.value,
                             name=self.name, ipv4=self.ipv4.ip
                         )
                     )
