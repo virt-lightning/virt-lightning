@@ -33,9 +33,7 @@ libvirt.registerErrorHandler(f=libvirt_callback, ctx=None)
 def up(virt_lightning_yaml, configuration, context, **kwargs):
     def myDomainEventAgentLifecycleCallback(conn, dom, state, reason, opaque):
         if state == 1:
-            logger.info("%s %s agent found", symbols.CUSTOMS.value, dom.name())
-            dom.setUserPassword("root", "root")
-            logger.debug("  %s root password updated", dom.name())
+            logger.info("%s %s QEMU agent found", symbols.CUSTOMS.value, dom.name())
 
     async def deploy():
         futures = []
