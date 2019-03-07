@@ -398,7 +398,9 @@ class LibvirtDomain:
     def root_password(self, value):
         self.cloud_init["disable_root"] = False
         self.cloud_init["password"] = value
-        self.cloud_init["chpasswd"] = {"expire": False}
+        self.cloud_init["chpasswd"] = {
+                "list": "root:{value}\n".format(value=value),
+                "expire": False}
         self.cloud_init["ssh_pwauth"] = True
 
     @property
