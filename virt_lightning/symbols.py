@@ -4,16 +4,27 @@ from enum import Enum, unique
 
 @unique
 class SymbolsUTF(Enum):
-    CROSS = "✕"
     CHECKMARK = "✔"
+    COMPUTER = "💻"
+    CROSS = "✕"
+    CUSTOMS = "🛃"
+    HOURGLASS = "⌛"
     LIGHTNING = "⚡"
+    RIGHT_ARROW = "⇛"
+    THUMBS_UP = "👍"
+    TRASHBIN = "🗑"
 
 
-@unique
 class SymbolsDefault(Enum):
-    CROSS = "-"
     CHECKMARK = "+"
+    COMPUTER = "+"
+    CROSS = "-"
+    CUSTOMS = "+"
+    HOURGLASS = "..."
     LIGHTNING = ""
+    RIGHT_ARROW = "->"
+    THUMBS_UP = "+"
+    TRASHBIN = "x"
 
 
 def get_symbols():
