@@ -297,8 +297,8 @@ class LibvirtHypervisor:
         try:
             self.network_obj = self.conn.networkLookupByName(network_name)
         except libvirt.libvirtError as e:
-            if e.get_error_code() == libvirt.VIR_ERR_NO_NETWORK:
-                pass
+            if e.get_error_code() != libvirt.VIR_ERR_NO_NETWORK:
+                raise (e)
 
         if not self.network_obj:
             self.network_obj = self.create_network(network_name, network_cidr)
@@ -332,8 +332,8 @@ class LibvirtHypervisor:
         try:
             self.storage_pool_obj = self.conn.storagePoolLookupByName(storage_pool)
         except libvirt.libvirtError as e:
-            if e.get_error_code() == libvirt.VIR_ERR_NO_STORAGE_POOL:
-                pass
+            if e.get_error_code() != libvirt.VIR_ERR_NO_STORAGE_POOL:
+                raise (e)
 
         storage_dir = pathlib.PosixPath(DEFAULT_STORAGE_DIR)
         if not self.storage_pool_obj:
