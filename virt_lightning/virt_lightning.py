@@ -38,6 +38,7 @@ logger = logging.getLogger("virt_lightning")
 
 symbols = get_symbols()
 
+
 def run_cmd(cmd, cwd=None):
     proc = subprocess.Popen(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd
