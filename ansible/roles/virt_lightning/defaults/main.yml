@@ -1,3 +1,0 @@
----
-virt_lightning_run_tests: false
-virt_lightning_qemu_uri: qemu:///system
