@@ -576,7 +576,8 @@ class LibvirtDomain:
                     logger.info(
                         "{computer} {name} found at {ipv4}!".format(
                             computer=symbols.COMPUTER.value,
-                            name=self.name, ipv4=self.ipv4.ip
+                            name=self.name,
+                            ipv4=self.ipv4.ip,
                         )
                     )
                     return

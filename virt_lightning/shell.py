@@ -172,9 +172,11 @@ def status(configuration, context=None, **kwargs):
 
     output_template = "{computer} {name:<13}   {arrow}   {username}@{ipv4:>5}"
     for _, v in sorted(results.items()):
-        print(output_template.format(  # noqa: T001
-            computer=symbols.COMPUTER.value,
-            arrow=symbols.RIGHT_ARROW.value, **v))
+        print(  # noqa: T001
+            output_template.format(
+                computer=symbols.COMPUTER.value, arrow=symbols.RIGHT_ARROW.value, **v
+            )
+        )
 
 
 def ssh(configuration, name=None, **kwargs):
