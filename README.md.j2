@@ -40,7 +40,7 @@ In the video below, we:
 
 First you need to install libvirt and guestfs:
 ```shell
-sudo {% if name == "Fedora" %}dnf{% else %}apt{% endif %} install -f {{ distro.virt_lightning_packages | join(" ") }}
+sudo {% if "Fedora" in distro.name %}dnf{% else %}apt{% endif %} install -f {{ distro.virt_lightning_packages | join(" ") }}
 sudo systemctl start --now libvirtd
 ```
 
