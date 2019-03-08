@@ -1,9 +1,0 @@
----
-- name: Prepare the configuration directory
-  file:
-    path: ~/.config/virt-lightning
-    state: directory
-- name: Write the configuration file
-  template:
-    src: config.ini.j2
-    dest: ~/.config/virt-lightning/config.ini

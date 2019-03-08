@@ -1,0 +1,3 @@
+---
+- name: virt_lightning
+  src: https://github.com/virt-lightning/ansible-role-virt-lightning
