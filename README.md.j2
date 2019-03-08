@@ -72,12 +72,14 @@ you just need these scripts:
 https://github.com/virt-lightning/virt-lightning/tree/master/images
 
 ```shell
-git clone https://github.com/virt-lightning/virt-lightning
-cd virt-lightning/images
-./image centos-7 build
-./image debian-9 build
+$ git clone https://github.com/virt-lightning/virt-lightning
+$ cd virt-lightning/images
+$ ./image centos-7 build
+$ ./image debian-9 build
 (…)
 ```
+
+Ubuntu requires use *sudo* to build or prepare images.
 
 You can also use your own images as soon as they embed cloud-init, just copy them in the QCOW2
 format in /var/lib/virt-lightning/pool/upstream/. It's also a good idea to include qemu-guest-agent,
