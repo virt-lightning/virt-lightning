@@ -1,5 +1,9 @@
 # 🗲 Ride the Lightning!🗲
 
+
+[![Build Status](https://travis-ci.org/virt-lightning/virt-lightning.svg?branch=master)](https://travis-ci.org/virt-lightning/virt-lightning)
+[![PyPI version](https://badge.fury.io/py/virt-lightning.svg)](https://badge.fury.io/py/virt-lightning)
+
 ![Logo](logo/logo_no_text.png)
 
 Virt-Lightning can quickly deploy a bunch of new VM. It
@@ -53,7 +57,7 @@ sudo usermod -a -G kvm,libvirt,libvirt-qemu $USER
 
 First you need to install libvirt and guestfs:
 ```shell
-sudo apt install -f libguestfs-tools libselinux-python libvirt python3 python3-libvirt python3-pip python3-urwid
+sudo dnf install -f libguestfs-tools libselinux-python libvirt libvirt-daemon python3 python3-libvirt python3-pip python3-urwid
 sudo systemctl start --now libvirtd
 ```
 

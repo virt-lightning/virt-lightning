@@ -1,5 +1,9 @@
 # 🗲 Ride the Lightning!🗲
 
+
+[![Build Status](https://travis-ci.org/virt-lightning/virt-lightning.svg?branch=master)](https://travis-ci.org/virt-lightning/virt-lightning)
+[![PyPI version](https://badge.fury.io/py/virt-lightning.svg)](https://badge.fury.io/py/virt-lightning)
+
 ![Logo](logo/logo_no_text.png)
 
 Virt-Lightning can quickly deploy a bunch of new VM. It
@@ -36,7 +40,7 @@ In the video below, we:
 
 First you need to install libvirt and guestfs:
 ```shell
-sudo {% if name == "Fedora" %}dnf{% else %}apt{% endif %} install -f {{ distro.virt_lightning_packages | join(" ") }}
+sudo {% if "Fedora" in distro.name %}dnf{% else %}apt{% endif %} install -f {{ distro.virt_lightning_packages | join(" ") }}
 sudo systemctl start --now libvirtd
 ```
 
@@ -72,12 +76,14 @@ you just need these scripts:
 https://github.com/virt-lightning/virt-lightning/tree/master/images
 
 ```shell
-git clone https://github.com/virt-lightning/virt-lightning
-cd virt-lightning/images
-./image centos-7 build
-./image debian-9 build
+$ git clone https://github.com/virt-lightning/virt-lightning
+$ cd virt-lightning/images
+$ ./image centos-7 build
+$ ./image debian-9 build
 (…)
 ```
+
+Ubuntu requires use *sudo* to build or prepare images.
 
 You can also use your own images as soon as they embed cloud-init, just copy them in the QCOW2
 format in /var/lib/virt-lightning/pool/upstream/. It's also a good idea to include qemu-guest-agent,

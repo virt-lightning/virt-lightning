@@ -38,6 +38,7 @@ logger = logging.getLogger("virt_lightning")
 
 symbols = get_symbols()
 
+
 def run_cmd(cmd, cwd=None):
     proc = subprocess.Popen(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd
@@ -296,8 +297,8 @@ class LibvirtHypervisor:
         try:
             self.network_obj = self.conn.networkLookupByName(network_name)
         except libvirt.libvirtError as e:
-            if e.get_error_code() == libvirt.VIR_ERR_NO_NETWORK:
-                pass
+            if e.get_error_code() != libvirt.VIR_ERR_NO_NETWORK:
+                raise (e)
 
         if not self.network_obj:
             self.network_obj = self.create_network(network_name, network_cidr)
@@ -331,8 +332,8 @@ class LibvirtHypervisor:
         try:
             self.storage_pool_obj = self.conn.storagePoolLookupByName(storage_pool)
         except libvirt.libvirtError as e:
-            if e.get_error_code() == libvirt.VIR_ERR_NO_STORAGE_POOL:
-                pass
+            if e.get_error_code() != libvirt.VIR_ERR_NO_STORAGE_POOL:
+                raise (e)
 
         storage_dir = pathlib.PosixPath(DEFAULT_STORAGE_DIR)
         if not self.storage_pool_obj:
@@ -398,7 +399,9 @@ class LibvirtDomain:
     def root_password(self, value):
         self.cloud_init["disable_root"] = False
         self.cloud_init["password"] = value
-        self.cloud_init["chpasswd"] = {"expire": False}
+        self.cloud_init["chpasswd"] = {
+                "list": "root:{value}\n".format(value=value),
+                "expire": False}
         self.cloud_init["ssh_pwauth"] = True
 
     @property
@@ -440,7 +443,7 @@ class LibvirtDomain:
                 "name": username,
                 "gecos": "virt-bootstrap user",
                 "sudo": "ALL=(ALL) NOPASSWD:ALL",
-                "ssh_authorized_keys": self.ssh_key,
+                "ssh_authorized_keys": [self.ssh_key],
             }
         ]
 
@@ -575,7 +578,8 @@ class LibvirtDomain:
                     logger.info(
                         "{computer} {name} found at {ipv4}!".format(
                             computer=symbols.COMPUTER.value,
-                            name=self.name, ipv4=self.ipv4.ip
+                            name=self.name,
+                            ipv4=self.ipv4.ip,
                         )
                     )
                     return

@@ -1,6 +1,0 @@
-polkit.addRule(function(action, subject) {
-  if (action.id == "org.libvirt.unix.manage" &&
-      subject.local && subject.active && subject.user == "{{ ansible_user_id }}") {
-      return polkit.Result.YES;
-  }
-});

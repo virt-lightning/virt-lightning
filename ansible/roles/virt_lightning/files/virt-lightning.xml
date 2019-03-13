@@ -1,7 +1,0 @@
-<network>
-    <name>virt-lightning</name>
-    <forward mode='nat'/>
-    <bridge name='virt-lightning0' stp='on' delay='0'/>
-    <ip address='192.168.125.1' netmask='255.255.255.0'>
-    </ip>
-</network>

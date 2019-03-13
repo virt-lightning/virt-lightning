@@ -33,9 +33,7 @@ libvirt.registerErrorHandler(f=libvirt_callback, ctx=None)
 def up(virt_lightning_yaml, configuration, context, **kwargs):
     def myDomainEventAgentLifecycleCallback(conn, dom, state, reason, opaque):
         if state == 1:
-            logger.info("%s %s agent found", symbols.CUSTOMS.value, dom.name())
-            dom.setUserPassword("root", "root")
-            logger.debug("  %s root password updated", dom.name())
+            logger.info("%s %s QEMU agent found", symbols.CUSTOMS.value, dom.name())
 
     async def deploy():
         futures = []
@@ -170,10 +168,13 @@ def status(configuration, context=None, **kwargs):
             "username": status["username"],
         }
 
+    output_template = "{computer} {name:<13}   {arrow}   {username}@{ipv4:>5}"
     for _, v in sorted(results.items()):
-        print("{computer} {name:<13}   {arrow}   {username}@{ipv4:>5}".format(
-            computer=symbols.COMPUTER.value,
-            arrow=symbols.RIGHT_ARROW.value, **v))  # noqa: T001
+        print(  # noqa: T001
+            output_template.format(
+                computer=symbols.COMPUTER.value, arrow=symbols.RIGHT_ARROW.value, **v
+            )
+        )
 
 
 def ssh(configuration, name=None, **kwargs):

@@ -70,3 +70,5 @@ virt-lightning.yaml
 
 .mypy_cache
 .pytest_cache
+
+ansible/roles/
