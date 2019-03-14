@@ -72,9 +72,9 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
 
     def start_domain(host):
         if host["distro"] not in hv.distro_available():
-            logger.error("distro not available:", host["distro"])
+            logger.error("distro not available: %s", host["distro"])
             logger.info(
-                "Please select on of the following distro:", hv.distro_available()
+                "Please select on of the following distro: %s", hv.distro_available()
             )
             exit()
 
