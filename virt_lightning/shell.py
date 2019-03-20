@@ -93,7 +93,10 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
         domain = hv.create_domain(name=host["name"], distro=host["distro"])
         domain.context = context
         domain.load_ssh_key_file(configuration.ssh_key_file)
-        domain.username = configuration.username
+        if host["distro"].startswith("esxi"):
+            domain.username = "root"
+        else:
+            domain.username = configuration.username
         domain.root_password = host.get("root_password", configuration.root_password)
 
         domain.vcpus(host.get("vcpus"))
@@ -116,7 +119,7 @@ def ansible_inventory(configuration, context, **kwargs):
     hv = vl.LibvirtHypervisor(conn)
 
     ssh_cmd_template = (
-        "{name} ansible_host={ipv4} ansible_username={username} "
+        "{name} ansible_host={ipv4} ansible_user={username} "
         'ansible_ssh_common_args="-o UserKnownHostsFile=/dev/null '
         '-o StrictHostKeyChecking=no"'
     )
