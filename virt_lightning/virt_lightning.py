@@ -538,17 +538,6 @@ class LibvirtDomain:
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
         return device_name
 
-    def attachCDROM(self, path, device="disk", disk_type="qcow2"):
-        device_name = self.getNextBlckDevice()
-        disk_root = ET.fromstring(DISK_XML)
-        disk_root.attrib["device"] = device
-        disk_root.findall("./driver")[0].attrib = {"name": "qemu", "type": disk_type}
-        disk_root.findall("./source")[0].attrib = {"file": path}
-        disk_root.findall("./target")[0].attrib = {"dev": device_name}
-        xml = ET.tostring(disk_root).decode()
-        self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
-        return device_name
-
     def attachNetwork(self, network=None):
         disk_root = ET.fromstring(BRIDGE_XML)
         disk_root.findall("./source")[0].attrib = {"network": network}
