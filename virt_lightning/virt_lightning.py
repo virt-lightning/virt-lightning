@@ -136,11 +136,13 @@ class LibvirtHypervisor:
         disk_source = root.find("./target/path")
         return pathlib.PosixPath(disk_source.text)
 
-    def create_disk(self, name, size=20, backing_on=None):
+    def create_disk(self, name, size=None, backing_on=None):
+        if not size:
+            size = 20
         disk_path = pathlib.PosixPath(
             "{path}/{name}.qcow2".format(path=self.get_storage_dir(), name=name)
         )
-        logger.debug("create_disk:", disk_path)
+        logger.debug("create_disk: %s (%dGB)", str(disk_path), size)
         root = ET.fromstring(STORAGE_VOLUME_XML)
         root.find("./name").text = disk_path.name
         root.find("./capacity").text = str(size)
