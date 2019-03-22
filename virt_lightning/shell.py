@@ -285,7 +285,7 @@ Example:
                 "{path} does not exist.".format(path=value)
             )
         with file_path.open(encoding="UTF-8") as fd:
-            content = yaml.load(fd.read())
+            content = yaml.safe_load(fd.read())
             if not isinstance(content, list):
                 raise argparse.ArgumentTypeError(
                     "{path} should be a YAML list.".format(path=value)
