@@ -82,8 +82,8 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
             host["name"] = re.sub(r"\W+", "", host["distro"])
 
         if hv.get_domain_by_name(host["name"]):
-            logger.error("Domain {name} already exists!".format(**host))
-            exit(1)
+            logger.info("Skipping {name}, already here.".format(**host))
+            return
 
         # Unfortunatly, i can't decode that symbol
         # that symbol more well add to check encoding block
