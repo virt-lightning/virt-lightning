@@ -84,8 +84,8 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
             host["name"] = re.sub(r"\W+", "", host["distro"])
 
         if hv.get_domain_by_name(host["name"]):
-            logger.error("Domain {name} already exists!".format(**host))
-            exit(1)
+            logger.info("Skipping {name}, already here.".format(**host))
+            return
 
         # Unfortunatly, i can't decode that symbol
         # that symbol more well add to check encoding block
@@ -96,12 +96,19 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
         domain.context = context
         domain.groups = host.get("groups", [])
         domain.load_ssh_key_file(configuration.ssh_key_file)
-        domain.username = configuration.username
+        if host["distro"].startswith("esxi"):
+            domain.username = "root"
+        else:
+            domain.username = configuration.username
         domain.root_password = host.get("root_password", configuration.root_password)
 
         domain.vcpus(host.get("vcpus"))
         domain.memory(host.get("memory", 768))
-        root_disk_path = hv.create_disk(name=host["name"], backing_on=host["distro"])
+        root_disk_path = hv.create_disk(
+            name=host["name"],
+            backing_on=host["distro"],
+            size=host.get("root_disk_size", 15),
+        )
         domain.add_root_disk(root_disk_path)
         domain.attachNetwork(configuration.network_name)
         domain.ipv4 = hv.get_free_ipv4()
@@ -119,7 +126,7 @@ def ansible_inventory(configuration, context, **kwargs):
     hv = vl.LibvirtHypervisor(conn)
 
     ssh_cmd_template = (
-        "{name} ansible_host={ipv4} ansible_username={username} "
+        "{name} ansible_host={ipv4} ansible_user={username} "
         'ansible_ssh_common_args="-o UserKnownHostsFile=/dev/null '
         '-o StrictHostKeyChecking=no"'
     )
