@@ -43,7 +43,9 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
         domain_reachable_futures = []
         for f in futures:
             await f
-            domain_reachable_futures.append(f.result().reachable())
+            domain = f.result()
+            if domain:
+                domain_reachable_futures.append(domain.reachable())
         logger.info("%s ok Waiting...", symbols.HOURGLASS.value)
 
         await asyncio.gather(*domain_reachable_futures)
@@ -92,6 +94,7 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
         )
         domain = hv.create_domain(name=host["name"], distro=host["distro"])
         domain.context = context
+        domain.groups = host.get("groups", [])
         domain.load_ssh_key_file(configuration.ssh_key_file)
         if host["distro"].startswith("esxi"):
             domain.username = "root"
@@ -128,7 +131,14 @@ def ansible_inventory(configuration, context, **kwargs):
         '-o StrictHostKeyChecking=no"'
     )
 
+    groups = {}
     for domain in hv.list_domains():
+        for group in domain.groups:
+            if group not in groups:
+                groups[group] = []
+            groups[group].append(domain)
+
+
         if domain.context == context:
             print(  # noqa: T001
                 ssh_cmd_template.format(
@@ -136,6 +146,11 @@ def ansible_inventory(configuration, context, **kwargs):
                 )
             )
 
+    for group_name, domains in groups.items():
+        print("")
+        print("[{group_name}]".format(group_name=group_name))
+        for domain in domains:
+            print(domain.name)
 
 def get_status(hv, context):
     status = []
