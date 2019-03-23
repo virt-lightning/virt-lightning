@@ -11,7 +11,7 @@ DOMAIN_XML = """
   <name></name>
   <memory unit='KiB'>786432</memory>
   <currentMemory unit='KiB'>786432</currentMemory>
-  <vcpu placement='static'>1</vcpu>
+  <vcpu>2</vcpu>
   <os>
     <type arch='x86_64' machine='pc'>hvm</type>
     <boot dev='hd'/>

@@ -180,3 +180,23 @@ network_name = virt-lightning
 root_password = root
 storage_pool = virt-lightning
 ```
+
+### ESXi
+
+You can use `virt-lightning` with ESXi 6.5 and 6.7. You can build your images with the scripts from the `images/extras/` directory:
+
+```shell
+cd images/extras/
+bash esxi-6.5
+bash esxi-6.7
+```
+
+ESXi requires a bit more memory than the other systems. You can adjust your `virt-lightning.yaml` file to overwrite the default (768MB). The key is called `memory`:
+
+```yaml
+- distro: esxi-6.5
+  memory: 14096
+  swap: 0
+- distro: esxi-6.7
+  memory: 4096
+```

@@ -7,6 +7,7 @@ import pathlib
 import re
 import string
 import subprocess
+import sys
 import tempfile
 import uuid
 import xml.etree.ElementTree as ET
@@ -107,7 +108,7 @@ class LibvirtHypervisor:
             if e.get_error_code() == libvirt.VIR_ERR_NO_DOMAIN:
                 return None
             else:
-                raise (e)
+                raise
 
     def get_free_ipv4(self):
         used_ips = [self.gateway]
@@ -135,11 +136,13 @@ class LibvirtHypervisor:
         disk_source = root.find("./target/path")
         return pathlib.PosixPath(disk_source.text)
 
-    def create_disk(self, name, size=20, backing_on=None):
+    def create_disk(self, name, size=None, backing_on=None):
+        if not size:
+            size = 20
         disk_path = pathlib.PosixPath(
             "{path}/{name}.qcow2".format(path=self.get_storage_dir(), name=name)
         )
-        logger.debug("create_disk:", disk_path)
+        logger.debug("create_disk: %s (%dGB)", str(disk_path), size)
         root = ET.fromstring(STORAGE_VOLUME_XML)
         root.find("./name").text = disk_path.name
         root.find("./capacity").text = str(size)
@@ -156,7 +159,21 @@ class LibvirtHypervisor:
             ET.SubElement(backing, "format").attrib = {"type": "qcow2"}
 
         xml = ET.tostring(root).decode()
-        return self.storage_pool_obj.createXML(xml)
+        try:
+            return self.storage_pool_obj.createXML(xml)
+        except libvirt.libvirtError as e:
+            if e.get_error_code() == libvirt.VIR_ERR_STORAGE_VOL_EXIST:
+                logger.error(
+                    (
+                        "A volume image already exists and prevent the creation "
+                        " of a new one. You can remove it with the following "
+                        "command:\n"
+                        "  sudo virsh vol-delete --pool "
+                        "{pool_name} {vol_name}.qcow2"
+                    ).format(pool_name=self.storage_pool_obj.name(), vol_name=name)
+                )
+                sys.exit(1)
+            raise
 
     def prepare_cloud_init_iso(self, domain):
         cidata_file = "{name}-cidata.iso".format(name=domain.name)
@@ -400,8 +417,9 @@ class LibvirtDomain:
         self.cloud_init["disable_root"] = False
         self.cloud_init["password"] = value
         self.cloud_init["chpasswd"] = {
-                "list": "root:{value}\n".format(value=value),
-                "expire": False}
+            "list": "root:{value}\n".format(value=value),
+            "expire": False,
+        }
         self.cloud_init["ssh_pwauth"] = True
 
     @property
@@ -509,23 +527,16 @@ class LibvirtDomain:
         self.record_metadata("context", value)
 
     def attachDisk(self, volume, device="disk", disk_type="qcow2"):
+        if self.distro.startswith("esxi"):
+            bus = "ide" if device == "cdrom" else "sata"
+        else:
+            bus = "virtio"
         device_name = self.getNextBlckDevice()
         disk_root = ET.fromstring(DISK_XML)
         disk_root.attrib["device"] = device
         disk_root.findall("./driver")[0].attrib = {"name": "qemu", "type": disk_type}
         disk_root.findall("./source")[0].attrib = {"file": volume.path()}
-        disk_root.findall("./target")[0].attrib = {"dev": device_name}
-        xml = ET.tostring(disk_root).decode()
-        self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
-        return device_name
-
-    def attachCDROM(self, path, device="disk", disk_type="qcow2"):
-        device_name = self.getNextBlckDevice()
-        disk_root = ET.fromstring(DISK_XML)
-        disk_root.attrib["device"] = device
-        disk_root.findall("./driver")[0].attrib = {"name": "qemu", "type": disk_type}
-        disk_root.findall("./source")[0].attrib = {"file": path}
-        disk_root.findall("./target")[0].attrib = {"dev": device_name}
+        disk_root.findall("./target")[0].attrib = {"dev": device_name, "bus": bus}
         xml = ET.tostring(disk_root).decode()
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
         return device_name
@@ -533,6 +544,9 @@ class LibvirtDomain:
     def attachNetwork(self, network=None):
         disk_root = ET.fromstring(BRIDGE_XML)
         disk_root.findall("./source")[0].attrib = {"network": network}
+        if self.distro.startswith("esxi"):
+            disk_root.findall("./model")[0].attrib = {"type": "e1000"}
+
         xml = ET.tostring(disk_root).decode()
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
 
