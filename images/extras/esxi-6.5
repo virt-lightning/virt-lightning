@@ -58,6 +58,7 @@ esxcli network ip dns server add --server=\$(cat /vmfs/volumes/cidata/META_DAT|a
 # Hackish
 cat /vmfs/volumes/cidata/USER_DAT | awk '/ssh-rsa / {print \"ssh-rsa \" \$3}' > /etc/ssh/keys-root/authorized_keys
 
+egrep -q 'vmx.allowNested' /etc/vmware/config || echo 'vmx.allowNested = \"TRUE\"' >> /etc/vmware/config
 
 vsish -e set /vmkModules/iso9660/umount \$(esxcfg-mpath -b | awk '/CD-ROM/ {print \$1}')
 vmkload_mod -u iso9660
