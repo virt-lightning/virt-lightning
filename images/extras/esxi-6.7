@@ -29,6 +29,7 @@ install --firstdisk --overwritevmfs
 %post --interpreter=busybox
 # Flush the network configuration
 esxcli network ip dns server remove --all
+echo '' > /etc/resolv.conf
 esxcli network ip interface ipv4 set -i vmk0 -t none
 
 halt
