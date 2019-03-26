@@ -92,7 +92,7 @@ echo "Deployment ongoing, you will just have to press [ENTER] at the end."
 virt-install --connect qemu:///system \
 	-n esxi-${VERSION} -r 4096 \
 	--vcpus=sockets=1,cores=2,threads=2 \
-	--cpu host --disk path=/var/lib/libvirt/images/esxi-${VERSION}.qcow2,size=15,sparse=yes \
+	--cpu host --disk path=/var/lib/libvirt/images/esxi-${VERSION}.qcow2,size=10,sparse=yes \
 	-c ${TMPDIR}/new.iso --os-type generic \
 	--accelerate --network=network:default,model=e1000 \
 	--hvm --graphics vnc,listen=0.0.0.0
