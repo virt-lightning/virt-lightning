@@ -56,7 +56,7 @@ esxcli network ip interface ipv4 set -i vmk0 \
 esxcli network ip dns server add --server=\$(cat /vmfs/volumes/cidata/META_DAT|awk '/gateway/ {print \$2}')
 
 # Hackish
-cat /vmfs/volumes/cidata/USER_DAT | awk '/ssh-rsa / {print "ssh-rsa " \$3}' > /etc/ssh/keys-root/authorized_keys
+cat /vmfs/volumes/cidata/USER_DAT | awk '/ssh-rsa / {print \"ssh-rsa \" \$3}' > /etc/ssh/keys-root/authorized_keys
 
 
 vsish -e set /vmkModules/iso9660/umount \$(esxcfg-mpath -b | awk '/CD-ROM/ {print \$1}')
