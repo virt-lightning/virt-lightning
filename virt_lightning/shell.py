@@ -138,7 +138,6 @@ def ansible_inventory(configuration, context, **kwargs):
                 groups[group] = []
             groups[group].append(domain)
 
-
         if domain.context == context:
             print(  # noqa: T001
                 ssh_cmd_template.format(
@@ -151,6 +150,7 @@ def ansible_inventory(configuration, context, **kwargs):
         print("[{group_name}]".format(group_name=group_name))
         for domain in domains:
             print(domain.name)
+
 
 def get_status(hv, context):
     status = []
