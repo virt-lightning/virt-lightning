@@ -1,6 +1,6 @@
 RHEL_VERSION=7.4
 RHEL_BUILD=191
-DOWNLOAD_URL=${MIRROR_URL:-http://download-node-02.eng.bos.redhat.com}/released/RHEL-7/${RHEL_VERSION}/Server/x86_64/images/rhel-guest-image-${RHEL_VERSION}-${RHEL_BUILD}.x86_64.qcow2
+DOWNLOAD_URL=${RHEL_MIRROR_URL}/released/RHEL-7/${RHEL_VERSION}/Server/x86_64/images/rhel-guest-image-${RHEL_VERSION}-${RHEL_BUILD}.x86_64.qcow2
 IMAGE_NAME=rhel-${RHEL_VERSION}
 
 function prepare {
