@@ -29,6 +29,7 @@ install --firstdisk --overwritevmfs
 %post --interpreter=busybox
 # Flush the network configuration
 esxcli network ip dns server remove --all
+echo '' > /etc/resolv.conf
 esxcli network ip interface ipv4 set -i vmk0 -t none
 
 halt
@@ -55,8 +56,9 @@ esxcli network ip interface ipv4 set -i vmk0 \
 esxcli network ip dns server add --server=\$(cat /vmfs/volumes/cidata/META_DAT|awk '/gateway/ {print \$2}')
 
 # Hackish
-cat /vmfs/volumes/cidata/USER_DAT | awk '/ssh-rsa / {print "ssh-rsa " \$3}' > /etc/ssh/keys-root/authorized_keys
+cat /vmfs/volumes/cidata/USER_DAT | awk '/ssh-rsa / {print \"ssh-rsa \" \$3}' > /etc/ssh/keys-root/authorized_keys
 
+egrep -q 'vmx.allowNested' /etc/vmware/config || echo 'vmx.allowNested = \"TRUE\"' >> /etc/vmware/config
 
 vsish -e set /vmkModules/iso9660/umount \$(esxcfg-mpath -b | awk '/CD-ROM/ {print \$1}')
 vmkload_mod -u iso9660
@@ -90,7 +92,7 @@ echo "Deployment ongoing, you will just have to press [ENTER] at the end."
 virt-install --connect qemu:///system \
 	-n esxi-${VERSION} -r 4096 \
 	--vcpus=sockets=1,cores=2,threads=2 \
-	--cpu host --disk path=/var/lib/libvirt/images/esxi-${VERSION}.qcow2,size=15,sparse=yes \
+	--cpu host --disk path=/var/lib/libvirt/images/esxi-${VERSION}.qcow2,size=10,sparse=yes \
 	-c ${TMPDIR}/new.iso --os-type generic \
 	--accelerate --network=network:default,model=e1000 \
 	--hvm --graphics vnc,listen=0.0.0.0
