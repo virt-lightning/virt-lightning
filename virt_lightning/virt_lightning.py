@@ -405,7 +405,6 @@ class LibvirtDomain:
         self.meta_data = (
             "dsmode: local\n" "instance-id: iid-{name}\n" "local-hostname: {name}\n"
         )
-        self.distro = None
         self._ssh_key = None
 
     @property
@@ -446,6 +445,14 @@ class LibvirtDomain:
         self.cloud_init["ssh_authorized_keys"] = [self.ssh_key]
         if "users" in self.cloud_init:
             self.cloud_init["users"][0]["ssh_authorized_keys"] = [self.ssh_key]
+
+    @property
+    def distro(self):
+        return self.get_metadata("distro")
+
+    @distro.setter
+    def distro(self, distro):
+        self.record_metadata("distro", distro)
 
     @property
     def username(self):
