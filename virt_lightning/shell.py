@@ -130,6 +130,12 @@ def ansible_inventory(configuration, context, **kwargs):
         'ansible_ssh_common_args="-o UserKnownHostsFile=/dev/null '
         '-o StrictHostKeyChecking=no"'
     )
+    ssh_cmd_template_esxi = (
+        "{name} ansible_host={ipv4} ansible_user=root "
+        "ansible_password=root ansible_python_interpreter=/bin/python "
+        'ansible_ssh_common_args="-o UserKnownHostsFile=/dev/null '
+        '-o StrictHostKeyChecking=no"'
+    )
 
     groups = {}
     for domain in hv.list_domains():
@@ -138,12 +144,15 @@ def ansible_inventory(configuration, context, **kwargs):
                 groups[group] = []
             groups[group].append(domain)
 
-        if domain.context == context:
-            print(  # noqa: T001
-                ssh_cmd_template.format(
-                    name=domain.name, ipv4=domain.ipv4.ip, username=domain.username
-                )
-            )
+        if domain.context != context:
+            continue
+
+        if domain.distro.startswith("esxi"):
+            template = ssh_cmd_template_esxi
+        else:
+            template = ssh_cmd_template
+
+        print(template.format(name=domain.name, username=domain.username, ipv4=domain.ipv4.ip))  # noqa: T001
 
     for group_name, domains in groups.items():
         print("")
