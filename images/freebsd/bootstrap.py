@@ -38,9 +38,6 @@ subprocess.check_call(['unxz', 'freebsd-{version}.qcow2.xz'.format(version=args.
 print(manual_step)
 subprocess.check_call(['qemu-system-x86_64', '-drive', 'file=freebsd-{version}.qcow2'.format(version=args.version), '-cdrom', 'prepare.iso', '-net', 'nic,model=virtio', '-net', 'user', '-m', '1G'])
 
-print(manual_step)
-subprocess.check_call(['qemu-system-x86_64', '-drive', 'file=freebsd-{version}.qcow2'.format(version=args.version), '-cdrom', 'prepare.iso', '-net', 'nic,model=virtio', '-net', 'user', '-m', '1G'])
-
 print('* Done! Your image is ready: freebsd-{version}.qcow2'.format(version=args.version))
 print('Note: The FreeBSD images are 31GB large, do not '
-        'create a VM with a small system disk image!")
+      'create a VM with a small system disk image!')
