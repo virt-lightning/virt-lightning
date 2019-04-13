@@ -618,3 +618,14 @@ class LibvirtDomain:
             except (OSError, ConnectionRefusedError):
                 pass
         await asyncio.sleep(0.2)
+
+    def exec_ssh(self):
+        os.execlp(
+            "ssh",
+            "ssh",
+            "-o",
+            "StrictHostKeyChecking=no",
+            "-o",
+            "UserKnownHostsFile=/dev/null",
+            "{username}@{ipv4}".format(username=self.username, ipv4=self.ipv4.ip),
+        )
