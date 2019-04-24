@@ -153,7 +153,11 @@ def ansible_inventory(configuration, context, **kwargs):
         else:
             template = ssh_cmd_template
 
-        print(template.format(name=domain.name, username=domain.username, ipv4=domain.ipv4.ip))  # noqa: T001
+        print(
+            template.format(
+                name=domain.name, username=domain.username, ipv4=domain.ipv4.ip
+            )
+        )  # noqa: T001
 
     for group_name, domains in groups.items():
         print("")
