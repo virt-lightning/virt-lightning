@@ -119,6 +119,11 @@ NETWORK_XML = """
 </network>
 """
 
+NETWORK_HOST_ENTRY = """
+<host ip="">
+  <hostname></hostname>
+</host>"""
+
 
 # TODO
 CLOUD_INIT_ENI = """network-interfaces: |

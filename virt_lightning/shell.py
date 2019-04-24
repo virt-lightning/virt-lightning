@@ -153,7 +153,11 @@ def ansible_inventory(configuration, context, **kwargs):
         else:
             template = ssh_cmd_template
 
-        print(template.format(name=domain.name, username=domain.username, ipv4=domain.ipv4.ip))  # noqa: T001
+        print(
+            template.format(
+                name=domain.name, username=domain.username, ipv4=domain.ipv4.ip
+            )
+        )  # noqa: T001
 
     for group_name, domains in groups.items():
         print("")
@@ -248,6 +252,7 @@ def console(configuration, name=None, **kwargs):
 def down(configuration, context, **kwargs):
     conn = libvirt.open(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
+    hv.init_network(configuration.network_name, configuration.network_cidr)
     hv.init_storage_pool(configuration.storage_pool)
     for domain in hv.list_domains():
         if context and domain.context != context:
