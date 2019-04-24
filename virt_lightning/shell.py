@@ -252,6 +252,7 @@ def console(configuration, name=None, **kwargs):
 def down(configuration, context, **kwargs):
     conn = libvirt.open(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
+    hv.init_network(configuration.network_name, configuration.network_cidr)
     hv.init_storage_pool(configuration.storage_pool)
     for domain in hv.list_domains():
         if context and domain.context != context:

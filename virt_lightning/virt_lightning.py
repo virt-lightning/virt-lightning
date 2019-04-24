@@ -25,6 +25,7 @@ from .templates import (
     CLOUD_INIT_ENI,
     DISK_XML,
     DOMAIN_XML,
+    NETWORK_HOST_ENTRY,
     NETWORK_XML,
     STORAGE_POOL_XML,
     STORAGE_VOLUME_XML,
@@ -282,8 +283,10 @@ class LibvirtHypervisor:
         cloud_init_iso = self.prepare_cloud_init_iso(domain)
         domain.attachDisk(cloud_init_iso, device="cdrom", disk_type="raw")
         domain.dom.create()
+        self.dns_entry("add", domain.name, domain.ipv4)
 
     def clean_up(self, domain):
+        self.dns_entry("remove", domain.name, domain.ipv4)
         xml = domain.dom.XMLDesc(0)
         state, _ = domain.dom.state()
         if state != libvirt.VIR_DOMAIN_SHUTOFF:
@@ -391,6 +394,16 @@ class LibvirtHypervisor:
     def distro_available(self):
         path = self.get_storage_dir() / "upstream"
         return [path.stem for path in sorted(path.glob("*.qcow2"))]
+
+    def dns_entry(self, command, name, ipv4):
+        command_id_by_name = {"add": 4, "remove": 2}
+        root = ET.fromstring(NETWORK_HOST_ENTRY)
+        root.attrib["ip"] = str(ipv4.ip)
+        root.find("./hostname").text = name
+        xml = ET.tostring(root).decode()
+        self.network_obj.update(
+            command_id_by_name[command], 10, 0, xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG
+        )
 
 
 class LibvirtDomain:
