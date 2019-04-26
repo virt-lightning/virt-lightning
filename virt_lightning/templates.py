@@ -132,6 +132,7 @@ CLOUD_INIT_ENI = """network-interfaces: |
    network {network}
    netmask 255.255.255.0
    gateway {gateway}
+   dns-nameservers {dns_nameservers}
 """
 
 STORAGE_POOL_XML = """

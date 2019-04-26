@@ -250,6 +250,7 @@ class LibvirtHypervisor:
                         ipv4=str(domain.ipv4.ip),
                         gateway=str(self.gateway.ip),
                         network=str(self.network),
+                        dns_nameservers=str(self.dns.ip),
                     )
                 )
             with open(temp_dir + "/network-config", "w") as fd:
