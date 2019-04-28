@@ -115,6 +115,7 @@ NETWORK_XML = """
   <forward mode='nat'/>
   <bridge name='virbr0' stp='off' delay='0'/>
   <ip address='192.168.123.1' netmask='255.255.255.0'>
+  <dhcp />
   </ip>
 </network>
 """
@@ -124,6 +125,9 @@ NETWORK_HOST_ENTRY = """
   <hostname></hostname>
 </host>"""
 
+NETWORK_DHCP_ENTRY = """
+<host />
+"""
 
 # TODO
 CLOUD_INIT_ENI = """network-interfaces: |
