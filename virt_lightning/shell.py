@@ -68,7 +68,7 @@ def _start_domain(hv, host, context, configuration):
     domain.attachNetwork(configuration.network_name)
     domain.ipv4 = hv.get_free_ipv4()
     domain.add_swap_disk(hv.create_disk(host["name"] + "-swap", size=1))
-    hv.start(domain)
+    hv.start(domain, metadata_format=host.get("metadata_format", {}))
     return domain
 
 

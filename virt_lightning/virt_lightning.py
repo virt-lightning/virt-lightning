@@ -14,6 +14,7 @@ import xml.etree.ElementTree as ET
 
 import libvirt
 
+import json
 import yaml
 
 import asyncio
@@ -178,74 +179,119 @@ class LibvirtHypervisor:
                 sys.exit(1)
             raise
 
-    def prepare_cloud_init_iso(self, domain):
-        cidata_file = "{name}-cidata.iso".format(name=domain.name)
+    def prepare_cloud_init_openstack_iso(self, domain):
+        with tempfile.TemporaryDirectory() as base_temp_dir:
+            temp_dir = pathlib.Path(base_temp_dir)
+            cd_dir = temp_dir / "cd_dir"
+            cd_dir.mkdir()
 
-        primary_mac_addr = domain.mac_addresses[0]
-        self._network_meta = {"config": "disabled"}
-        if "ubuntu-18.04" in domain.distro:
-            domain._network_meta = {
-                "version": 2,
-                "ethernets": {
-                    "interface0": {
-                        "match": {"macaddress": primary_mac_addr},
-                        "set-name": "interface0",
-                        "addresses": [str(domain.ipv4)],
-                        "gateway4": str(self.gateway.ip),
-                        "nameservers": {"addresses": [str(self.dns.ip)]},
-                    }
-                },
+            openstack_meta_data = {
+                "availability_zone": "nova",
+                "files": [],
+                "hostname": domain.name,
+                "launch_index": 0,
+                "name": domain.name,
+                "meta": {},
+                "public_keys": {"default": domain.ssh_key},
+                "uuid": domain.dom.UUIDString(),
             }
-        else:
-            domain.meta_data += CLOUD_INIT_ENI
-            domain._network_meta = {
-                "version": 1,
-                "config": [
+            openstack_network_data = {
+                "links": [
                     {
-                        "type": "physical",
-                        "name": "eth0",
-                        "mac_address": primary_mac_addr,
-                        "subnets": [
-                            {
-                                "type": "static",
-                                "address": str(domain.ipv4),
-                                "gateway": str(self.gateway.ip),
-                                "dns_nameservers": [str(self.dns.ip)],
-                            }
-                        ],
+                        "id": "interface0",
+                        "type": "phy",
+                        "ethernet_mac_address": domain.mac_addresses[0],
                     }
                 ],
+                "networks": [
+                    {
+                        "id": "private-ipv4",
+                        "type": "ipv4",
+                        "link": "interface0",
+                        "ip_address": str(domain.ipv4.ip),
+                        "netmask": str(self.network.netmask.exploded),
+                        "routes": [
+                            {
+                                "network": "0.0.0.0",
+                                "netmask": "0.0.0.0",
+                                "gateway": str(self.gateway.ip),
+                            }
+                        ],
+                        "network_id": "da5bb487-5193-4a65-a3df-4a0055a8c0d7",
+                    }
+                ],
+                "services": [{"type": "dns", "address": str(self.dns.ip)}],
             }
-        nm_filter = "(centos|fedora|rhel)"
-        if re.match(nm_filter, domain.distro):
-            nmcli_call = (
-                "nmcli c add type ethernet con-name eth0 ifname eth0 ip4 {ipv4} "
-                "ipv4.gateway {gateway} ipv4.dns {dns} ipv4.method manual"
-            )
-            domain.cloud_init["runcmd"].append(
-                "nmcli -g UUID c|xargs -n 1 nmcli con del"
-            )
-            domain.cloud_init["runcmd"].append(
-                nmcli_call.format(
-                    ipv4=domain.ipv4, gateway=str(self.gateway.ip), dns=str(self.dns.ip)
-                )
-            )
-            # Without that NM, initialize eth0 with a DHCP IP
-            domain.cloud_init["bootcmd"].append(
-                'echo "[main]" > /etc/NetworkManager/conf.d/no-auto-default.conf'
-            )
-            domain.cloud_init["bootcmd"].append(
-                (
-                    'echo "no-auto-default=eth0" >> '
-                    "/etc/NetworkManager/conf.d/no-auto-default.conf"
-                )
-            )
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            with open(temp_dir + "/user-data", "w") as fd:
+            openstack_dir = cd_dir / "openstack" / "latest"
+            openstack_dir.mkdir(parents=True)
+            openstack_metadata_file = openstack_dir / "meta_data.json"
+            with openstack_metadata_file.open("w") as fd:
+                fd.write(json.dumps(openstack_meta_data))
+            openstack_networkdata_file = openstack_dir / "network_data.json"
+            with openstack_networkdata_file.open("w") as fd:
+                fd.write(json.dumps(openstack_network_data))
+            openstack_userdata_file = openstack_dir / "user_data"
+            with openstack_userdata_file.open("w") as fd:
                 fd.write("#cloud-config\n")
                 fd.write(yaml.dump(domain.cloud_init, Dumper=yaml.Dumper))
-            with open(temp_dir + "/meta-data", "w") as fd:
+
+            cidata_file = temp_dir / "{name}-cidata.iso".format(name=domain.name)
+            run_cmd(
+                [
+                    "genisoimage",
+                    "-output",
+                    cidata_file.name,
+                    "-volid",
+                    "config-2",
+                    "-joliet",
+                    "-R",
+                    str(cd_dir),
+                ],
+                cwd=str(temp_dir),
+            )
+
+            cdrom = self.create_disk(name=str(cidata_file), size=1)
+            with cidata_file.open("br") as fd:
+                st = self.conn.newStream(0)
+                cdrom.upload(st, 0, 1024 * 1024)
+                st.send(fd.read())
+                st.finish()
+            return cdrom
+
+    def prepare_cloud_init_nocloud_iso(self, domain):
+        primary_mac_addr = domain.mac_addresses[0]
+        self._network_meta = {"config": "disabled"}
+        domain.meta_data += CLOUD_INIT_ENI
+        domain._network_meta = {
+            "version": 1,
+            "config": [
+                {
+                    "type": "physical",
+                    "name": "eth0",
+                    "mac_address": primary_mac_addr,
+                    "subnets": [
+                        {
+                            "type": "static",
+                            "address": str(domain.ipv4),
+                            "gateway": str(self.gateway.ip),
+                            "dns_nameservers": [str(self.dns.ip)],
+                        }
+                    ],
+                }
+            ],
+        }
+
+        with tempfile.TemporaryDirectory() as base_temp_dir:
+            temp_dir = pathlib.Path(base_temp_dir)
+            cd_dir = temp_dir / "cd_dir"
+            cd_dir.mkdir()
+            user_data_file = cd_dir / "user-data"
+            with user_data_file.open("w") as fd:
+                fd.write("#cloud-config\n")
+                fd.write(yaml.dump(domain.cloud_init, Dumper=yaml.Dumper))
+            meta_data_file = cd_dir / "meta-data"
+            with meta_data_file.open("w") as fd:
                 fd.write(
                     domain.meta_data.format(
                         name=domain.name,
@@ -254,35 +300,43 @@ class LibvirtHypervisor:
                         network=str(self.network),
                     )
                 )
-            with open(temp_dir + "/network-config", "w") as fd:
+            network_config_file = cd_dir / "network-config"
+            with network_config_file.open("w") as fd:
                 fd.write(yaml.dump(domain._network_meta, Dumper=yaml.Dumper))
 
+            cidata_file = temp_dir / "{name}-cidata.iso".format(name=domain.name)
             run_cmd(
                 [
                     "genisoimage",
                     "-output",
-                    cidata_file,
+                    cidata_file.name,
                     "-volid",
                     "cidata",
                     "-joliet",
-                    "-r",
-                    "user-data",
-                    "meta-data",
-                    "network-config",
+                    "-R",
+                    str(cd_dir),
                 ],
-                cwd=temp_dir,
+                cwd=str(temp_dir),
             )
 
-            cdrom = self.create_disk(name=cidata_file, size=1)
-            with open(temp_dir + "/" + cidata_file, "br") as fd:
+            cdrom = self.create_disk(name=str(cidata_file), size=1)
+            with cidata_file.open("br") as fd:
                 st = self.conn.newStream(0)
                 cdrom.upload(st, 0, 1024 * 1024)
                 st.send(fd.read())
                 st.finish()
             return cdrom
 
-    def start(self, domain):
-        cloud_init_iso = self.prepare_cloud_init_iso(domain)
+    def start(self, domain, metadata_format):
+        if metadata_format.get("provider", "") == "nocloud":
+            cloud_init_iso = self.prepare_cloud_init_nocloud_iso(domain)
+        elif domain.distro.startswith("rhel-6.") or domain.distro.startswith(
+            "centos-6."
+        ):
+            cloud_init_iso = self.prepare_cloud_init_nocloud_iso(domain)
+        else:  # OpenStack format is the default
+            cloud_init_iso = self.prepare_cloud_init_openstack_iso(domain)
+
         domain.attachDisk(cloud_init_iso, device="cdrom", disk_type="raw")
         domain.dom.create()
         self.dns_entry(
