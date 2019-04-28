@@ -14,6 +14,7 @@ import xml.etree.ElementTree as ET
 
 import libvirt
 
+import json
 import yaml
 
 import asyncio
@@ -178,8 +179,6 @@ class LibvirtHypervisor:
             raise
 
     def prepare_cloud_init_iso(self, domain):
-        cidata_file = "{name}-cidata.iso".format(name=domain.name)
-
         primary_mac_addr = domain.mac_addresses[0]
         self._network_meta = {"config": "disabled"}
         if "ubuntu-18.04" in domain.distro:
@@ -240,11 +239,16 @@ class LibvirtHypervisor:
                 )
             )
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            with open(temp_dir + "/user-data", "w") as fd:
+        with tempfile.TemporaryDirectory() as base_temp_dir:
+            temp_dir = pathlib.Path(base_temp_dir)
+            cd_dir = temp_dir / "cd_dir"
+            cd_dir.mkdir()
+            user_data_file = cd_dir / "user-data"
+            with user_data_file.open("w") as fd:
                 fd.write("#cloud-config\n")
                 fd.write(yaml.dump(domain.cloud_init, Dumper=yaml.Dumper))
-            with open(temp_dir + "/meta-data", "w") as fd:
+            meta_data_file = cd_dir / "meta-data"
+            with meta_data_file.open("w") as fd:
                 fd.write(
                     domain.meta_data.format(
                         name=domain.name,
@@ -253,27 +257,83 @@ class LibvirtHypervisor:
                         network=str(self.network),
                     )
                 )
-            with open(temp_dir + "/network-config", "w") as fd:
+            network_config_file = cd_dir / "network-config"
+            with network_config_file.open("w") as fd:
                 fd.write(yaml.dump(domain._network_meta, Dumper=yaml.Dumper))
 
+            openstack_meta_data = {
+                "availability_zone": "nova",
+                "files": [],
+                "hostname": domain.name,
+                "launch_index": 0,
+                "name": domain.name,
+                "meta": {},
+                "public_keys": {"default": domain.ssh_key},
+                "uuid": domain.dom.UUIDString(),
+            }
+            openstack_network_data = {
+                "links": [
+                    {
+                        "id": "interface0",
+                        "type": "phy",
+                        "ethernet_mac_address": domain.mac_addresses[0],
+                    }
+                ],
+                "networks": [
+                    {
+                        "id": "private-ipv4",
+                        "type": "ipv4",
+                        "link": "interface0",
+                        "ip_address": str(domain.ipv4.ip),
+                        "netmask": str(self.network.netmask.exploded),
+                        "routes": [
+                            {
+                                "network": "0.0.0.0",
+                                "netmask": "0.0.0.0",
+                                "gateway": str(self.gateway.ip),
+                            }
+                        ],
+                        "network_id": "da5bb487-5193-4a65-a3df-4a0055a8c0d7",
+                    }
+                ],
+                "services": [{"type": "dns", "address": str(self.dns.ip)}],
+            }
+            openstack_user_data = (
+                    "#cloud-config\n"
+                    "password: {root_password}\n"
+                    "chpasswd: {{ expire: False }}\n"
+                    "ssh_pwauth: True\n").format(
+                            root_password=domain.root_password,)
+
+            openstack_dir = cd_dir / "openstack" / "latest"
+            openstack_dir.mkdir(parents=True)
+            openstack_metadata_file = openstack_dir / "meta_data.json"
+            with openstack_metadata_file.open("w") as fd:
+                fd.write(json.dumps(openstack_meta_data))
+            openstack_networkdata_file = openstack_dir / "network_data.json"
+            with openstack_networkdata_file.open("w") as fd:
+                fd.write(json.dumps(openstack_network_data))
+            openstack_userdata_file = openstack_dir / "user-data"
+            with openstack_userdata_file.open("w") as fd:
+                fd.write(openstack_user_data)
+
+            cidata_file = temp_dir / "{name}-cidata.iso".format(name=domain.name)
             run_cmd(
                 [
                     "genisoimage",
                     "-output",
-                    cidata_file,
+                    cidata_file.name,
                     "-volid",
                     "cidata",
                     "-joliet",
-                    "-r",
-                    "user-data",
-                    "meta-data",
-                    "network-config",
+                    "-R",
+                    str(cd_dir),
                 ],
-                cwd=temp_dir,
+                cwd=str(temp_dir),
             )
 
-            cdrom = self.create_disk(name=cidata_file, size=1)
-            with open(temp_dir + "/" + cidata_file, "br") as fd:
+            cdrom = self.create_disk(name=str(cidata_file), size=1)
+            with cidata_file.open("br") as fd:
                 st = self.conn.newStream(0)
                 cdrom.upload(st, 0, 1024 * 1024)
                 st.send(fd.read())
