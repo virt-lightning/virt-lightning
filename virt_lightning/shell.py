@@ -30,25 +30,54 @@ def libvirt_callback(userdata, err):
 libvirt.registerErrorHandler(f=libvirt_callback, ctx=None)
 
 
+def _start_domain(hv, host, context, configuration):
+    if host["distro"] not in hv.distro_available():
+        logger.error("distro not available: %s", host["distro"])
+        logger.info(
+            "Please select on of the following distro: %s", hv.distro_available()
+        )
+        exit()
+
+    if "name" not in host:
+        host["name"] = re.sub(r"\W+", "", host["distro"])
+
+    if hv.get_domain_by_name(host["name"]):
+        logger.info("Skipping {name}, already here.".format(**host))
+        return
+
+    # Unfortunatly, i can't decode that symbol
+    # that symbol more well add to check encoding block
+    logger.info("{lightning} {name} ".format(lightning=symbols.LIGHTNING.value, **host))
+    domain = hv.create_domain(name=host["name"], distro=host["distro"])
+    domain.context = context
+    domain.groups = host.get("groups", [])
+    domain.load_ssh_key_file(configuration.ssh_key_file)
+    if host["distro"].startswith("esxi"):
+        domain.username = "root"
+    else:
+        domain.username = configuration.username
+    domain.root_password = host.get("root_password", configuration.root_password)
+
+    domain.vcpus(host.get("vcpus"))
+    domain.memory(host.get("memory", 768))
+    root_disk_path = hv.create_disk(
+        name=host["name"],
+        backing_on=host["distro"],
+        # NOTE: Use to be 15GB, but FreeBSD root FS is 31G large
+        size=host.get("root_disk_size", 32),
+    )
+    domain.add_root_disk(root_disk_path)
+    domain.attachNetwork(configuration.network_name)
+    domain.ipv4 = hv.get_free_ipv4()
+    domain.add_swap_disk(hv.create_disk(host["name"] + "-swap", size=1))
+    hv.start(domain)
+    return domain
+
+
 def up(virt_lightning_yaml, configuration, context, **kwargs):
     def myDomainEventAgentLifecycleCallback(conn, dom, state, reason, opaque):
         if state == 1:
             logger.info("%s %s QEMU agent found", symbols.CUSTOMS.value, dom.name())
-
-    async def deploy():
-        futures = []
-        for host in virt_lightning_yaml:
-            futures.append(loop.run_in_executor(pool, start_domain, host))
-
-        domain_reachable_futures = []
-        for f in futures:
-            await f
-            domain = f.result()
-            if domain:
-                domain_reachable_futures.append(domain.reachable())
-        logger.info("%s ok Waiting...", symbols.HOURGLASS.value)
-
-        await asyncio.gather(*domain_reachable_futures)
 
     loop = asyncio.get_event_loop()
     try:
@@ -72,54 +101,88 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
     hv.init_network(configuration.network_name, configuration.network_cidr)
     hv.init_storage_pool(configuration.storage_pool)
 
-    def start_domain(host):
-        if host["distro"] not in hv.distro_available():
-            logger.error("distro not available: %s", host["distro"])
-            logger.info(
-                "Please select on of the following distro: %s", hv.distro_available()
-            )
-            exit()
-
-        if "name" not in host:
-            host["name"] = re.sub(r"\W+", "", host["distro"])
-
-        if hv.get_domain_by_name(host["name"]):
-            logger.info("Skipping {name}, already here.".format(**host))
-            return
-
-        # Unfortunatly, i can't decode that symbol
-        # that symbol more well add to check encoding block
-        logger.info(
-            "{lightning} {name} ".format(lightning=symbols.LIGHTNING.value, **host)
-        )
-        domain = hv.create_domain(name=host["name"], distro=host["distro"])
-        domain.context = context
-        domain.groups = host.get("groups", [])
-        domain.load_ssh_key_file(configuration.ssh_key_file)
-        if host["distro"].startswith("esxi"):
-            domain.username = "root"
-        else:
-            domain.username = configuration.username
-        domain.root_password = host.get("root_password", configuration.root_password)
-
-        domain.vcpus(host.get("vcpus"))
-        domain.memory(host.get("memory", 768))
-        root_disk_path = hv.create_disk(
-            name=host["name"],
-            backing_on=host["distro"],
-            # NOTE: Use to be 15GB, but FreeBSD root FS is 31G large
-            size=host.get("root_disk_size", 32),
-        )
-        domain.add_root_disk(root_disk_path)
-        domain.attachNetwork(configuration.network_name)
-        domain.ipv4 = hv.get_free_ipv4()
-        domain.add_swap_disk(hv.create_disk(host["name"] + "-swap", size=1))
-        hv.start(domain)
-        return domain
-
     pool = ThreadPoolExecutor(max_workers=10)
+
+    async def deploy():
+        futures = []
+        for host in virt_lightning_yaml:
+            futures.append(
+                loop.run_in_executor(
+                    pool, _start_domain, hv, host, context, configuration
+                )
+            )
+
+        domain_reachable_futures = []
+        for f in futures:
+            await f
+            domain = f.result()
+            if domain:
+                domain_reachable_futures.append(domain.reachable())
+        logger.info("%s ok Waiting...", symbols.HOURGLASS.value)
+
+        await asyncio.gather(*domain_reachable_futures)
+
     loop.run_until_complete(deploy())
     logger.info("%s You are all set", symbols.THUMBS_UP.value)
+
+
+def start(configuration, **kwargs):
+    conn = libvirt.open(configuration.libvirt_uri)
+    hv = vl.LibvirtHypervisor(conn)
+    hv.init_network(configuration.network_name, configuration.network_cidr)
+    hv.init_storage_pool(configuration.storage_pool)
+    host = {"distro": kwargs["distro"]}
+    context = "default"
+    domain = _start_domain(hv, host, context, configuration)
+    if not domain:
+        return
+    import time
+
+    time.sleep(4)
+    stream = conn.newStream(libvirt.VIR_STREAM_NONBLOCK)
+    console = domain.dom.openConsole(None, stream, 0)
+    loop = asyncio.get_event_loop()
+    import libvirtaio
+
+    libvirtaio.virEventRegisterAsyncIOImpl(loop=loop)
+
+    def stream_callback(stream, events, _):
+        line = stream.recv(1024).decode()
+        print("\033[0m", "\033[30m", line, end="")
+
+    stream.eventAddCallback(libvirt.VIR_STREAM_EVENT_READABLE, stream_callback, console)
+
+    async def deploy():
+        await domain.reachable()
+
+    loop.run_until_complete(deploy())
+    print(
+        (
+            "\033[0m\n**** System is online ****\n"
+            "To connect use:\n"
+            "  vl console {name} (virsh console)"
+            "  vl ssh {name}"
+        ).format(name=domain.name)
+    )
+    if kwargs["ssh"]:
+        domain.exec_ssh()
+
+
+def stop(configuration, **kwargs):
+    conn = libvirt.open(configuration.libvirt_uri)
+    hv = vl.LibvirtHypervisor(conn)
+    hv.init_network(configuration.network_name, configuration.network_cidr)
+    hv.init_storage_pool(configuration.storage_pool)
+    domain = hv.get_domain_by_name(kwargs["name"])
+    if not domain:
+        vm_list = [d.name for d in hv.list_domains()]
+        print(
+            "No VM called {name} in {vm_list}".format(
+                name=kwargs["name"], vm_list=vm_list
+            )
+        )
+        exit(1)
+    hv.clean_up(domain)
 
 
 def ansible_inventory(configuration, context, **kwargs):
@@ -218,18 +281,10 @@ def ssh(configuration, name=None, **kwargs):
     hv = vl.LibvirtHypervisor(conn)
 
     def go_ssh(domain):
-        os.execlp(
-            "ssh",
-            "ssh",
-            "-o",
-            "StrictHostKeyChecking=no",
-            "-o",
-            "UserKnownHostsFile=/dev/null",
-            "{username}@{ipv4}".format(username=domain.username, ipv4=domain.ipv4.ip),
-        )
+        domain.exec_ssh()
 
     if name:
-        go_ssh(hv.get_domain_by_name(name))
+        hv.get_domain_by_name(name).exec_ssh()
 
     ui.Selector(sorted(hv.list_domains()), go_ssh)
 
@@ -284,7 +339,7 @@ def main():
 
     usage = """
 usage: vl [--debug DEBUG] [--config CONFIG]
-          {up,down,status,distro_list,storage_dir,ansible_inventory} ..."""
+          {up,down,start,distro_list,storage_dir,ansible_inventory} ..."""
     example = """
 Example:
 
@@ -355,13 +410,30 @@ Example:
     )
     down_parser.add_argument("--context", **context_args)
 
+    start_parser = action_subparsers.add_parser(
+        "start", help="Start a new VM", parents=[parent_parser]
+    )
+    start_parser.add_argument(
+        "--ssh",
+        help="Automatically open a SSH connection.",
+        action="store_true",
+        default=False,
+    )
+    start_parser.add_argument("--memory", help="Memory in MB", type=int)
+    start_parser.add_argument("--vcpus", help="Number of VCPUS", type=int)
+    start_parser.add_argument("distro", help="Name of the distro", type=str)
+
+    stop_parser = action_subparsers.add_parser(
+        "stop", help="Stop a VM", parents=[parent_parser]
+    )
+    stop_parser.add_argument("name", help="Name of the VM", type=str)
+
     status_parser = action_subparsers.add_parser(
         "status", help="first", parents=[parent_parser]
     )
     status_parser.add_argument("--context", **context_args)
 
     action_subparsers.add_parser("distro_list", help="first", parents=[parent_parser])
-
     action_subparsers.add_parser(
         "storage_dir", help="Print the storage directory", parents=[parent_parser]
     )
@@ -378,10 +450,10 @@ Example:
     )
     ssh_parser.add_argument("name", help="Name of the host", type=str, nargs="?")
 
-    ssh_parser = action_subparsers.add_parser(
+    console_parser = action_subparsers.add_parser(
         "console", help="Open the console of a given host", parents=[parent_parser]
     )
-    ssh_parser.add_argument("name", help="Name of the host", type=str, nargs="?")
+    console_parser.add_argument("name", help="Name of the host", type=str, nargs="?")
 
     args = main_parser.parse_args()
     if not args.action:
