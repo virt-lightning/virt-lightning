@@ -285,23 +285,23 @@ class LibvirtHypervisor:
         domain.attachDisk(cloud_init_iso, device="cdrom", disk_type="raw")
         domain.dom.create()
         self.dns_entry(
+            libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE, domain.name, domain.ipv4
+        )
+        self.dns_entry(
             libvirt.VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST, domain.name, domain.ipv4
         )
+        self.dhcp_entry(libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE, domain.ipv4)
         self.dhcp_entry(
             libvirt.VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST,
-            domain.mac_addresses[0],
             domain.ipv4,
+            domain.mac_addresses[0],
         )
 
     def clean_up(self, domain):
         self.dns_entry(
             libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE, domain.name, domain.ipv4
         )
-        self.dhcp_entry(
-            libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE,
-            domain.mac_addresses[0],
-            domain.ipv4,
-        )
+        self.dhcp_entry(libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE, domain.ipv4)
         xml = domain.dom.XMLDesc(0)
         state, _ = domain.dom.state()
         if state != libvirt.VIR_DOMAIN_SHUTOFF:
@@ -412,8 +412,8 @@ class LibvirtHypervisor:
 
     def dns_entry(self, command, name, ipv4):
         root = ET.fromstring(NETWORK_HOST_ENTRY)
-        root.attrib["ip"] = str(ipv4.ip)
         root.find("./hostname").text = name
+        root.attrib["ip"] = str(ipv4.ip)
         xml = ET.tostring(root).decode()
         try:
             self.network_obj.update(
@@ -430,9 +430,10 @@ class LibvirtHypervisor:
                     return
             raise
 
-    def dhcp_entry(self, command, mac, ipv4):
+    def dhcp_entry(self, command, ipv4, mac=None):
         root = ET.fromstring(NETWORK_DHCP_ENTRY)
-        root.attrib["mac"] = mac
+        if mac:
+            root.attrib["mac"] = mac
         root.attrib["ip"] = str(ipv4.ip)
         xml = ET.tostring(root).decode()
         try:
