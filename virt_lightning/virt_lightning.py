@@ -558,8 +558,10 @@ class LibvirtDomain:
         self.record_metadata("groups", ",".join(value))
 
     def attachDisk(self, volume, device="disk", disk_type="qcow2"):
-        if self.distro.startswith("esxi"):
-            bus = "ide" if device == "cdrom" else "sata"
+        if device == "cdrom":
+            bus = "ide"
+        elif self.distro.startswith("esxi"):
+            bus = "sata"
         else:
             bus = "virtio"
         device_name = self.getNextBlckDevice()
