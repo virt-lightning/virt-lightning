@@ -23,6 +23,7 @@ from virt_lightning.symbols import get_symbols
 from .templates import (
     BRIDGE_XML,
     CLOUD_INIT_ENI,
+    NETWORK_DHCP_ENTRY,
     DISK_XML,
     DOMAIN_XML,
     NETWORK_HOST_ENTRY,
@@ -283,10 +284,24 @@ class LibvirtHypervisor:
         cloud_init_iso = self.prepare_cloud_init_iso(domain)
         domain.attachDisk(cloud_init_iso, device="cdrom", disk_type="raw")
         domain.dom.create()
-        self.dns_entry("add", domain.name, domain.ipv4)
+        self.dns_entry(
+            libvirt.VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST, domain.name, domain.ipv4
+        )
+        self.dhcp_entry(
+            libvirt.VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST,
+            domain.mac_addresses[0],
+            domain.ipv4,
+        )
 
     def clean_up(self, domain):
-        self.dns_entry("remove", domain.name, domain.ipv4)
+        self.dns_entry(
+            libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE, domain.name, domain.ipv4
+        )
+        self.dhcp_entry(
+            libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE,
+            domain.mac_addresses[0],
+            domain.ipv4,
+        )
         xml = domain.dom.XMLDesc(0)
         state, _ = domain.dom.state()
         if state != libvirt.VIR_DOMAIN_SHUTOFF:
@@ -396,14 +411,44 @@ class LibvirtHypervisor:
         return [path.stem for path in sorted(path.glob("*.qcow2"))]
 
     def dns_entry(self, command, name, ipv4):
-        command_id_by_name = {"add": 4, "remove": 2}
         root = ET.fromstring(NETWORK_HOST_ENTRY)
         root.attrib["ip"] = str(ipv4.ip)
         root.find("./hostname").text = name
         xml = ET.tostring(root).decode()
-        self.network_obj.update(
-            command_id_by_name[command], 10, 0, xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG
-        )
+        try:
+            self.network_obj.update(
+                command,
+                libvirt.VIR_NETWORK_SECTION_DNS_HOST,
+                0,
+                xml,
+                libvirt.VIR_NETWORK_UPDATE_AFFECT_LIVE,
+            )
+        except libvirt.libvirtError as e:
+            if e.get_error_code() == libvirt.VIR_ERR_OPERATION_INVALID:
+                # Already removed
+                if command == libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE:
+                    return
+            raise
+
+    def dhcp_entry(self, command, mac, ipv4):
+        root = ET.fromstring(NETWORK_DHCP_ENTRY)
+        root.attrib["mac"] = mac
+        root.attrib["ip"] = str(ipv4.ip)
+        xml = ET.tostring(root).decode()
+        try:
+            self.network_obj.update(
+                command,
+                libvirt.VIR_NETWORK_SECTION_IP_DHCP_HOST,
+                0,
+                xml,
+                libvirt.VIR_NETWORK_UPDATE_AFFECT_LIVE,
+            )
+        except libvirt.libvirtError as e:
+            if e.get_error_code() == libvirt.VIR_ERR_OPERATION_INVALID:
+                if command == libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE:
+                    # Already removed
+                    return
+            raise
 
 
 class LibvirtDomain:
