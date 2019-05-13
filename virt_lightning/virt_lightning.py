@@ -494,12 +494,13 @@ class LibvirtDomain:
             with open(os.path.expanduser(ssh_key_file), "r") as fd:
                 self.ssh_key = fd.read()
         except IOError:
-            raise Exception(
+            logger.error(
                 (
                     "Can not read {filename}. If you don't have any SSH key, "
                     "please follow the steps describe here:\n  {doc_url}"
                 ).format(filename=ssh_key_file, doc_url=doc_url)
             )
+            raise
 
         self.cloud_init["ssh_authorized_keys"] = [self.ssh_key]
         if "users" in self.cloud_init:
