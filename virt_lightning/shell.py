@@ -316,6 +316,7 @@ def down(configuration, context, **kwargs):
             continue
         logger.info("%s purging %s", symbols.TRASHBIN.value, domain.name)
         hv.clean_up(domain)
+    hv.network_obj.destroy()
 
 
 def distro_list(configuration, **kwargs):
