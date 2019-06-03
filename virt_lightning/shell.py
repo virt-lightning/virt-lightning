@@ -190,13 +190,15 @@ def ansible_inventory(configuration, context, **kwargs):
     hv = vl.LibvirtHypervisor(conn)
 
     ssh_cmd_template = (
-        "{name} ansible_host={ipv4} ansible_user={username} "
+        '{name} ansible_host={ipv4} ansible_user={username} '
+        'ansible_python_interpreter={python_interpreter} '
         'ansible_ssh_common_args="-o UserKnownHostsFile=/dev/null '
         '-o StrictHostKeyChecking=no"'
     )
     ssh_cmd_template_esxi = (
-        "{name} ansible_host={ipv4} ansible_user=root "
-        "ansible_password=root ansible_python_interpreter=/bin/python "
+        '{name} ansible_host={ipv4} ansible_user=root '
+        'ansible_password=root '
+        'ansible_python_interpreter={python_interpreter} '
         'ansible_ssh_common_args="-o UserKnownHostsFile=/dev/null '
         '-o StrictHostKeyChecking=no"'
     )
@@ -218,7 +220,7 @@ def ansible_inventory(configuration, context, **kwargs):
 
         print(
             template.format(
-                name=domain.name, username=domain.username, ipv4=domain.ipv4.ip
+                name=domain.name, username=domain.username, ipv4=domain.ipv4.ip, python_interpreter=domain.python_interpreter
             )
         )  # noqa: T001
 

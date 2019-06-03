@@ -572,7 +572,25 @@ class LibvirtDomain:
 
     @distro.setter
     def distro(self, distro):
+        if distro.startswith('esxi'):
+            self.python_interpreter = '/bin/python'
+        elif distro.startswith('rhel8'):
+            self.python_interpreter = '/usr/libexec/platform-python'
+        elif distro.startswith('freebsd'):
+            self.python_interpreter = '/usr/local/bin/python'
+        else:
+            self.python_interpreter = '/usr/bin/python'
+
         self.record_metadata("distro", distro)
+
+    @property
+    def python_interpreter(self):
+        return self.get_metadata("python_interpreter")
+
+    @python_interpreter.setter
+    def python_interpreter(self, value):
+        self.record_metadata("python_interpreter", value)
+
 
     @property
     def username(self):
