@@ -52,12 +52,11 @@ def _start_domain(hv, host, context, configuration):
     domain.context = context
     domain.groups = host.get("groups", [])
     domain.load_ssh_key_file(configuration.ssh_key_file)
-    if host["distro"].startswith("esxi"):
-        domain.username = "root"
-    else:
-        domain.username = configuration.username
+    domain.username = host.get("username", configuration.username)
     domain.root_password = host.get("root_password", configuration.root_password)
 
+    if host.get("python_interpreter"):
+        domain.python_interpreter = host.get("python_interpreter")
     domain.vcpus(host.get("vcpus", 1))
     domain.memory(host.get("memory", 768))
     root_disk_path = hv.create_disk(
@@ -191,12 +190,14 @@ def ansible_inventory(configuration, context, **kwargs):
 
     ssh_cmd_template = (
         "{name} ansible_host={ipv4} ansible_user={username} "
+        "ansible_python_interpreter={python_interpreter} "
         'ansible_ssh_common_args="-o UserKnownHostsFile=/dev/null '
         '-o StrictHostKeyChecking=no"'
     )
     ssh_cmd_template_esxi = (
         "{name} ansible_host={ipv4} ansible_user=root "
-        "ansible_password=root ansible_python_interpreter=/bin/python "
+        "ansible_password={root_password} "
+        "ansible_python_interpreter={python_interpreter} "
         'ansible_ssh_common_args="-o UserKnownHostsFile=/dev/null '
         '-o StrictHostKeyChecking=no"'
     )
@@ -218,7 +219,11 @@ def ansible_inventory(configuration, context, **kwargs):
 
         print(  # noqa: T001
             template.format(
-                name=domain.name, username=domain.username, ipv4=domain.ipv4.ip
+                name=domain.name,
+                username=domain.username,
+                ipv4=domain.ipv4.ip,
+                python_interpreter=domain.python_interpreter,
+                root_password=domain.root_password,
             )
         )  # noqa: T001
 

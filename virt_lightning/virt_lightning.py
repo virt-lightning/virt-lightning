@@ -470,7 +470,7 @@ class LibvirtDomain:
 
     @property
     def root_password(self):
-        return self.cloud_init.get("password")
+        return self.get_metadata("root_password")
 
     @root_password.setter
     def root_password(self, value):
@@ -481,6 +481,7 @@ class LibvirtDomain:
             "expire": False,
         }
         self.cloud_init["ssh_pwauth"] = True
+        self.record_metadata("root_password", value)
 
     @property
     def ssh_key(self):
@@ -514,7 +515,25 @@ class LibvirtDomain:
 
     @distro.setter
     def distro(self, distro):
+        if distro.startswith("esxi"):
+            self.python_interpreter = "/bin/python"
+        elif distro.startswith("rhel8"):
+            self.python_interpreter = "/usr/libexec/platform-python"
+            self.python_interpreter = "/usr/local/bin/python3"
+        elif distro.startswith("netbsd"):
+            self.python_interpreter = "/usr/pkg/bin/python3.7"
+        else:
+            self.python_interpreter = "/usr/bin/python"
+
         self.record_metadata("distro", distro)
+
+    @property
+    def python_interpreter(self):
+        return self.get_metadata("python_interpreter")
+
+    @python_interpreter.setter
+    def python_interpreter(self, value):
+        self.record_metadata("python_interpreter", value)
 
     @property
     def username(self):
