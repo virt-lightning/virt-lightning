@@ -581,7 +581,9 @@ class LibvirtDomain:
         elif distro.startswith('rhel8'):
             self.python_interpreter = '/usr/libexec/platform-python'
         elif distro.startswith('freebsd'):
-            self.python_interpreter = '/usr/local/bin/python'
+            self.python_interpreter = '/usr/local/bin/python3'
+        elif distro.startswith('netbsd'):
+            self.python_interpreter = '/usr/pkg/bin/python3.7'
         else:
             self.python_interpreter = '/usr/bin/python'
 
