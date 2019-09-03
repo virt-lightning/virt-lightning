@@ -1,5 +1,5 @@
 IMAGE_NAME=debian-10
-DOWNLOAD_URL=${MIRROR_URL:-https://cdimage.debian.org}/cdimage/openstack/testing/debian-testing-openstack-amd64.qcow2
+DOWNLOAD_URL=${MIRROR_URL:-https://cdimage.debian.org}/cdimage/openstack/current-10/debian-10-openstack-amd64.qcow2
 
 function prepare {
     # We need resolvconf otherwise, the 'dns-nameservers' value in the /etc/network/interfaces
