@@ -343,7 +343,7 @@ class LibvirtHypervisor:
             self.network_obj = self.create_network(network_name, network_cidr)
 
         if not self.network_obj.isActive():
-            self.network_obj.create(0)
+            self.network_obj.create()
 
         xml = self.network_obj.XMLDesc(0)
         root = ET.fromstring(xml)
