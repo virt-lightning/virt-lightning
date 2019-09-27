@@ -299,10 +299,13 @@ class LibvirtHypervisor:
         )
 
     def clean_up(self, domain):
-        self.dns_entry(
-            libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE, domain.name, domain.ipv4
-        )
-        self.dhcp_entry(libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE, domain.ipv4)
+        if domain.ipv4:
+            self.dns_entry(
+                libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE,
+                domain.name, domain.ipv4
+            )
+            self.dhcp_entry(libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE,
+                            domain.ipv4)
         xml = domain.dom.XMLDesc(0)
         state, _ = domain.dom.state()
         if state != libvirt.VIR_DOMAIN_SHUTOFF:
@@ -641,7 +644,8 @@ class LibvirtDomain:
 
     @property
     def ipv4(self):
-        return ipaddress.IPv4Interface(self.get_metadata("ipv4"))
+        if self.get_metadata("ipv4"):
+            return ipaddress.IPv4Interface(self.get_metadata("ipv4"))
 
     @ipv4.setter
     def ipv4(self, value):
