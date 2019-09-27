@@ -91,6 +91,7 @@ class LibvirtHypervisor:
         root = ET.fromstring(DOMAIN_XML)
         root.attrib["type"] = self.domain_type
         root.find("./name").text = name
+        root.find("./vcpu").text = str(self.conn.getInfo()[2])
         root.find("./devices/emulator").text = str(self.kvm_binary)
         root.find("./os/type").attrib["arch"] = self.arch
         dom = self.conn.defineXML(ET.tostring(root).decode())
@@ -542,9 +543,8 @@ class LibvirtDomain:
     def name(self, name):
         self.dom.rename(name, 0)
 
-    def vcpus(self, value=None):
-        if value:
-            self.dom.setVcpusFlags(value, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
+    def vcpus(self, value=2):
+        self.dom.setVcpusFlags(value, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
 
     def memory(self, value=None):
         if value:
