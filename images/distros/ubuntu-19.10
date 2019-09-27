@@ -1,0 +1,6 @@
+DOWNLOAD_URL=${MIRROR_URL:-https://cloud-images.ubuntu.com}/eoan/current/eoan-server-cloudimg-amd64.img
+IMAGE_NAME=ubuntu-19.10
+
+function prepare () {
+echo "pass"
+}

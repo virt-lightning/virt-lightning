@@ -1,0 +1,8 @@
+RHEL_VERSION=7.7
+RHEL_BUILD=210
+DOWNLOAD_URL=${RHEL_MIRROR_URL}/released/RHEL-7/${RHEL_VERSION}/Server/x86_64/images/rhel-guest-image-${RHEL_VERSION}-${RHEL_BUILD}.x86_64.qcow2
+IMAGE_NAME=rhel-${RHEL_VERSION}
+
+function prepare {
+    virt-sysprep -a ${UPSTREAM_IMAGE_DIR}/${IMAGE_NAME}.qcow2 --run-command 'rm /etc/sysconfig/network-scripts/ifcfg-eth0'
+}

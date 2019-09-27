@@ -1,0 +1,6 @@
+DOWNLOAD_URL=${MIRROR_URL:-https://cloud-images.ubuntu.com}/disco/current/disco-server-cloudimg-amd64.img
+IMAGE_NAME=ubuntu-19.04
+
+function prepare {
+echo 'pass'
+}
