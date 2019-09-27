@@ -546,7 +546,7 @@ class LibvirtDomain:
     def name(self, name):
         self.dom.rename(name, 0)
 
-    def vcpus(self, value=2):
+    def vcpus(self, value=1):
         self.dom.setVcpusFlags(value, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
 
     def memory(self, value=None):

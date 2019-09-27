@@ -58,7 +58,7 @@ def _start_domain(hv, host, context, configuration):
         domain.username = configuration.username
     domain.root_password = host.get("root_password", configuration.root_password)
 
-    domain.vcpus(host.get("vcpus"))
+    domain.vcpus(host.get("vcpus", 1))
     domain.memory(host.get("memory", 768))
     root_disk_path = hv.create_disk(
         name=host["name"],
