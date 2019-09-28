@@ -301,11 +301,9 @@ class LibvirtHypervisor:
     def clean_up(self, domain):
         if domain.ipv4:
             self.dns_entry(
-                libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE,
-                domain.name, domain.ipv4
+                libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE, domain.name, domain.ipv4
             )
-            self.dhcp_entry(libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE,
-                            domain.ipv4)
+            self.dhcp_entry(libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE, domain.ipv4)
         xml = domain.dom.XMLDesc(0)
         state, _ = domain.dom.state()
         if state != libvirt.VIR_DOMAIN_SHUTOFF:
