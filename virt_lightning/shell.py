@@ -148,7 +148,7 @@ def start(configuration, **kwargs):
 
     def stream_callback(stream, events, _):
         line = stream.recv(1024).decode()
-        print("\033[0m", "\033[30m", line, end="")
+        print("\033[0m", "\033[30m", line, end="")  # noqa: T001
 
     stream.eventAddCallback(libvirt.VIR_STREAM_EVENT_READABLE, stream_callback, console)
 
@@ -156,7 +156,7 @@ def start(configuration, **kwargs):
         await domain.reachable()
 
     loop.run_until_complete(deploy())
-    print(
+    print(  # noqa: T001
         (
             "\033[0m\n**** System is online ****\n"
             "To connect use:\n"
@@ -176,7 +176,7 @@ def stop(configuration, **kwargs):
     domain = hv.get_domain_by_name(kwargs["name"])
     if not domain:
         vm_list = [d.name for d in hv.list_domains()]
-        print(
+        print(  # noqa: T001
             "No VM called {name} in {vm_list}".format(
                 name=kwargs["name"], vm_list=vm_list
             )
@@ -216,17 +216,16 @@ def ansible_inventory(configuration, context, **kwargs):
         else:
             template = ssh_cmd_template
 
-        print(
+        print(  # noqa: T001
             template.format(
                 name=domain.name, username=domain.username, ipv4=domain.ipv4.ip
             )
         )  # noqa: T001
 
     for group_name, domains in groups.items():
-        print("")
-        print("[{group_name}]".format(group_name=group_name))
+        print("\n[{group_name}]".format(group_name=group_name))  # noqa: T001
         for domain in domains:
-            print(domain.name)
+            print(domain.name)  # noqa: T001
 
 
 def get_status(hv, context):
