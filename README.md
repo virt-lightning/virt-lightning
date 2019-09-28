@@ -52,7 +52,7 @@ sudo usermod -a -G kvm,libvirt,libvirt-qemu $USER
 </details>
 
 
-<details><summary>Fedora-29</summary>
+<details><summary>Fedora-29 and after</summary>
 <p>
 
 First you need to install libvirt and guestfs:
@@ -103,7 +103,7 @@ sudo usermod -a -G kvm,libvirt $USER
 </details>
 
 
-<details><summary>Ubuntu-18.10</summary>
+<details><summary>Ubuntu-18.10 and after</summary>
 <p>
 
 First you need to install libvirt and guestfs:
