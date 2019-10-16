@@ -39,7 +39,7 @@ def _start_domain(hv, host, context, configuration):
         exit()
 
     if "name" not in host:
-        host["name"] = re.sub(r"\W+", "", host["distro"])
+        host["name"] = re.sub(r"[^a-zA-Z0-9-]+", "", host["distro"])
 
     if hv.get_domain_by_name(host["name"]):
         logger.info("Skipping {name}, already here.".format(**host))
