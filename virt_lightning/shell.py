@@ -63,8 +63,7 @@ def _start_domain(hv, host, context, configuration):
     root_disk_path = hv.create_disk(
         name=host["name"],
         backing_on=host["distro"],
-        # NOTE: Use to be 15GB, but FreeBSD root FS is 31G large
-        size=host.get("root_disk_size", 32),
+        size=host.get("root_disk_size", 15),
     )
     domain.add_root_disk(root_disk_path)
     domain.attachNetwork(configuration.network_name)
