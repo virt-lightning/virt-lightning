@@ -1,0 +1,9 @@
+FEDORA_VERSION=30
+DOWNLOAD_URL=${MIRROR_URL:-https://download.fedoraproject.org}/pub/fedora/linux/releases/${FEDORA_VERSION}/Cloud/x86_64/images/Fedora-Cloud-Base-${FEDORA_VERSION}-1.2.x86_64.qcow2
+IMAGE_NAME=fedora-${FEDORA_VERSION}
+
+function prepare {
+    virt-sysprep -a ${UPSTREAM_IMAGE_DIR}/${IMAGE_NAME}.qcow2 \
+        --network --run-command 'echo "nameserver 169.254.2.3" > /etc/resolv.conf && dnf update -y && dnf install -y qemu-guest-agent python' \
+        --run-command 'systemctl enable qemu-guest-agent' --selinux-relabel
+}
