@@ -130,7 +130,7 @@ def start(configuration, **kwargs):
     hv = vl.LibvirtHypervisor(conn)
     hv.init_network(configuration.network_name, configuration.network_cidr)
     hv.init_storage_pool(configuration.storage_pool)
-    host = {"distro": kwargs["distro"]}
+    host = {k: kwargs[k] for k in ["distro", "memory", "vcpus"] if kwargs.get(k)}
     context = "default"
     domain = _start_domain(hv, host, context, configuration)
     if not domain:
