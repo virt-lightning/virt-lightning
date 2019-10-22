@@ -169,6 +169,7 @@ we use the shortest version.
 - **vl ansible_inventory**: Export an inventory in the Ansible format.
 - **vl ssh**: Show up a menu to select a host and open a ssh connection [![vl ssh](https://asciinema.org/a/230675.svg)](https://asciinema.org/a/230675?autoplay=1)
 - **vl console**: Like `vl ssh` but with the serial console of the VM [![vl ssh](https://asciinema.org/a/230677.svg)](https://asciinema.org/a/230677?autoplay=1)
+- **fetch**: Fetch a VM image. [You can find here a list of the available images](https://virt-lightning.org/images/).
 
 ### Configuration from file
 
