@@ -4,7 +4,7 @@
 [![Build Status](https://travis-ci.org/virt-lightning/virt-lightning.svg?branch=master)](https://travis-ci.org/virt-lightning/virt-lightning)
 [![PyPI version](https://badge.fury.io/py/virt-lightning.svg)](https://badge.fury.io/py/virt-lightning)
 
-![Logo](logo/logo_no_text.png)
+![Logo](https://github.com/virt-lightning/virt-lightning/raw/master/logo/logo_no_text.png)
 
 Virt-Lightning can quickly deploy a bunch of new VM. It
 also prepares the Ansible inventory file!
@@ -184,42 +184,101 @@ virt-lightning uses it to set the root password and it offers some other benefit
 `vl` is an alias for `virt-lightning`, you can us both. In the rest of the document
 we use the shortest version.
 
-- **vl distro_list**: List the distro images that can be used. Its output is compatible with `vl up`. You can initialize a new configuration with: `vl distro > virt-lightning.yaml`.
-- **vl up**: `virt-lightning` will read the `virt-lightning.yaml` file from the current directory and prepare the associated VM.
-- **vl down**: Destroy all the VM.
-- **vl status**: List the VM, their IP and if they are reachable.
-- **vl ansible_inventory**: Export an inventory in the Ansible format.
-- **vl ssh**: Show up a menu to select a host and open a ssh connection [![vl ssh](https://asciinema.org/a/230675.svg)](https://asciinema.org/a/230675?autoplay=1)
-- **vl console**: Like `vl ssh` but with the serial console of the VM [![vl ssh](https://asciinema.org/a/230677.svg)](https://asciinema.org/a/230677?autoplay=1)
-- **fetch**: Fetch a VM image. [You can find here a list of the available images](https://virt-lightning.org/images/).
+## **vl distro_list**
 
-### Configuration from file
+List the distro images that can be used. Its output is compatible with `vl up`. You can initialize a new configuration with: `vl distro > virt-lightning.yaml`.
 
-You can create your own configuration file like this and save to config.ini
+## **vl up**
 
-```
+`virt-lightning` will read the `virt-lightning.yaml` file from the current directory and prepare the associated VM.
+
+## **vl down**
+
+Destroy all the VM managed by Virt-Lightning.
+
+## **vl start**
+
+Start a specific VM, without reading the `virt-lightning.yaml` file.
+
+## **vl stop**
+
+Stop just one VM.
+
+## **vl status**
+
+List the VM, their IP and if they are reachable.
+
+## **vl ansible_inventory**
+
+Export an inventory in the Ansible format.
+
+## **vl ssh**
+
+Show up a menu to select a host and open a ssh connection.
+
+[![vl ssh](https://asciinema.org/a/230675.svg)](https://asciinema.org/a/230675?autoplay=1)
+
+## **vl console**
+
+Like `vl ssh` but with the serial console of the VM.
+
+[![vl ssh](https://asciinema.org/a/230677.svg)](https://asciinema.org/a/230677?autoplay=1)
+
+## **vl fetch**
+
+Fetch a VM image. [You can find here a list of the available images](https://virt-lightning.org/images/).
+
+# Configuration
+
+## Global configuration
+
+If `~/.config/virt-lightning/config.ini` exists, Virt-Lightning will read
+its configuration there.
+
+```ini
 [main]
 network_name = virt-lightning
 root_password = root
 storage_pool = virt-lightning
 ```
 
-### ESXi
+**network_name**: if you want to use an alternative libvirt network
+**root_password**: the root password
+**storage_pool**: if you want to use an alternative libvirt storage pool
 
-You can use `virt-lightning` with ESXi 6.5 and 6.7. You can build your images with the scripts from the `images/extras/` directory:
+## VM specific configuration
 
-```shell
-cd images/extras/
-bash esxi-6.5
-bash esxi-6.7
-```
+A VM can be tunned at two different places:
 
-ESXi requires a bit more memory than the other systems. You can adjust your `virt-lightning.yaml` file to overwrite the default (768MB). The key is called `memory`:
+### The `virt-lightning.yaml` file:
 
 ```yaml
-- distro: esxi-6.5
-  memory: 14096
-  swap: 0
-- distro: esxi-6.7
+- name: esxi-vcenter
+  distro: esxi-6.7
+  memory: 12000
+  root_disk_size: 30
+  vcpus: 2
+  root_password: '!234AaAa56'
+  groups: ['all_esxi']
+- name: esxi1
+  distro: esxi-6.7
   memory: 4096
+  vcpus: 1
+  root_password: '!234AaAa56'
+  groups: ['all_esxi', 'esxi_lab']
+- name: esxi2
+  distro: esxi-6.7
+  memory: 4096
+  vcpus: 1
+  root_password: '!234AaAa56'
+  groups: ['all_esxi', 'esxi_lab']
+```
+
+### You can also associate some parameters to the distro image itself
+
+```shell
+cat /var/lib/virt-lightning/pool/upstream/esxi-6.7.yaml
+username: root
+python_interpreter: /bin/python
+memory: 4096
 ```
