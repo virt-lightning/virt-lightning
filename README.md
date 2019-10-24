@@ -40,7 +40,7 @@ In the video below, we:
 
 First you need to install libvirt and guestfs:
 ```shell
-sudo apt install -f libguestfs-tools libvirt-daemon libvirt-daemon-system python3 python3-libvirt python3-pip python3-urwid
+sudo apt install -f libvirt-daemon libvirt-daemon-system python3 python3-libvirt python3-pip python3-urwid
 sudo systemctl start --now libvirtd
 ```
 
@@ -57,7 +57,7 @@ sudo usermod -a -G kvm,libvirt,libvirt-qemu $USER
 
 First you need to install libvirt and guestfs:
 ```shell
-sudo dnf install -f libguestfs-tools libselinux-python libvirt libvirt-daemon python3 python3-libvirt python3-pip python3-urwid
+sudo dnf install -f libselinux-python libvirt libvirt-daemon python3 python3-libvirt python3-pip python3-urwid
 sudo systemctl start --now libvirtd
 ```
 
@@ -74,7 +74,7 @@ sudo usermod -a -G qemu,libvirt $USER
 
 First you need to install libvirt and guestfs:
 ```shell
-sudo apt install -f libguestfs-tools libvirt-bin libvirt-daemon python3 python3-libvirt python3-pip python3-urwid
+sudo apt install -f libvirt-bin libvirt-daemon python3 python3-libvirt python3-pip python3-urwid
 sudo systemctl start --now libvirtd
 ```
 
@@ -91,7 +91,7 @@ sudo usermod -a -G kvm,libvirtd $USER
 
 First you need to install libvirt and guestfs:
 ```shell
-sudo apt install -f libguestfs-tools libvirt-bin libvirt-daemon python3 python3-libvirt python3-pip python3-urwid
+sudo apt install -f libvirt-bin libvirt-daemon python3 python3-libvirt python3-pip python3-urwid
 sudo systemctl start --now libvirtd
 ```
 
@@ -108,7 +108,7 @@ sudo usermod -a -G kvm,libvirt $USER
 
 First you need to install libvirt and guestfs:
 ```shell
-sudo apt install -f libguestfs-tools libvirt-daemon libvirt-daemon-system python3 python3-libvirt python3-pip python3-urwid
+sudo apt install -f libvirt-daemon libvirt-daemon-system python3 python3-libvirt python3-pip python3-urwid
 sudo systemctl start --now libvirtd
 ```
 
@@ -124,10 +124,10 @@ sudo usermod -a -G kvm,libvirt $USER
 ## Installation
 
 ```shell
-pip3 install --user --no-deps git+https://github.com/virt-lightning/virt-lightning
+pip3 install --user git+https://github.com/virt-lightning/virt-lightning
 ```
 
-The `--no-deps` argument is only required on Ubuntu (See: https://github.com/pypa/pip/issues/4222).
+If you use Ubuntu, you will need the `--no-deps` argument (See: https://github.com/pypa/pip/issues/4222).
 
 `virt-lightning` will be installed in ~/.local/bin/. Add it in your `$PATH` if
 it's not already the case. For instance if you use:
@@ -140,8 +140,15 @@ source ~/.bashrc
 # Fetch some images
 
 Before you start your first VM, you need to fetch the images. To do so,
-you just need these scripts:
-https://github.com/virt-lightning/virt-lightning/tree/master/images
+you just use the `vm fetch` command:
+
+```shell
+$ vl fetch fedora-30
+```
+
+## Build your images
+
+If you prefer to build your own images,
 
 ```shell
 $ git clone https://github.com/virt-lightning/virt-lightning
