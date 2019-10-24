@@ -59,6 +59,7 @@ def _start_domain(hv, host, context, configuration):
         "ssh_key_file": host.get("ssh_key_file", configuration.ssh_key_file),
         "username": host.get("username"),
         "vcpus": host.get("vcpus"),
+        "default_nic_mode": host.get("default_nic_model"),
     }
     domain = hv.create_domain(name=host["name"], distro=host["distro"])
     hv.configure_domain(domain, user_config)
@@ -69,7 +70,8 @@ def _start_domain(hv, host, context, configuration):
         size=host.get("root_disk_size", 15),
     )
     domain.add_root_disk(root_disk_path)
-    domain.attachNetwork(configuration.network_name)
+    for network in host.get("networks", [{"network": configuration.network_name}]):
+        domain.attachNetwork(**network)
     domain.ipv4 = hv.get_free_ipv4()
     domain.add_swap_disk(hv.create_disk(host["name"] + "-swap", size=1))
     hv.start(domain, metadata_format=host.get("metadata_format", {}))
