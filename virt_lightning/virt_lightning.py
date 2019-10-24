@@ -141,6 +141,8 @@ class LibvirtHypervisor:
         return pathlib.PosixPath(disk_source.text)
 
     def create_disk(self, name, size=None, backing_on=None):
+        if "/" in name:
+            raise TypeError
         if not size:
             size = 20
         disk_path = pathlib.PosixPath(
@@ -251,7 +253,7 @@ class LibvirtHypervisor:
                 cwd=str(temp_dir),
             )
 
-            cdrom = self.create_disk(name=str(cidata_file), size=1)
+            cdrom = self.create_disk(name=cidata_file.stem, size=1)
             with cidata_file.open("br") as fd:
                 st = self.conn.newStream(0)
                 cdrom.upload(st, 0, 1024 * 1024)
@@ -319,7 +321,7 @@ class LibvirtHypervisor:
                 cwd=str(temp_dir),
             )
 
-            cdrom = self.create_disk(name=str(cidata_file), size=1)
+            cdrom = self.create_disk(name=cidata_file.stem, size=1)
             with cidata_file.open("br") as fd:
                 st = self.conn.newStream(0)
                 cdrom.upload(st, 0, 1024 * 1024)
