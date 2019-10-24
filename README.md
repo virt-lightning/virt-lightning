@@ -119,6 +119,21 @@ sudo usermod -a -G kvm,libvirt $USER
 </p>
 </details>
 
+<details><summary>RHEL-8</summary>
+<p>
+
+First you need to install libvirt and guestfs:
+```shell
+sudo apt install -f python3-libvirt libvirt qemu-kvm libvirt-daemon-kvm genisoimage
+sudo systemctl start --now libvirtd
+```
+
+The second step is to grant to your user the ability to use libvirt:
+```shell
+sudo usermod -a -G libvirt $USER
+```
+</p>
+</details>
 
 
 ## Installation

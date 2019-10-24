@@ -36,7 +36,12 @@ from .templates import (
 
 DEFAULT_STORAGE_DIR = "/var/lib/virt-lightning/pool"
 QEMU_DIR = "/var/lib/libvirt/qemu/"
-KVM_BINARIES = ("/usr/bin/qemu-system-x86_64", "/usr/bin/qemu-kvm", "/usr/bin/kvm")
+KVM_BINARIES = (
+    "/usr/bin/qemu-system-x86_64",
+    "/usr/bin/qemu-kvm",
+    "/usr/bin/kvm",
+    "/usr/libexec/qemu-kvm",
+)
 
 logger = logging.getLogger("virt_lightning")
 
