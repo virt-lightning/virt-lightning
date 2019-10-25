@@ -19,7 +19,7 @@ def test_load_file(monkeypatch, config_file):
             Path("a"))
         config = virt_lightning.configuration.Configuration()
         config.load_file(config_file)
-        assert config.username == "boby"
+        assert config.root_password == "boby"
 
 
 def test_load_default_config_file(monkeypatch, config_file):
@@ -29,4 +29,4 @@ def test_load_default_config_file(monkeypatch, config_file):
             "DEFAULT_CONFIGFILE",
             config_file)
         config = virt_lightning.configuration.Configuration()
-        assert config.username == "boby"
+        assert config.root_password == "boby"

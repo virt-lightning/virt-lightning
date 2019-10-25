@@ -1,5 +1,4 @@
 import configparser
-import getpass
 from abc import ABCMeta, abstractproperty
 from pathlib import PosixPath
 
@@ -9,7 +8,6 @@ DEFAULT_CONFIGFILE = PosixPath("~/.config/virt-lightning/config.ini")
 DEFAULT_CONFIGURATION = {
     "main": {
         "libvirt_uri": "qemu:///system",
-        "username": getpass.getuser(),
         "root_password": "root",
         "storage_pool": "virt-lightning",
         "network_name": "virt-lightning",
@@ -22,10 +20,6 @@ DEFAULT_CONFIGURATION = {
 class AbstractConfiguration(metaclass=ABCMeta):
     @abstractproperty
     def libvirt_uri(self):
-        pass
-
-    @abstractproperty
-    def username(self):
         pass
 
     @abstractproperty
@@ -67,10 +61,6 @@ class Configuration(AbstractConfiguration):
     @property
     def libvirt_uri(self):
         return self.__get("libvirt_uri")
-
-    @property
-    def username(self):
-        return self.__get("username")
 
     @property
     def network_name(self):
