@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import ipaddress
+import getpass
 import logging
 import os
 import pathlib
@@ -104,6 +105,39 @@ class LibvirtHypervisor:
         domain = LibvirtDomain(dom)
         domain.distro = distro
         return domain
+
+    def configure_domain(self, domain, user_config):
+        config = {
+            "groups": [],
+            "memory": 768,
+            "python_interpreter": "/usr/bin/python3",
+            "root_password": "root",
+            "username": getpass.getuser(),
+            "vcpus": 1,
+        }
+        for k, v in self.get_distro_configuration(domain.distro).items():
+            if v:
+                config[k] = v
+        for k, v in user_config.items():
+            if v:
+                config[k] = v
+        domain.groups = config["groups"]
+        domain.load_ssh_key_file(config["ssh_key_file"])
+        domain.memory = config["memory"]
+        domain.python_interpreter = config["python_interpreter"]
+        domain.root_password = config["root_password"]
+        domain.username = config["username"]
+        domain.vcpus = config["vcpus"]
+
+    def get_distro_configuration(self, distro):
+        distro_configuration_file = pathlib.PosixPath(
+            "{storage_dir}/upstream/{distro}.yaml".format(
+                storage_dir=self.get_storage_dir(), distro=distro
+            )
+        )
+        if not distro_configuration_file.exists():
+            return {}
+        return yaml.load(distro_configuration_file.open("r"), Loader=yaml.SafeLoader)
 
     def list_domains(self):
         for i in self.conn.listAllDomains():
@@ -580,16 +614,6 @@ class LibvirtDomain:
 
     @distro.setter
     def distro(self, distro):
-        if distro.startswith("esxi"):
-            self.python_interpreter = "/bin/python"
-        elif distro.startswith("rhel8"):
-            self.python_interpreter = "/usr/libexec/platform-python"
-            self.python_interpreter = "/usr/local/bin/python3"
-        elif distro.startswith("netbsd"):
-            self.python_interpreter = "/usr/pkg/bin/python3.7"
-        else:
-            self.python_interpreter = "/usr/bin/python"
-
         self.record_metadata("distro", distro)
 
     @property
@@ -631,18 +655,29 @@ class LibvirtDomain:
     def vcpus(self, value=1):
         self.dom.setVcpusFlags(value, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
 
-    def memory(self, value=None):
-        if value:
-            if value < 256:
-                logger.warning(
-                    "low memory {value} for VM {name}".format(
-                        value=value, name=self.name
-                    )
-                )
-            value *= 1024
-            self.dom.setMemoryFlags(
-                value, libvirt.VIR_DOMAIN_AFFECT_CONFIG | libvirt.VIR_DOMAIN_MEM_MAXIMUM
+    @property
+    def memory(self):
+        xml = self.dom.XMLDesc(0)
+        root = ET.fromstring(xml)
+        memory = root.findall("./memory")[0]
+        unit = memory.attrib["unit"]
+
+        if unit == "KiB":
+            return int(int(memory.text) / 1024)
+        elif unit == "MiB":
+            return int(int(memory.text))
+
+    @memory.setter
+    def memory(self, value):
+        if value < 256:
+            logger.warning(
+                "low memory: {value}MB for VM {name}".format(value=value, name=self.name)
             )
+        value *= 1024
+        self.dom.setMemoryFlags(
+            value, libvirt.VIR_DOMAIN_AFFECT_CONFIG | libvirt.VIR_DOMAIN_MEM_MAXIMUM
+        )
+        self._memory = value
 
     def getNextBlckDevice(self):
         if not hasattr(self, "blockdev"):

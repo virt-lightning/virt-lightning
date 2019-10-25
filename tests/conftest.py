@@ -8,7 +8,7 @@ from unittest.mock import Mock
 
 DEFAULT_INI = """
 [main]
-username=boby
+root_password=boby
 """
 
 

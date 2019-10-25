@@ -50,17 +50,19 @@ def _start_domain(hv, host, context, configuration):
     # Unfortunatly, i can't decode that symbol
     # that symbol more well add to check encoding block
     logger.info("{lightning} {name} ".format(lightning=symbols.LIGHTNING.value, **host))
-    domain = hv.create_domain(name=host["name"], distro=host["distro"])
-    domain.context = context
-    domain.groups = host.get("groups", [])
-    domain.load_ssh_key_file(configuration.ssh_key_file)
-    domain.username = host.get("username", configuration.username)
-    domain.root_password = host.get("root_password", configuration.root_password)
 
-    if host.get("python_interpreter"):
-        domain.python_interpreter = host.get("python_interpreter")
-    domain.vcpus(host.get("vcpus", 1))
-    domain.memory(host.get("memory", 768))
+    user_config = {
+        "groups": host.get("groups"),
+        "memory": host.get("memory"),
+        "python_interpreter": host.get("python_interpreter"),
+        "root_password": host.get("root_password", configuration.root_password),
+        "ssh_key_file": host.get("ssh_key_file", configuration.ssh_key_file),
+        "username": host.get("username"),
+        "vcpus": host.get("vcpus"),
+    }
+    domain = hv.create_domain(name=host["name"], distro=host["distro"])
+    hv.configure_domain(domain, user_config)
+    domain.context = context
     root_disk_path = hv.create_disk(
         name=host["name"],
         backing_on=host["distro"],
@@ -195,13 +197,6 @@ def ansible_inventory(configuration, context, **kwargs):
         'ansible_ssh_common_args="-o UserKnownHostsFile=/dev/null '
         '-o StrictHostKeyChecking=no"'
     )
-    ssh_cmd_template_esxi = (
-        "{name} ansible_host={ipv4} ansible_user=root "
-        "ansible_password={root_password} "
-        "ansible_python_interpreter={python_interpreter} "
-        'ansible_ssh_common_args="-o UserKnownHostsFile=/dev/null '
-        '-o StrictHostKeyChecking=no"'
-    )
 
     groups = {}
     for domain in hv.list_domains():
@@ -213,10 +208,7 @@ def ansible_inventory(configuration, context, **kwargs):
         if domain.context != context:
             continue
 
-        if domain.distro.startswith("esxi"):
-            template = ssh_cmd_template_esxi
-        else:
-            template = ssh_cmd_template
+        template = ssh_cmd_template
 
         print(  # noqa: T001
             template.format(
@@ -343,7 +335,9 @@ def fetch(configuration, **kwargs):
     hv.init_storage_pool(configuration.storage_pool)
     storage_dir = hv.get_storage_dir()
     try:
-        r = urllib.request.urlopen("https://virt-lightning.org/images/{distro}/{distro}.qcow2".format(**kwargs))
+        r = urllib.request.urlopen(
+            "https://virt-lightning.org/images/{distro}/{distro}.qcow2".format(**kwargs)
+        )
     except urllib.error.HTTPError as e:
         if e.code == 404:
             print("Distro {distro} not found!".format(**kwargs))  # noqa: T001
@@ -379,6 +373,15 @@ def fetch(configuration, **kwargs):
             print(line, end="")  # noqa: T001
         print("\n")  # noqa: T001
     temp_file.rename(target_file)
+    try:
+        r = urllib.request.urlopen(
+            "https://virt-lightning.org/images/{distro}/{distro}.yaml".format(**kwargs)
+        )
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            pass
+    with target_file.with_suffix(".yaml").open("wb") as fd:
+        fd.write(r.read())
     print("Image {distro} is ready!".format(**kwargs))  # noqa: T001
 
 
