@@ -71,7 +71,6 @@ def _start_domain(hv, host, context, configuration):
     domain.add_root_disk(root_disk_path)
     domain.attachNetwork(configuration.network_name)
     domain.ipv4 = hv.get_free_ipv4()
-    domain.add_swap_disk(hv.create_disk(host["name"] + "-swap", size=1))
     hv.start(domain, metadata_format=host.get("metadata_format", {}))
     return domain
 
@@ -247,14 +246,6 @@ def status(configuration, context=None, **kwargs):
     conn = libvirt.open(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
     results = {}
-
-    def iconify(v):
-        if isinstance(v, str):
-            return v
-        elif v:
-            return symbols.CHECKMARK.value
-        else:
-            return symbols.CROSS.value
 
     for status in get_status(hv, context):
         results[status["name"]] = {
