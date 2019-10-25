@@ -114,6 +114,7 @@ class LibvirtHypervisor:
             "root_password": "root",
             "username": getpass.getuser(),
             "vcpus": 1,
+            "default_nic_model": "virtio",
         }
         for k, v in self.get_distro_configuration(domain.distro).items():
             if v:
@@ -128,6 +129,7 @@ class LibvirtHypervisor:
         domain.root_password = config["root_password"]
         domain.username = config["username"]
         domain.vcpus = config["vcpus"]
+        domain.default_nic_model = config["default_nic_model"]
 
     def get_distro_configuration(self, distro):
         distro_configuration_file = pathlib.PosixPath(
@@ -566,6 +568,7 @@ class LibvirtDomain:
             "dsmode: local\n" "instance-id: iid-{name}\n" "local-hostname: {name}\n"
         )
         self._ssh_key = None
+        self.default_nic_model = None
 
     @property
     def root_password(self):
@@ -743,11 +746,12 @@ class LibvirtDomain:
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
         return device_name
 
-    def attachNetwork(self, network=None):
+    def attachNetwork(self, network=None, nic_model=None):
+        if not nic_model:
+            nic_model = self.default_nic_model
         disk_root = ET.fromstring(BRIDGE_XML)
         disk_root.findall("./source")[0].attrib = {"network": network}
-        if self.distro.startswith("esxi"):
-            disk_root.findall("./model")[0].attrib = {"type": "e1000"}
+        disk_root.findall("./model")[0].attrib = {"type": nic_model}
 
         xml = ET.tostring(disk_root).decode()
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)

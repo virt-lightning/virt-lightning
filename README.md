@@ -281,4 +281,9 @@ cat /var/lib/virt-lightning/pool/upstream/esxi-6.7.yaml
 username: root
 python_interpreter: /bin/python
 memory: 4096
+networks:
+  - network: virt-lightning
+    nic_model: virtio
+  - network: default
+    nic_model: e1000
 ```
