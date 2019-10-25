@@ -44,6 +44,7 @@ def test_create_disk(hv):
     disk = hv.create_disk("foo")
     assert disk.name() == "foo.qcow2"
     assert disk.path().endswith("/pool/foo.qcow2")
+    assert isinstance(disk, libvirt.virStorageVol)
 
 
 def test_get_free_ipv4(hv):
@@ -52,12 +53,6 @@ def test_get_free_ipv4(hv):
 
     assert str(ipv4_1.ip) == "1.0.0.5"
     assert str(ipv4_2) == "1.0.0.6/24"
-
-
-def test_create_disk(hv):
-    disk = hv.create_disk('foo')
-    assert isinstance(disk, libvirt.virStorageVol)
-
 
 def test_create_disk_with_options(hv):
     disk = hv.create_disk('foo_all', size=3, backing_on=True)
