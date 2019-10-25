@@ -7,6 +7,8 @@ import logging
 import os
 import pathlib
 import re
+import urllib.request
+import sys
 
 import libvirt
 import yaml
@@ -335,6 +337,51 @@ def storage_dir(configuration, **kwargs):
     print(hv.get_storage_dir())  # noqa: T001
 
 
+def fetch(configuration, **kwargs):
+    conn = libvirt.open(configuration.libvirt_uri)
+    hv = vl.LibvirtHypervisor(conn)
+    hv.init_storage_pool(configuration.storage_pool)
+    storage_dir = hv.get_storage_dir()
+    try:
+        r = urllib.request.urlopen("https://virt-lightning.org/images/{distro}/{distro}.qcow2".format(**kwargs))
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            print("Distro {distro} not found!".format(**kwargs))  # noqa: T001
+            print(  # noqa: T001
+                "Visit https://virt-lightning.org/images/ to get an up to date list."
+            )
+            sys.exit(1)
+        else:
+            logger.exception(e)
+            sys.exit(1)
+    lenght = int(r.headers["Content-Length"])
+    MB = 1024 * 1000
+    chunk_size = MB
+    target_file = pathlib.PosixPath(
+        "{storage_dir}/upstream/{distro}.qcow2".format(
+            storage_dir=storage_dir, **kwargs
+        )
+    )
+    temp_file = target_file.with_suffix(".temp")
+    if target_file.exists():
+        print(  # noqa: T001
+            "File already exists: {target_file}".format(target_file=target_file)
+        )
+        sys.exit(0)
+    with temp_file.open("wb") as fd:
+        while fd.tell() < lenght:
+            chunk = r.read(chunk_size)
+            fd.write(chunk)
+            percent = (fd.tell() * 100) / lenght
+            line = "[{percent:06.2f}%]  {done:6}MB/{full}MB\r".format(
+                percent=percent, done=int(fd.tell() / MB), full=int(lenght / MB)
+            )
+            print(line, end="")  # noqa: T001
+        print("\n")  # noqa: T001
+    temp_file.rename(target_file)
+    print("Image {distro} is ready!".format(**kwargs))  # noqa: T001
+
+
 def main():
 
     title = "{lightning} Virt-Lightning {lightning}".format(
@@ -458,6 +505,11 @@ Example:
         "console", help="Open the console of a given host", parents=[parent_parser]
     )
     console_parser.add_argument("name", help="Name of the host", type=str, nargs="?")
+
+    fetch_parser = action_subparsers.add_parser(
+        "fetch", help="Fetch a VM image", parents=[parent_parser]
+    )
+    fetch_parser.add_argument("distro", help="Name of the VM image", type=str)
 
     args = main_parser.parse_args()
     if not args.action:
