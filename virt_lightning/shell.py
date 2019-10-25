@@ -247,14 +247,6 @@ def status(configuration, context=None, **kwargs):
     hv = vl.LibvirtHypervisor(conn)
     results = {}
 
-    def iconify(v):
-        if isinstance(v, str):
-            return v
-        elif v:
-            return symbols.CHECKMARK.value
-        else:
-            return symbols.CROSS.value
-
     for status in get_status(hv, context):
         results[status["name"]] = {
             "name": status["name"],
