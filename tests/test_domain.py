@@ -37,3 +37,8 @@ def test_mac_addresses(domain):
     with patch.object(domain.dom, 'XMLDesc', xmlDesc) as mock_xmldesc:
         print(domain.mac_addresses)
         assert domain.mac_addresses
+
+def test_vcpus(domain):
+  assert domain.vcpus > 0
+  domain.vcpus = 2
+  assert domain.vcpus == 2

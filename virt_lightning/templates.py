@@ -23,7 +23,7 @@ DOMAIN_XML = """
   </features>
   <cpu mode='host-model' check='partial'>
     <model fallback='allow'/>
-  </cpu>uu
+  </cpu>
   <clock offset='utc'>
     <timer name='rtc' tickpolicy='catchup'/>
     <timer name='pit' tickpolicy='delay'/>

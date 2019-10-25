@@ -655,6 +655,14 @@ class LibvirtDomain:
     def name(self, name):
         self.dom.rename(name, 0)
 
+    @property
+    def vcpus(self):
+        xml = self.dom.XMLDesc(0)
+        root = ET.fromstring(xml)
+        vcpu = root.findall("./vcpu")[0]
+        return int(vcpu.attrib.get("current", vcpu.text))
+
+    @vcpus.setter
     def vcpus(self, value=1):
         self.dom.setVcpusFlags(value, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
 
