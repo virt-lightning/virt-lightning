@@ -110,7 +110,6 @@ class LibvirtHypervisor:
         config = {
             "groups": [],
             "memory": 768,
-            "python_interpreter": "/usr/bin/python3",
             "root_password": "root",
             "username": getpass.getuser(),
             "vcpus": 1,
