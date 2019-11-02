@@ -24,7 +24,7 @@ from virt_lightning.symbols import get_symbols
 
 from .templates import (
     BRIDGE_XML,
-    CLOUD_INIT_ENI,
+    META_DATA_ENI,
     NETWORK_DHCP_ENTRY,
     DISK_XML,
     DOMAIN_XML,
@@ -130,6 +130,8 @@ class LibvirtHypervisor:
         domain.username = config["username"]
         domain.vcpus = config["vcpus"]
         domain.default_nic_model = config["default_nic_model"]
+        if "fqdn" in config:
+            domain.fqdn = config["fqdn"]
 
     def get_distro_configuration(self, distro):
         distro_configuration_file = pathlib.PosixPath(
@@ -231,8 +233,9 @@ class LibvirtHypervisor:
             openstack_meta_data = {
                 "availability_zone": "nova",
                 "files": [],
-                "hostname": domain.name,
+                "hostname": domain.fqdn or domain.name,
                 "launch_index": 0,
+                "local-hostname": domain.name,
                 "name": domain.name,
                 "meta": {},
                 "public_keys": {"default": domain.ssh_key},
@@ -278,7 +281,7 @@ class LibvirtHypervisor:
             openstack_userdata_file = openstack_dir / "user_data"
             with openstack_userdata_file.open("w") as fd:
                 fd.write("#cloud-config\n")
-                fd.write(yaml.dump(domain.cloud_init, Dumper=yaml.Dumper))
+                fd.write(yaml.dump(domain.user_data, Dumper=yaml.Dumper))
 
             cidata_file = temp_dir / "{name}-cidata.iso".format(name=domain.name)
             run_cmd(
@@ -313,7 +316,6 @@ class LibvirtHypervisor:
     def prepare_cloud_init_nocloud_iso(self, domain):
         primary_mac_addr = domain.mac_addresses[0]
         self._network_meta = {"config": "disabled"}
-        domain.meta_data += CLOUD_INIT_ENI
         domain._network_meta = {
             "version": 1,
             "config": [
@@ -340,11 +342,11 @@ class LibvirtHypervisor:
             user_data_file = cd_dir / "user-data"
             with user_data_file.open("w") as fd:
                 fd.write("#cloud-config\n")
-                fd.write(yaml.dump(domain.cloud_init, Dumper=yaml.Dumper))
+                fd.write(yaml.dump(domain.user_data, Dumper=yaml.Dumper))
             meta_data_file = cd_dir / "meta-data"
             with meta_data_file.open("w") as fd:
                 fd.write(
-                    domain.meta_data.format(
+                    META_DATA_ENI.format(
                         name=domain.name,
                         ipv4=str(domain.ipv4.ip),
                         gateway=str(self.gateway.ip),
@@ -396,6 +398,13 @@ class LibvirtHypervisor:
         self.dns_entry(
             libvirt.VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST, domain.name, domain.ipv4
         )
+        if domain.fqdn:
+            self.dns_entry(
+                libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE, domain.fqdn, domain.ipv4
+            )
+            self.dns_entry(
+                libvirt.VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST, domain.fqdn, domain.ipv4
+            )
         self.dhcp_entry(libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE, domain.ipv4)
         self.dhcp_entry(
             libvirt.VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST,
@@ -408,6 +417,10 @@ class LibvirtHypervisor:
             self.dns_entry(
                 libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE, domain.name, domain.ipv4
             )
+            if domain.fqdn:
+                self.dns_entry(
+                    libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE, domain.fqdn, domain.ipv4
+                )
             self.dhcp_entry(libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE, domain.ipv4)
         xml = domain.dom.XMLDesc(0)
         state, _ = domain.dom.state()
@@ -519,7 +532,7 @@ class LibvirtHypervisor:
 
     def dns_entry(self, command, name, ipv4):
         root = ET.fromstring(NETWORK_HOST_ENTRY)
-        root.find("./hostname").text = name
+        ET.SubElement(root, "hostname").text = name
         if command == libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE and not ipv4:
             return
         root.attrib["ip"] = str(ipv4.ip)
@@ -566,15 +579,12 @@ class LibvirtHypervisor:
 class LibvirtDomain:
     def __init__(self, dom):
         self.dom = dom
-        self.cloud_init = {
+        self.user_data = {
             "resize_rootfs": True,
             "disable_root": 0,
             "bootcmd": [],
             "runcmd": [],
         }
-        self.meta_data = (
-            "dsmode: local\n" "instance-id: iid-{name}\n" "local-hostname: {name}\n"
-        )
         self._ssh_key = None
         self.default_nic_model = None
 
@@ -584,13 +594,13 @@ class LibvirtDomain:
 
     @root_password.setter
     def root_password(self, value):
-        self.cloud_init["disable_root"] = False
-        self.cloud_init["password"] = value
-        self.cloud_init["chpasswd"] = {
+        self.user_data["disable_root"] = False
+        self.user_data["password"] = value
+        self.user_data["chpasswd"] = {
             "list": "root:{value}\n".format(value=value),
             "expire": False,
         }
-        self.cloud_init["ssh_pwauth"] = True
+        self.user_data["ssh_pwauth"] = True
         self.record_metadata("root_password", value)
 
     @property
@@ -615,9 +625,9 @@ class LibvirtDomain:
             )
             raise
 
-        self.cloud_init["ssh_authorized_keys"] = [self.ssh_key]
-        if "users" in self.cloud_init:
-            self.cloud_init["users"][0]["ssh_authorized_keys"] = [self.ssh_key]
+        self.user_data["ssh_authorized_keys"] = [self.ssh_key]
+        if "users" in self.user_data:
+            self.user_data["users"][0]["ssh_authorized_keys"] = [self.ssh_key]
 
     @property
     def distro(self):
@@ -644,7 +654,7 @@ class LibvirtDomain:
         if not re.match("[a-z_][a-z0-9_-]{1,32}$", username):
             raise Exception("Invalid username: ", username)
 
-        self.cloud_init["users"] = [
+        self.user_data["users"] = [
             {
                 "name": username,
                 "gecos": "virt-bootstrap user",
@@ -661,7 +671,23 @@ class LibvirtDomain:
 
     @name.setter
     def name(self, name):
+        self.user_data["name"] = name
         self.dom.rename(name, 0)
+
+    @property
+    def fqdn(self):
+        return self.get_metadata("fqdn")
+
+    @fqdn.setter
+    def fqdn(self, value):
+        fqdn_validate = re.compile(
+            "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$", re.IGNORECASE
+        )
+        if not value or not fqdn_validate.match(value):
+            logger.error("Invalide FQDN: {value}".format(value=value))
+            return
+        self.user_data["fqdn"] = value
+        self.record_metadata("fqdn", value)
 
     @property
     def vcpus(self):
