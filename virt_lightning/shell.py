@@ -227,6 +227,42 @@ def ansible_inventory(configuration, context, **kwargs):
             print(domain.name)  # noqa: T001
 
 
+def ssh_config(configuration, context, **kwargs):
+    conn = libvirt.open(configuration.libvirt_uri)
+    hv = vl.LibvirtHypervisor(conn)
+
+    ssh_host_template = (
+        "Host {name}\n"
+        "     Hostname {ipv4}\n"
+        "     User {username}\n"
+        "     IdentityFile {ssh_key_file}\n"
+    )
+
+    groups = {}
+    for domain in hv.list_domains():
+        for group in domain.groups:
+            groups[group].append(domain)
+
+        if domain.context != context:
+            continue
+
+        template = ssh_host_template
+
+        print(  # noqa: T001
+            template.format(
+                name=domain.name,
+                username=domain.username,
+                ipv4=domain.ipv4.ip,
+                ssh_key_file=domain.ssh_key,
+            )
+        )  # noqa: T001
+
+    for group_name, domains in groups.items():
+        print("\n[{group_name}]".format(group_name=group_name))  # noqa: T001
+        for domain in domains:
+            print(domain.name)  # noqa: T001
+
+
 def get_status(hv, context):
     status = []
     for domain in hv.list_domains():
@@ -386,7 +422,7 @@ def main():
 
     usage = """
 usage: vl [--debug DEBUG] [--config CONFIG]
-          {up,down,start,distro_list,storage_dir,ansible_inventory} ..."""
+          {up,down,start,distro_list,storage_dir,ansible_inventory, ssh_config} ..."""
     example = """
 Example:
 
@@ -491,6 +527,13 @@ Example:
         parents=[parent_parser],
     )
     ansible_inventory_parser.add_argument("--context", **context_args)
+
+    ssh_config_parser = action_subparsers.add_parser(
+        "ssh_config",
+        help="Print a ssh config of the running environment",
+        parents=[parent_parser],
+    )
+    ssh_config_parser.add_argument("--context", **context_args)
 
     ssh_parser = action_subparsers.add_parser(
         "ssh", help="SSH to a given host", parents=[parent_parser]
