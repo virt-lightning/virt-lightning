@@ -171,7 +171,7 @@ class LibvirtHypervisor:
                 continue
             if self._last_free_ipv4 and self._last_free_ipv4 >= interface:
                 continue
-            if interface not in used_ips:
+            if interface.ip not in [i.ip for i in used_ips]:
                 self._last_free_ipv4 = interface
                 return interface
 
@@ -762,12 +762,22 @@ class LibvirtDomain:
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
         return device_name
 
-    def attachNetwork(self, network=None, nic_model=None):
+    def attachNetwork(self, network=None, nic_model=None, ipv4=None):
         if not nic_model:
             nic_model = self.default_nic_model
         disk_root = ET.fromstring(BRIDGE_XML)
         disk_root.findall("./source")[0].attrib = {"network": network}
         disk_root.findall("./model")[0].attrib = {"type": nic_model}
+
+        if ipv4 and self.ipv4:
+            logger.error("ipv4 already set!")
+            exit(1)
+        elif isinstance(ipv4, ipaddress.IPv4Interface):
+            self.ipv4 = ipv4
+        elif ipv4 and "/" not in ipv4:
+            self.ipv4 = ipaddress.IPv4Interface(ipv4 + "/24")
+        elif ipv4:
+            self.ipv4 = ipaddress.IPv4Interface(ipv4)
 
         xml = ET.tostring(disk_root).decode()
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)

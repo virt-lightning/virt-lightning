@@ -272,6 +272,11 @@ A VM can be tunned at two different places:
   vcpus: 1
   root_password: '!234AaAa56'
   groups: ['all_esxi', 'esxi_lab']
+- name: centos-7
+  distro: centos-7
+  networks:
+    - network: default
+      ipv4: 192.168.122.50
 ```
 
 ### You can also associate some parameters to the distro image itself
