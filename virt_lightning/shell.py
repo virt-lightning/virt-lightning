@@ -134,7 +134,9 @@ def start(configuration, **kwargs):
     hv = vl.LibvirtHypervisor(conn)
     hv.init_network(configuration.network_name, configuration.network_cidr)
     hv.init_storage_pool(configuration.storage_pool)
-    host = {k: kwargs[k] for k in ["distro", "memory", "vcpus"] if kwargs.get(k)}
+    host = {
+        k: kwargs[k] for k in ["name", "distro", "memory", "vcpus"] if kwargs.get(k)
+    }
     context = "default"
     domain = _start_domain(hv, host, context, configuration)
     if not domain:
@@ -502,6 +504,7 @@ Example:
         action="store_true",
         default=False,
     )
+    start_parser.add_argument("--name", help="Name of the VM", type=str)
     start_parser.add_argument("--memory", help="Memory in MB", type=int)
     start_parser.add_argument("--vcpus", help="Number of VCPUS", type=int)
     start_parser.add_argument("distro", help="Name of the distro", type=str)
