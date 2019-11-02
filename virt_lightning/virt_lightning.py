@@ -690,7 +690,7 @@ class LibvirtDomain:
         self.dom.setMemoryFlags(
             value, libvirt.VIR_DOMAIN_AFFECT_CONFIG | libvirt.VIR_DOMAIN_MEM_MAXIMUM
         )
-        self._memory = value
+        self.dom.setMemoryFlags(value, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
 
     def getNextBlckDevice(self):
         if not hasattr(self, "blockdev"):
