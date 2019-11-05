@@ -3,6 +3,6 @@ DOWNLOAD_URL=${MIRROR_URL:-https://cloud.centos.org}/centos/7/images/CentOS-7-x8
 IMAGE_NAME=centos-7
 
 function prepare {
-    virt-sysprep -a ${UPSTREAM_IMAGE_DIR}/${IMAGE_NAME}.qcow2 \
-        --network --run-command 'echo "nameserver 169.254.2.3" > /etc/resolv.conf && yum update -y && yum install -y NetworkManager' --run-command 'systemctl enable NetworkManager' --selinux-relabel
+    # https://bugs.centos.org/view.php?id=15426
+    virt-sysprep -a ${UPSTREAM_IMAGE_DIR}/${IMAGE_NAME}.qcow2 --run-command 'echo "" > /etc/resolv.conf' --selinux-relabel
 }
