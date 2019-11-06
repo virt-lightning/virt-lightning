@@ -237,6 +237,7 @@ class LibvirtHypervisor:
                 "meta": {},
                 "public_keys": {"default": domain.ssh_key},
                 "uuid": domain.dom.UUIDString(),
+                "admin_pass": domain.root_password,
             }
             openstack_network_data = {
                 "links": [
