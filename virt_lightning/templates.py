@@ -132,7 +132,11 @@ NETWORK_DHCP_ENTRY = """
 """
 
 # TODO
-CLOUD_INIT_ENI = """network-interfaces: |
+META_DATA_ENI = """
+dsmode: local
+instance-id: iid-{name}
+local-hostname: {name}
+network-interfaces: |
    iface eth0 inet static
    address {ipv4}
    network {network}
