@@ -9,7 +9,7 @@
 Virt-Lightning can quickly deploy a bunch of new VM. It
 also prepares the Ansible inventory file!
 
-This is really handy to quickly validate a new Ansible playbook, or a role on a large number of environments.
+This is handy to quickly validate a new Ansible playbook, or a role on a large number of environments.
 
 ## example: test an Ansible command on a new env in ONE minute ⚡
 
@@ -173,7 +173,7 @@ $ ./image debian-9 build
 (…)
 ```
 
-Ubuntu requires use *sudo* to build or prepare images.
+Ubuntu requires the use *sudo* to build or prepare images.
 
 You can also use your own images as soon as they embed cloud-init, just copy them in the QCOW2
 format in /var/lib/virt-lightning/pool/upstream/. It's also a good idea to include qemu-guest-agent,
@@ -246,11 +246,24 @@ storage_pool = virt-lightning
 **root_password**: the root password
 **storage_pool**: if you want to use an alternative libvirt storage pool
 
-## VM specific configuration
+## VM configuration keys
 
-A VM can be tunned at two different places:
+A VM can be tunned at two different places with the following keys:
 
-### The `virt-lightning.yaml` file:
+- `distro`: the name of the base distro image to use, it's the only mandatory parameter.
+- `name`: the VM name
+- `memory`: the amount of memory to dedicate to the VM
+- `root_disk_size`: the size of the root disk in GB
+- `vcpus`: the number of vcpu to dedicate to the VM
+- `root_password`: the root password in clear text
+- `groups`: this list of groups will be used if you generate an Ansible inventory.
+- `networks`: a list of network to attach to the VM. The default is: one virtio interface attached to `virt-lightning` network.
+    - `network`: the name of the network. Default is `virt-lightning`
+    - `ipv4`: a static IPv4, this key is only accepted for the first network. Default is a dynamic IPv4 address.
+    - `nic_model`: the libvirt driver to use. Default is `virtio`
+
+
+### Example: a `virt-lightning.yaml` file:
 
 ```yaml
 - name: esxi-vcenter
