@@ -1,0 +1,6 @@
+DOWNLOAD_URL=${MIRROR_URL:-https://cloud-images.ubuntu.com}/trusty/current/trusty-server-cloudimg-amd64-disk1.img
+IMAGE_NAME=ubuntu-14.04
+
+function prepare {
+    return
+}
