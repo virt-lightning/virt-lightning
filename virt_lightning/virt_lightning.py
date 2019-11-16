@@ -10,6 +10,7 @@ import string
 import subprocess
 import sys
 import tempfile
+import typing
 import uuid
 import xml.etree.ElementTree as ET
 
@@ -133,7 +134,7 @@ class LibvirtHypervisor:
         if "fqdn" in config:
             domain.fqdn = config["fqdn"]
 
-    def get_distro_configuration(self, distro):
+    def get_distro_configuration(self, distro) -> typing.Dict:
         distro_configuration_file = pathlib.PosixPath(
             "{storage_dir}/upstream/{distro}.yaml".format(
                 storage_dir=self.get_storage_dir(), distro=distro
@@ -141,7 +142,10 @@ class LibvirtHypervisor:
         )
         if not distro_configuration_file.exists():
             return {}
-        return yaml.load(distro_configuration_file.open("r"), Loader=yaml.SafeLoader)
+        config: dict = yaml.load(
+            distro_configuration_file.open("r"), Loader=yaml.SafeLoader
+        ) or {}
+        return config
 
     def list_domains(self):
         for i in self.conn.listAllDomains():
