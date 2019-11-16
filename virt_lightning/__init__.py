@@ -1,4 +1,4 @@
 try:
-    from .version import __version__
+    from .version import version as __version__
 except ImportError:
-    __version__ = None
+    __version__ = "unknown"
