@@ -684,11 +684,9 @@ class LibvirtDomain:
 
     @fqdn.setter
     def fqdn(self, value):
-        fqdn_validate = re.compile(
-            "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$", re.IGNORECASE
-        )
+        fqdn_validate = re.compile(r"^[\.a-z0-9]+$", re.IGNORECASE)
         if not value or not fqdn_validate.match(value):
-            logger.error("Invalide FQDN: {value}".format(value=value))
+            logger.error("Invalid FQDN: {value}".format(value=value))
             return
         self.user_data["fqdn"] = value
         self.record_metadata("fqdn", value)
