@@ -39,15 +39,15 @@ def _get_readme():
 
 setuptools.setup(
     name="virt-lightning",
-    version="1.0.0",
+    version="1.1.0",
     packages=setuptools.find_packages(),
     author="Gonéri Le Bouder",
     author_email="goneri@lebouder.net",
-    description="Deploy your testing VM in a couple of sections",
+    description="Deploy your testing VM in a couple of seconds",
     long_description=_get_readme(),
     long_description_content_type="text/markdown",
     install_requires=_get_requirements(),
-    url="https://github.com/virt-lightning/virt-lightning",
+    url="https://virt-lightning.org",
     use_scm_version={"write_to": "virt_lightning/version.py"},
     license="Apache v2.0",
     platforms=["linux"],
@@ -60,6 +60,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "Topic :: System :: Distributed Computing",
     ],
     entry_points={
