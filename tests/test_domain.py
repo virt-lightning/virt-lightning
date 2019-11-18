@@ -48,3 +48,7 @@ def test_vcpus(domain):
     domain.vcpus = 2
     assert domain.vcpus == 2
 
+
+def test_fqdn(domain):
+    domain.fqdn = "my.test"
+    assert domain.fqdn == "my.test"
