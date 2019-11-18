@@ -18,10 +18,12 @@ IF_XML = """
 def test_name(domain):
     assert domain.name == "a"
 
+
 def test_context(domain):
     assert domain.context == None
     domain.context = "something"
     assert domain.context == "something"
+
 
 def test_load_ssh_key(domain, tmp_path):
     CONTENT = "dummy ssh key"
@@ -31,14 +33,18 @@ def test_load_ssh_key(domain, tmp_path):
     domain.load_ssh_key_file(p)
     assert domain.ssh_key == CONTENT
 
+
 def test_mac_addresses(domain):
     def xmlDesc(i):
         return IF_XML
-    with patch.object(domain.dom, 'XMLDesc', xmlDesc) as mock_xmldesc:
+
+    with patch.object(domain.dom, "XMLDesc", xmlDesc) as mock_xmldesc:
         print(domain.mac_addresses)
         assert domain.mac_addresses
 
+
 def test_vcpus(domain):
-  assert domain.vcpus > 0
-  domain.vcpus = 2
-  assert domain.vcpus == 2
+    assert domain.vcpus > 0
+    domain.vcpus = 2
+    assert domain.vcpus == 2
+
