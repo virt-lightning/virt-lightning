@@ -124,7 +124,6 @@ NETWORK_XML = """
 
 NETWORK_HOST_ENTRY = """
 <host ip="">
-  <hostname></hostname>
 </host>"""
 
 NETWORK_DHCP_ENTRY = """
