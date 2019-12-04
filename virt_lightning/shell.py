@@ -488,13 +488,17 @@ Example:
     action_subparsers = main_parser.add_subparsers(title="action", dest="action")
 
     up_parser = action_subparsers.add_parser(
-        "up", help="first", parents=[parent_parser]
+        "up",
+        help="Start the VM listed in the virt-lightning.yaml file",
+        parents=[parent_parser],
     )
     up_parser.add_argument("--virt-lightning-yaml", **vl_lightning_yaml_args)
     up_parser.add_argument("--context", **context_args)
 
     down_parser = action_subparsers.add_parser(
-        "down", help="first", parents=[parent_parser]
+        "down",
+        help="Destroy all the VM created with VirtLightning",
+        parents=[parent_parser],
     )
     down_parser.add_argument("--context", **context_args)
 
@@ -518,11 +522,15 @@ Example:
     stop_parser.add_argument("name", help="Name of the VM", type=str)
 
     status_parser = action_subparsers.add_parser(
-        "status", help="first", parents=[parent_parser]
+        "status", help="List the VM currently running", parents=[parent_parser]
     )
     status_parser.add_argument("--context", **context_args)
 
-    action_subparsers.add_parser("distro_list", help="first", parents=[parent_parser])
+    action_subparsers.add_parser(
+        "distro_list",
+        help="List all the images available locally",
+        parents=[parent_parser],
+    )
     action_subparsers.add_parser(
         "storage_dir", help="Print the storage directory", parents=[parent_parser]
     )
