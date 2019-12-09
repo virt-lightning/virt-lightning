@@ -4,7 +4,6 @@ try:
     import urwid
 except ImportError:
     urwid_found = False
-    pass
 else:
     urwid_found = True
 

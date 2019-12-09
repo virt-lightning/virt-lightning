@@ -468,8 +468,7 @@ class LibvirtHypervisor:
         for i in paths:
             if i.exists():
                 return i
-        else:
-            raise Exception("Failed to find the kvm binary in: ", paths)
+        raise Exception("Failed to find the kvm binary in: ", paths)
 
     def init_network(self, network_name, network_cidr):
         try:
@@ -856,7 +855,6 @@ class LibvirtDomain:
                     return
             except (OSError, ConnectionRefusedError):
                 pass
-        await asyncio.sleep(0.2)
 
     def exec_ssh(self):
         os.execlp(
