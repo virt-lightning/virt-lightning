@@ -92,7 +92,6 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
         libvirtaio.virEventRegisterAsyncIOImpl(loop=loop)
     except ImportError:
         libvirt.virEventRegisterDefaultImpl()
-        pass
     conn = libvirt.open(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
 
@@ -222,7 +221,6 @@ def ansible_inventory(configuration, context, **kwargs):
                 username=domain.username,
                 ipv4=domain.ipv4.ip,
                 python_interpreter=domain.python_interpreter,
-                root_password=domain.root_password,
             )
         )  # noqa: T001
 
