@@ -139,7 +139,7 @@ sudo usermod -a -G libvirt $USER
 ## Installation
 
 ```shell
-pip3 install --user git+https://github.com/virt-lightning/virt-lightning
+pip3 install --user virt-lightning
 ```
 
 If you use Ubuntu, you will need the `--no-deps` argument (See: https://github.com/pypa/pip/issues/4222).
