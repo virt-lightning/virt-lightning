@@ -405,6 +405,8 @@ class LibvirtHypervisor:
 
     def remove_domain_from_network(self, domain):
         root = ET.fromstring(self.network_obj.XMLDesc(0))
+        if not domain.ipv4:
+            return
         for host in root.findall("./dns/host[@ip]"):
             if host.attrib["ip"] != str(domain.ipv4.ip):
                 continue

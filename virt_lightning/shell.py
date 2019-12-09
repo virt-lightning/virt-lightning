@@ -275,7 +275,7 @@ def get_status(hv, context):
         status.append(
             {
                 "name": name,
-                "ipv4": str(domain.ipv4.ip),
+                "ipv4": domain.ipv4 and str(domain.ipv4.ip),
                 "context": domain.context,
                 "username": domain.username,
             }
