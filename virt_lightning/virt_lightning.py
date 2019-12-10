@@ -44,6 +44,10 @@ KVM_BINARIES = (
     "/usr/bin/kvm",
     "/usr/libexec/qemu-kvm",
 )
+ISO_BINARIES = (
+    "genisoimage",
+    "mkisofs",
+)
 
 logger = logging.getLogger("virt_lightning")
 
@@ -290,7 +294,7 @@ class LibvirtHypervisor:
             cidata_file = temp_dir / "{name}-cidata.iso".format(name=domain.name)
             run_cmd(
                 [
-                    "genisoimage",
+                    str(self.iso_binary),
                     "-output",
                     cidata_file.name,
                     "-ldots",
@@ -364,7 +368,7 @@ class LibvirtHypervisor:
             cidata_file = temp_dir / "{name}-cidata.iso".format(name=domain.name)
             run_cmd(
                 [
-                    "genisoimage",
+                    str(self.iso_binary),
                     "-output",
                     cidata_file.name,
                     "-volid",
@@ -471,6 +475,16 @@ class LibvirtHypervisor:
             if i.exists():
                 return i
         raise Exception("Failed to find the kvm binary in: ", paths)
+
+    @property
+    def iso_binary(self):
+        paths = [pathlib.PosixPath(i) for i in os.environ["PATH"].split(os.pathsep)]
+        for i in paths:
+            for binary in ISO_BINARIES:
+                exe = i / binary
+                if exe.exists():
+                    return exe
+        raise Exception("Failed to find %s in %s", ":".join(ISO_BINARIES), paths)
 
     def init_network(self, network_name, network_cidr):
         try:
