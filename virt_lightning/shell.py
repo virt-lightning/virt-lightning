@@ -345,7 +345,7 @@ def down(configuration, context, **kwargs):
         logger.info("%s purging %s", symbols.TRASHBIN.value, domain.name)
         hv.clean_up(domain)
 
-    if bool(distutils.util.strtobool(configuration.network_del)):
+    if bool(distutils.util.strtobool(configuration.network_auto_clean_up)):
         hv.network_obj.destroy()
 
 

@@ -12,7 +12,7 @@ DEFAULT_CONFIGURATION = {
         "storage_pool": "virt-lightning",
         "network_name": "virt-lightning",
         "network_cidr": "192.168.123.0/24",
-        "network_del":  True,
+        "network_auto_clean_up":  True,
         "ssh_key_file": "~/.ssh/id_rsa.pub",
     }
 }
@@ -32,7 +32,7 @@ class AbstractConfiguration(metaclass=ABCMeta):
         pass
 
     @abstractproperty
-    def network_del(self):
+    def network_auto_clean_up(self):
         pass
 
     @abstractproperty
@@ -76,8 +76,8 @@ class Configuration(AbstractConfiguration):
         return self.__get("network_cidr")
 
     @property
-    def network_del(self):
-        return self.__get("network_del")
+    def network_auto_clean_up(self):
+        return self.__get("network_auto_clean_up")
 
     @property
     def root_password(self):
