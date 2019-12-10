@@ -9,6 +9,7 @@ import pathlib
 import re
 import urllib.request
 import sys
+import distutils.util
 
 import libvirt
 import yaml
@@ -343,7 +344,9 @@ def down(configuration, context, **kwargs):
             continue
         logger.info("%s purging %s", symbols.TRASHBIN.value, domain.name)
         hv.clean_up(domain)
-    hv.network_obj.destroy()
+
+    if bool(distutils.util.strtobool(configuration.network_del)):
+        hv.network_obj.destroy()
 
 
 def distro_list(configuration, **kwargs):
