@@ -206,13 +206,13 @@ def ansible_inventory(configuration, context, **kwargs):
 
     groups = {}
     for domain in hv.list_domains():
+        if domain.context != context:
+            continue
+
         for group in domain.groups:
             if group not in groups:
                 groups[group] = []
             groups[group].append(domain)
-
-        if domain.context != context:
-            continue
 
         template = ssh_cmd_template
 
