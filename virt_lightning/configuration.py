@@ -12,7 +12,7 @@ DEFAULT_CONFIGURATION = {
         "storage_pool": "virt-lightning",
         "network_name": "virt-lightning",
         "network_cidr": "192.168.123.0/24",
-        "network_auto_clean_up":  True,
+        "network_auto_clean_up": True,
         "ssh_key_file": "~/.ssh/id_rsa.pub",
     }
 }
