@@ -334,6 +334,32 @@ def console(configuration, name=None, **kwargs):
     ui.Selector(sorted(hv.list_domains()), go_console)
 
 
+def viewer(configuration, name=None, **kwargs):
+    conn = libvirt.open(configuration.libvirt_uri)
+    hv = vl.LibvirtHypervisor(conn)
+
+    def go_viewer(domain):
+        pid = os.fork()
+        if pid == 0:
+            os.close(1)
+            os.close(2)
+            os.execlp(
+                "virt-viewer",
+                "virt-viewer",
+                "-c",
+                configuration.libvirt_uri,
+                "--domain-name",
+                domain.name,
+            )
+        else:
+            sys.exit(0)
+
+    if name:
+        go_viewer(hv.get_domain_by_name(name))
+
+    ui.Selector(sorted(hv.list_domains()), go_viewer)
+
+
 def down(configuration, context, **kwargs):
     conn = libvirt.open(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
@@ -428,7 +454,7 @@ def main():
 
     usage = """
 usage: vl [--debug DEBUG] [--config CONFIG]
-          {up,down,start,distro_list,storage_dir,ansible_inventory, ssh_config} ..."""
+          {up,down,start,distro_list,storage_dir,ansible_inventory,ssh_config,console,viewer} ..."""
     example = """
 Example:
 
@@ -559,6 +585,13 @@ Example:
         "console", help="Open the console of a given host", parents=[parent_parser]
     )
     console_parser.add_argument("name", help="Name of the host", type=str, nargs="?")
+
+    viewer_parser = action_subparsers.add_parser(
+        "viewer",
+        help="Open the SPICE console of a given host with virt-viewer",
+        parents=[parent_parser],
+    )
+    viewer_parser.add_argument("name", help="Name of the host", type=str, nargs="?")
 
     fetch_parser = action_subparsers.add_parser(
         "fetch", help="Fetch a VM image", parents=[parent_parser]
