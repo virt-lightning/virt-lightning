@@ -338,13 +338,23 @@ def viewer(configuration, name=None, **kwargs):
     conn = libvirt.open(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
 
+    def virt_viewer_binary():
+        paths = [
+            pathlib.PosixPath(i, "virt-viewer")
+            for i in os.environ["PATH"].split(os.pathsep)
+        ]
+        for exe in paths:
+            if exe.exists():
+                return exe
+        raise Exception("Failed to find virt-viewer in: ", paths)
+
     def go_viewer(domain):
         pid = os.fork()
         if pid == 0:
             os.close(1)
             os.close(2)
             os.execlp(
-                "virt-viewer",
+                virt_viewer_binary(),
                 "virt-viewer",
                 "-c",
                 configuration.libvirt_uri,
