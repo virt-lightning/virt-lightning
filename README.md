@@ -242,6 +242,11 @@ Like `vl ssh` but with the serial console of the VM.
 
 [![vl ssh](https://asciinema.org/a/230677.svg)](https://asciinema.org/a/230677?autoplay=1)
 
+
+## **vl viewer**
+
+Like `vl console` but with the SPICE console of the VM. Requires `virt-viewer`.
+
 ## **vl fetch**
 
 Fetch a VM image. [You can find here a list of the available images](https://virt-lightning.org/images/).
