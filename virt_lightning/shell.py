@@ -132,7 +132,7 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
     logger.info("%s You are all set", symbols.THUMBS_UP.value)
 
 
-def start(configuration, **kwargs):
+def start(configuration, context, **kwargs):
     conn = libvirt.open(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
     hv.init_network(configuration.network_name, configuration.network_cidr)
@@ -140,7 +140,6 @@ def start(configuration, **kwargs):
     host = {
         k: kwargs[k] for k in ["name", "distro", "memory", "vcpus"] if kwargs.get(k)
     }
-    context = "default"
     domain = _start_domain(hv, host, context, configuration)
     if not domain:
         return
@@ -551,6 +550,7 @@ Example:
     start_parser.add_argument("--name", help="Name of the VM", type=str)
     start_parser.add_argument("--memory", help="Memory in MB", type=int)
     start_parser.add_argument("--vcpus", help="Number of VCPUS", type=int)
+    start_parser.add_argument("--context", **context_args)
     start_parser.add_argument("distro", help="Name of the distro", type=str)
 
     stop_parser = action_subparsers.add_parser(
