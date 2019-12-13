@@ -143,21 +143,26 @@ def start(configuration, context, **kwargs):
     domain = _start_domain(hv, host, context, configuration)
     if not domain:
         return
-    import time
 
-    time.sleep(4)
-    stream = conn.newStream(libvirt.VIR_STREAM_NONBLOCK)
-    console = domain.dom.openConsole(None, stream, 0)
     loop = asyncio.get_event_loop()
-    import libvirtaio
 
-    libvirtaio.virEventRegisterAsyncIOImpl(loop=loop)
+    if not kwargs["noconsole"]:
+        import time
 
-    def stream_callback(stream, events, _):
-        line = stream.recv(1024).decode()
-        print("\033[0m", "\033[30m", line, end="")  # noqa: T001
+        time.sleep(4)
+        stream = conn.newStream(libvirt.VIR_STREAM_NONBLOCK)
+        console = domain.dom.openConsole(None, stream, 0)
+        import libvirtaio
 
-    stream.eventAddCallback(libvirt.VIR_STREAM_EVENT_READABLE, stream_callback, console)
+        libvirtaio.virEventRegisterAsyncIOImpl(loop=loop)
+
+        def stream_callback(stream, events, _):
+            line = stream.recv(1024).decode()
+            print("\033[0m", "\033[30m", line, end="")  # noqa: T001
+
+        stream.eventAddCallback(
+            libvirt.VIR_STREAM_EVENT_READABLE, stream_callback, console
+        )
 
     async def deploy():
         await domain.reachable()
@@ -551,6 +556,12 @@ Example:
     start_parser.add_argument("--memory", help="Memory in MB", type=int)
     start_parser.add_argument("--vcpus", help="Number of VCPUS", type=int)
     start_parser.add_argument("--context", **context_args)
+    start_parser.add_argument(
+        "--noconsole",
+        help="Suppress console output during VM creation",
+        action="store_true",
+        default=False,
+    )
     start_parser.add_argument("distro", help="Name of the distro", type=str)
 
     stop_parser = action_subparsers.add_parser(
