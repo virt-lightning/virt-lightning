@@ -135,6 +135,24 @@ sudo usermod -a -G libvirt $USER
 </p>
 </details>
 
+<details><summary>Void Linux</summary>
+<p>
+
+First you need to install libvirt and guestfs:
+```shell
+sudo xbps-install -Rs libvirt libvirt-python3 qemu python3-pip cdrtools dbus
+sudo ln -s /etc/sv/dbus /var/service
+sudo ln -s /etc/sv/libvirtd /var/service
+sudo ln -s /etc/sv/virtlockd /var/service
+sudo ln -s /etc/sv/virtlogd /var/service
+```
+
+The second step is to grant to your user the ability to use libvirt:
+```shell
+sudo usermod -a -G kvm,libvirt $USER
+```
+</p>
+</details>
 
 ## Installation
 
@@ -224,6 +242,11 @@ Like `vl ssh` but with the serial console of the VM.
 
 [![vl ssh](https://asciinema.org/a/230677.svg)](https://asciinema.org/a/230677?autoplay=1)
 
+
+## **vl viewer**
+
+Like `vl console` but with the SPICE console of the VM. Requires `virt-viewer`.
+
 ## **vl fetch**
 
 Fetch a VM image. [You can find here a list of the available images](https://virt-lightning.org/images/).
@@ -240,11 +263,16 @@ its configuration there.
 network_name = virt-lightning
 root_password = root
 storage_pool = virt-lightning
+network_auto_clean_up = True
 ```
 
 **network_name**: if you want to use an alternative libvirt network
+
 **root_password**: the root password
+
 **storage_pool**: if you want to use an alternative libvirt storage pool
+
+**network_auto_clean_up**: if you want to automatically remove a network when running `virt-lightning down`
 
 ## VM configuration keys
 

@@ -132,7 +132,7 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
     logger.info("%s You are all set", symbols.THUMBS_UP.value)
 
 
-def start(configuration, **kwargs):
+def start(configuration, context, **kwargs):
     conn = libvirt.open(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
     hv.init_network(configuration.network_name, configuration.network_cidr)
@@ -140,7 +140,6 @@ def start(configuration, **kwargs):
     host = {
         k: kwargs[k] for k in ["name", "distro", "memory", "vcpus"] if kwargs.get(k)
     }
-    context = "default"
     domain = _start_domain(hv, host, context, configuration)
     if not domain:
         return
@@ -206,13 +205,13 @@ def ansible_inventory(configuration, context, **kwargs):
 
     groups = {}
     for domain in hv.list_domains():
+        if domain.context != context:
+            continue
+
         for group in domain.groups:
             if group not in groups:
                 groups[group] = []
             groups[group].append(domain)
-
-        if domain.context != context:
-            continue
 
         template = ssh_cmd_template
 
@@ -334,6 +333,42 @@ def console(configuration, name=None, **kwargs):
     ui.Selector(sorted(hv.list_domains()), go_console)
 
 
+def viewer(configuration, name=None, **kwargs):
+    conn = libvirt.open(configuration.libvirt_uri)
+    hv = vl.LibvirtHypervisor(conn)
+
+    def virt_viewer_binary():
+        paths = [
+            pathlib.PosixPath(i, "virt-viewer")
+            for i in os.environ["PATH"].split(os.pathsep)
+        ]
+        for exe in paths:
+            if exe.exists():
+                return exe
+        raise Exception("Failed to find virt-viewer in: ", paths)
+
+    def go_viewer(domain):
+        pid = os.fork()
+        if pid == 0:
+            os.close(1)
+            os.close(2)
+            os.execlp(
+                virt_viewer_binary(),
+                "virt-viewer",
+                "-c",
+                configuration.libvirt_uri,
+                "--domain-name",
+                domain.name,
+            )
+        else:
+            sys.exit(0)
+
+    if name:
+        go_viewer(hv.get_domain_by_name(name))
+
+    ui.Selector(sorted(hv.list_domains()), go_viewer)
+
+
 def down(configuration, context, **kwargs):
     conn = libvirt.open(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
@@ -428,7 +463,7 @@ def main():
 
     usage = """
 usage: vl [--debug DEBUG] [--config CONFIG]
-          {up,down,start,distro_list,storage_dir,ansible_inventory, ssh_config} ..."""
+          {up,down,start,distro_list,storage_dir,ansible_inventory,ssh_config,console,viewer} ..."""
     example = """
 Example:
 
@@ -515,6 +550,7 @@ Example:
     start_parser.add_argument("--name", help="Name of the VM", type=str)
     start_parser.add_argument("--memory", help="Memory in MB", type=int)
     start_parser.add_argument("--vcpus", help="Number of VCPUS", type=int)
+    start_parser.add_argument("--context", **context_args)
     start_parser.add_argument("distro", help="Name of the distro", type=str)
 
     stop_parser = action_subparsers.add_parser(
@@ -559,6 +595,13 @@ Example:
         "console", help="Open the console of a given host", parents=[parent_parser]
     )
     console_parser.add_argument("name", help="Name of the host", type=str, nargs="?")
+
+    viewer_parser = action_subparsers.add_parser(
+        "viewer",
+        help="Open the SPICE console of a given host with virt-viewer",
+        parents=[parent_parser],
+    )
+    viewer_parser.add_argument("name", help="Name of the host", type=str, nargs="?")
 
     fetch_parser = action_subparsers.add_parser(
         "fetch", help="Fetch a VM image", parents=[parent_parser]
