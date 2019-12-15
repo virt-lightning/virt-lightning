@@ -62,6 +62,7 @@ def _start_domain(hv, host, context, configuration):
         "vcpus": host.get("vcpus"),
         "fqdn": host.get("fqdn"),
         "default_nic_mode": host.get("default_nic_model"),
+        "bootcmd": host.get("bootcmd"),
     }
     domain = hv.create_domain(name=host["name"], distro=host["distro"])
     hv.configure_domain(domain, user_config)

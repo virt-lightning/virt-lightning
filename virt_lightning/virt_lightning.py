@@ -120,6 +120,7 @@ class LibvirtHypervisor:
             "username": getpass.getuser(),
             "vcpus": 1,
             "default_nic_model": "virtio",
+            "bootcmd": [],
         }
         for k, v in self.get_distro_configuration(domain.distro).items():
             if v:
@@ -135,6 +136,7 @@ class LibvirtHypervisor:
         domain.username = config["username"]
         domain.vcpus = config["vcpus"]
         domain.default_nic_model = config["default_nic_model"]
+        domain.bootcmd = config["bootcmd"]
         if "fqdn" in config:
             domain.fqdn = config["fqdn"]
 
@@ -838,6 +840,16 @@ class LibvirtDomain:
     @ipv4.setter
     def ipv4(self, value):
         self.record_metadata("ipv4", value)
+
+    @property
+    def bootcmd(self):
+        return self.user_data["bootcmd"]
+
+    @bootcmd.setter
+    def bootcmd(self, value):
+        if not hasattr(value, "append"):
+            raise ValueError("bootcmd should be a list of command")
+        self.user_data["bootcmd"] = value
 
     @property
     def mac_addresses(self):
