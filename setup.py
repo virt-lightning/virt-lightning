@@ -39,7 +39,7 @@ def _get_readme():
 
 setuptools.setup(
     name="virt-lightning",
-    version="1.1.0",
+    version="1.2.0",
     packages=setuptools.find_packages(),
     author="Gonéri Le Bouder",
     author_email="goneri@lebouder.net",
