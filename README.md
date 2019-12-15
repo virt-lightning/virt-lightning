@@ -318,6 +318,8 @@ A VM can be tunned at two different places with the following keys:
   networks:
     - network: default
       ipv4: 192.168.122.50
+  bootcmd:
+    - yum update -y
 ```
 
 ### You can also associate some parameters to the distro image itself
