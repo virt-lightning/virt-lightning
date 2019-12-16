@@ -252,14 +252,36 @@ class LibvirtHypervisor:
                 "uuid": domain.dom.UUIDString(),
                 "admin_pass": domain.root_password,
             }
-            openstack_network_data = {
-                "links": [
-                    {
-                        "id": "interface0",
-                        "type": "phy",
-                        "ethernet_mac_address": domain.mac_addresses[0],
+            links = []
+            additional_networks = []
+            for i, addr in enumerate(domain.mac_addresses):
+                link = {
+                    "id": "interface" + str(i),
+                    "type": "phy",
+                    "ethernet_mac_address": addr,
+                }
+                links.append(link)
+            if domain.additional_ipv4 != None:
+                ips = domain.additional_ipv4.split(",")
+                for i, ipv4 in enumerate(ips):
+                    if ipv4 == "none":
+                        continue
+                    netmask = "255.255.255.0"
+                    if "/" in ipv4:
+                        netmask = str(ipaddress.IPv4Network(ipv4, strict=False).netmask)
+                        ipv4 = ipv4.split("/")[0]
+                    net = {
+                        "id": "private-ipv4-" + str(i),
+                        "type": "ipv4",
+                        "link": "interface" + str(i + 1),
+                        "ip_address": ipv4,
+                        "netmask": netmask,
+                        "routes": [],
+                        "network_id": "da5bb487-5193-4a65-a3df-4a0055a8c0d7",
                     }
-                ],
+                    additional_networks.append(net)
+            openstack_network_data = {
+                "links": links,
                 "networks": [
                     {
                         "id": "private-ipv4",
@@ -279,6 +301,8 @@ class LibvirtHypervisor:
                 ],
                 "services": [{"type": "dns", "address": str(self.dns.ip)}],
             }
+            if len(additional_networks) > 0:
+                openstack_network_data["networks"] += additional_networks
 
             openstack_dir = cd_dir / "openstack" / "latest"
             openstack_dir.mkdir(parents=True)
@@ -292,7 +316,6 @@ class LibvirtHypervisor:
             with openstack_userdata_file.open("w") as fd:
                 fd.write("#cloud-config\n")
                 fd.write(yaml.dump(domain.user_data, Dumper=yaml.Dumper))
-
             cidata_file = temp_dir / "{name}-cidata.iso".format(name=domain.name)
             run_cmd(
                 [
@@ -816,9 +839,14 @@ class LibvirtDomain:
         disk_root.findall("./source")[0].attrib = {"network": network}
         disk_root.findall("./model")[0].attrib = {"type": nic_model}
 
-        if ipv4 and self.ipv4:
-            logger.error("ipv4 already set!")
-            exit(1)
+        if self.ipv4:
+            add_ip = "none"
+            if ipv4:
+                add_ip = ipv4
+            if self.additional_ipv4:
+                self.additional_ipv4 = "{},{}".format(self.additional_ipv4, add_ip)
+            else:
+                self.additional_ipv4 = ipv4
         elif isinstance(ipv4, ipaddress.IPv4Interface):
             self.ipv4 = ipv4
         elif ipv4 and "/" not in ipv4:
@@ -850,6 +878,14 @@ class LibvirtDomain:
         if not hasattr(value, "append"):
             raise ValueError("bootcmd should be a list of command")
         self.user_data["bootcmd"] = value
+
+    @property
+    def additional_ipv4(self):
+            return self.get_metadata("additional_ipv4")
+
+    @additional_ipv4.setter
+    def additional_ipv4(self, value):
+        self.record_metadata("additional_ipv4", value)
 
     @property
     def mac_addresses(self):
