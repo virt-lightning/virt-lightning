@@ -266,20 +266,29 @@ class LibvirtHypervisor:
                 for i, ipv4 in enumerate(ips):
                     if ipv4 == "none":
                         continue
-                    netmask = "255.255.255.0"
-                    if "/" in ipv4:
-                        netmask = str(ipaddress.IPv4Network(ipv4, strict=False).netmask)
-                        ipv4 = ipv4.split("/")[0]
-                    net = {
-                        "id": "private-ipv4-" + str(i),
-                        "type": "ipv4",
-                        "link": "interface" + str(i + 1),
-                        "ip_address": ipv4,
-                        "netmask": netmask,
-                        "routes": [],
-                        "network_id": "da5bb487-5193-4a65-a3df-4a0055a8c0d7",
-                    }
-                    additional_networks.append(net)
+                    if ipv4 == "dhcp":
+                        net = {
+                            "id": "private-ipv4-" + str(i),
+                            "type": "ipv4_dhcp",
+                            "link": "interface" + str(i + 1),
+                            "network_id": "da5bb487-5193-4a65-a3df-4a0055a8c0d7",
+                        }
+                        additional_networks.append(net)
+                    else:
+                        netmask = "255.255.255.0"
+                        if "/" in ipv4:
+                            netmask = str(ipaddress.IPv4Network(ipv4, strict=False).netmask)
+                            ipv4 = ipv4.split("/")[0]
+                        net = {
+                            "id": "private-ipv4-" + str(i),
+                            "type": "ipv4",
+                            "link": "interface" + str(i + 1),
+                            "ip_address": ipv4,
+                            "netmask": netmask,
+                            "routes": [],
+                            "network_id": "da5bb487-5193-4a65-a3df-4a0055a8c0d7",
+                        }
+                        additional_networks.append(net)
             openstack_network_data = {
                 "links": links,
                 "networks": [
@@ -841,6 +850,8 @@ class LibvirtDomain:
 
         if self.ipv4:
             add_ip = "none"
+            if ipv4 == "dhcp":
+                add_ip = "dhcp"
             if ipv4:
                 add_ip = ipv4
             if self.additional_ipv4:
