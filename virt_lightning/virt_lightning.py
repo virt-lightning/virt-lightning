@@ -275,6 +275,7 @@ class LibvirtHypervisor:
                             }
                         ],
                         "network_id": "da5bb487-5193-4a65-a3df-4a0055a8c0d7",
+                        "dns_nameservers": [str(self.dns.ip)],
                     }
                 ],
                 "services": [{"type": "dns", "address": str(self.dns.ip)}],
