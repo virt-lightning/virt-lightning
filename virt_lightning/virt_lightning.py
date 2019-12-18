@@ -234,85 +234,83 @@ class LibvirtHypervisor:
                 sys.exit(1)
             raise
 
+    def generate_openstack_network_config(self, domain):
+        links = []
+        additional_networks = []
+        for i, addr in enumerate(domain.mac_addresses):
+            link = {
+                "id": "interface" + str(i),
+                "type": "phy",
+                "ethernet_mac_address": addr,
+            }
+            links.append(link)
+        for i, ipv4 in enumerate(domain.additional_ipv4):
+            if not ipv4:
+                continue
+            if ipv4 == "dhcp":
+                net = {
+                    "id": "private-ipv4-" + str(i),
+                    "type": "ipv4_dhcp",
+                    "link": "interface" + str(i + 1),
+                    "network_id": "da5bb487-5193-4a65-a3df-4a0055a8c0d7",
+                }
+                additional_networks.append(net)
+            else:
+                if "/" not in ipv4:
+                    ipv4 += "/24"
+                domain_ip = ipaddress.IPv4Interface(ipv4)
+                net = {
+                    "id": "private-ipv4-" + str(i),
+                    "type": "ipv4",
+                    "link": "interface" + str(i + 1),
+                    "ip_address": str(domain_ip.ip),
+                    "netmask": domain_ip.netmask.exploded,
+                    "routes": [],
+                    "network_id": str(uuid.uuid4()),
+                }
+                additional_networks.append(net)
+        openstack_network_data = {
+            "links": links,
+            "networks": [
+                {
+                    "id": "private-ipv4",
+                    "type": "ipv4",
+                    "link": "interface0",
+                    "ip_address": str(domain.ipv4.ip),
+                    "netmask": str(self.network.netmask.exploded),
+                    "routes": [
+                        {
+                            "network": "0.0.0.0",
+                            "netmask": "0.0.0.0",
+                            "gateway": str(self.gateway.ip),
+                        }
+                    ],
+                    "network_id": "da5bb487-5193-4a65-a3df-4a0055a8c0d7",
+                }
+            ],
+            "services": [{"type": "dns", "address": str(self.dns.ip)}],
+        }
+        openstack_network_data["networks"] += additional_networks
+        return openstack_network_data
+
     def prepare_cloud_init_openstack_iso(self, domain):
+        openstack_meta_data = {
+            "availability_zone": "nova",
+            "files": [],
+            "hostname": domain.fqdn or domain.name,
+            "launch_index": 0,
+            "local-hostname": domain.name,
+            "name": domain.name,
+            "meta": {},
+            "public_keys": {"default": domain.ssh_key},
+            "uuid": domain.dom.UUIDString(),
+            "admin_pass": domain.root_password,
+        }
         with tempfile.TemporaryDirectory() as base_temp_dir:
             temp_dir = pathlib.Path(base_temp_dir)
             cd_dir = temp_dir / "cd_dir"
             cd_dir.mkdir()
-
-            openstack_meta_data = {
-                "availability_zone": "nova",
-                "files": [],
-                "hostname": domain.fqdn or domain.name,
-                "launch_index": 0,
-                "local-hostname": domain.name,
-                "name": domain.name,
-                "meta": {},
-                "public_keys": {"default": domain.ssh_key},
-                "uuid": domain.dom.UUIDString(),
-                "admin_pass": domain.root_password,
-            }
-            links = []
-            additional_networks = []
-            for i, addr in enumerate(domain.mac_addresses):
-                link = {
-                    "id": "interface" + str(i),
-                    "type": "phy",
-                    "ethernet_mac_address": addr,
-                }
-                links.append(link)
-            if domain.additional_ipv4 != None:
-                ips = domain.additional_ipv4.split(",")
-                for i, ipv4 in enumerate(ips):
-                    if ipv4 == "none":
-                        continue
-                    if ipv4 == "dhcp":
-                        net = {
-                            "id": "private-ipv4-" + str(i),
-                            "type": "ipv4_dhcp",
-                            "link": "interface" + str(i + 1),
-                            "network_id": "da5bb487-5193-4a65-a3df-4a0055a8c0d7",
-                        }
-                        additional_networks.append(net)
-                    else:
-                        netmask = "255.255.255.0"
-                        if "/" in ipv4:
-                            netmask = str(ipaddress.IPv4Network(ipv4, strict=False).netmask)
-                            ipv4 = ipv4.split("/")[0]
-                        net = {
-                            "id": "private-ipv4-" + str(i),
-                            "type": "ipv4",
-                            "link": "interface" + str(i + 1),
-                            "ip_address": ipv4,
-                            "netmask": netmask,
-                            "routes": [],
-                            "network_id": "da5bb487-5193-4a65-a3df-4a0055a8c0d7",
-                        }
-                        additional_networks.append(net)
-            openstack_network_data = {
-                "links": links,
-                "networks": [
-                    {
-                        "id": "private-ipv4",
-                        "type": "ipv4",
-                        "link": "interface0",
-                        "ip_address": str(domain.ipv4.ip),
-                        "netmask": str(self.network.netmask.exploded),
-                        "routes": [
-                            {
-                                "network": "0.0.0.0",
-                                "netmask": "0.0.0.0",
-                                "gateway": str(self.gateway.ip),
-                            }
-                        ],
-                        "network_id": "da5bb487-5193-4a65-a3df-4a0055a8c0d7",
-                    }
-                ],
-                "services": [{"type": "dns", "address": str(self.dns.ip)}],
-            }
-            if len(additional_networks) > 0:
-                openstack_network_data["networks"] += additional_networks
-
+            openstack_network_data = self.generate_openstack_network_config(domain)
             openstack_dir = cd_dir / "openstack" / "latest"
             openstack_dir.mkdir(parents=True)
             openstack_metadata_file = openstack_dir / "meta_data.json"
@@ -642,6 +640,7 @@ class LibvirtDomain:
         }
         self._ssh_key = None
         self.default_nic_model = None
+        self.additional_ipv4 = []
 
     @property
     def root_password(self):
@@ -849,15 +848,12 @@ class LibvirtDomain:
         disk_root.findall("./model")[0].attrib = {"type": nic_model}
 
         if self.ipv4:
-            add_ip = "none"
+            add_ip = None
             if ipv4 == "dhcp":
                 add_ip = "dhcp"
-            if ipv4:
+            elif ipv4:
                 add_ip = ipv4
-            if self.additional_ipv4:
-                self.additional_ipv4 = "{},{}".format(self.additional_ipv4, add_ip)
-            else:
-                self.additional_ipv4 = ipv4
+            self.additional_ipv4.append(add_ip)
         elif isinstance(ipv4, ipaddress.IPv4Interface):
             self.ipv4 = ipv4
         elif ipv4 and "/" not in ipv4:
@@ -889,14 +885,6 @@ class LibvirtDomain:
         if not hasattr(value, "append"):
             raise ValueError("bootcmd should be a list of command")
         self.user_data["bootcmd"] = value
-
-    @property
-    def additional_ipv4(self):
-            return self.get_metadata("additional_ipv4")
-
-    @additional_ipv4.setter
-    def additional_ipv4(self, value):
-        self.record_metadata("additional_ipv4", value)
 
     @property
     def mac_addresses(self):
