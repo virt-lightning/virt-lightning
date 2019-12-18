@@ -73,8 +73,10 @@ def _start_domain(hv, host, context, configuration):
         size=host.get("root_disk_size", 15),
     )
     domain.add_root_disk(root_disk_path)
-    networks = host.get("networks", [{"network": configuration.network_name}])
+    networks = host.get("networks", [{}])
     for i, network in enumerate(networks):
+        if "network" not in network:
+            network["network"] = configuration.network_name
         if i == 0 and not network.get("ipv4"):
             network["ipv4"] = hv.get_free_ipv4()
         domain.attachNetwork(**network)

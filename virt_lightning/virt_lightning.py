@@ -234,6 +234,54 @@ class LibvirtHypervisor:
                 sys.exit(1)
             raise
 
+    def get_openstack_network_data(self, domain):
+
+        openstack_network_data = {
+            "links": [],
+            "networks": [],
+            "services": [{"type": "dns", "address": str(self.dns.ip)}],
+        }
+
+        for i, nic in enumerate(domain.nics):
+            openstack_network_data["links"].append(
+                {
+                    "id": "interface{i}".format(i=i),
+                    "type": "phy",
+                    "ethernet_mac_address": nic["mac"],
+                }
+            )
+
+            gateway = self.get_network_gateway(nic["network"])
+            if nic["ipv4"]:
+                openstack_network_data["networks"].append(
+                    {
+                        "id": "private-ipv4-{i}".format(i=i),
+                        "type": "ipv4",
+                        "link": "interface{i}".format(i=i),
+                        "ip_address": str(nic["ipv4"].ip),
+                        "netmask": str(nic["ipv4"].netmask.exploded),
+                        "routes": [
+                            {
+                                "network": "0.0.0.0",
+                                "netmask": "0.0.0.0",
+                                "gateway": str(gateway.ip),
+                            }
+                        ],
+                        "network_id": domain.dom.UUIDString(),
+                    }
+                )
+            else:
+                openstack_network_data["networks"].append(
+                    {
+                        "id": "private-ipv4-{i}".format(i=i),
+                        "type": "ipv4_dhcp",
+                        "link": "interface{i}".format(i=i),
+                        "network_id": domain.dom.UUIDString(),
+                    }
+                )
+
+        return openstack_network_data
+
     def prepare_cloud_init_openstack_iso(self, domain):
         with tempfile.TemporaryDirectory() as base_temp_dir:
             temp_dir = pathlib.Path(base_temp_dir)
@@ -252,33 +300,6 @@ class LibvirtHypervisor:
                 "uuid": domain.dom.UUIDString(),
                 "admin_pass": domain.root_password,
             }
-            openstack_network_data = {
-                "links": [
-                    {
-                        "id": "interface0",
-                        "type": "phy",
-                        "ethernet_mac_address": domain.mac_addresses[0],
-                    }
-                ],
-                "networks": [
-                    {
-                        "id": "private-ipv4",
-                        "type": "ipv4",
-                        "link": "interface0",
-                        "ip_address": str(domain.ipv4.ip),
-                        "netmask": str(self.network.netmask.exploded),
-                        "routes": [
-                            {
-                                "network": "0.0.0.0",
-                                "netmask": "0.0.0.0",
-                                "gateway": str(self.gateway.ip),
-                            }
-                        ],
-                        "network_id": "da5bb487-5193-4a65-a3df-4a0055a8c0d7",
-                    }
-                ],
-                "services": [{"type": "dns", "address": str(self.dns.ip)}],
-            }
 
             openstack_dir = cd_dir / "openstack" / "latest"
             openstack_dir.mkdir(parents=True)
@@ -287,7 +308,7 @@ class LibvirtHypervisor:
                 fd.write(json.dumps(openstack_meta_data))
             openstack_networkdata_file = openstack_dir / "network_data.json"
             with openstack_networkdata_file.open("w") as fd:
-                fd.write(json.dumps(openstack_network_data))
+                fd.write(json.dumps(self.get_openstack_network_data(domain)))
             openstack_userdata_file = openstack_dir / "user_data"
             with openstack_userdata_file.open("w") as fd:
                 fd.write("#cloud-config\n")
@@ -324,26 +345,36 @@ class LibvirtHypervisor:
             return cdrom
 
     def prepare_cloud_init_nocloud_iso(self, domain):
-        primary_mac_addr = domain.mac_addresses[0]
         self._network_meta = {"config": "disabled"}
-        domain._network_meta = {
-            "version": 1,
-            "config": [
-                {
-                    "type": "physical",
-                    "name": "eth0",
-                    "mac_address": primary_mac_addr,
-                    "subnets": [
-                        {
-                            "type": "static",
-                            "address": str(domain.ipv4),
-                            "gateway": str(self.gateway.ip),
-                            "dns_nameservers": [str(self.dns.ip)],
-                        }
-                    ],
-                }
-            ],
-        }
+        network_config = []
+        for i, nic in enumerate(domain.nics):
+            gateway = self.get_network_gateway(nic["network"])
+            if nic["ipv4"]:
+                network_config.append(
+                    {
+                        "type": "physical",
+                        "name": "eth{i}".format(i=i),
+                        "mac_address": nic["mac"],
+                        "subnets": [
+                            {
+                                "type": "static",
+                                "address": str(nic["ipv4"]),
+                                "gateway": str(gateway.ip),
+                                "dns_nameservers": [str(gateway.ip)],
+                            }
+                        ],
+                    }
+                )
+            else:
+                network_config.append(
+                    {
+                        "type": "physical",
+                        "name": "eth{i}".format(i=i),
+                        "mac_address": nic["mac"],
+                        "subnets": [{"type": "dhcp"}],
+                    }
+                )
+        domain._network_meta = {"version": 1, "config": network_config}
 
         with tempfile.TemporaryDirectory() as base_temp_dir:
             temp_dir = pathlib.Path(base_temp_dir)
@@ -393,9 +424,7 @@ class LibvirtHypervisor:
     def start(self, domain, metadata_format):
         if metadata_format.get("provider", "") == "nocloud":
             cloud_init_iso = self.prepare_cloud_init_nocloud_iso(domain)
-        elif domain.distro.startswith("rhel-6.") or domain.distro.startswith(
-            "centos-6."
-        ):
+        elif domain.distro.startswith("rhel-6") or domain.distro.startswith("centos-6"):
             cloud_init_iso = self.prepare_cloud_init_nocloud_iso(domain)
         else:  # OpenStack format is the default
             cloud_init_iso = self.prepare_cloud_init_openstack_iso(domain)
@@ -407,7 +436,7 @@ class LibvirtHypervisor:
 
     def add_domain_to_network(self, domain):
         self.set_dns_entry(domain.ipv4, [domain.name, domain.fqdn])
-        self.set_dhcp_entry(domain.ipv4, domain.mac_addresses[0])
+        self.set_dhcp_entry(domain.ipv4, domain.nics[0]["mac"])
 
     def remove_domain_from_network(self, domain):
         root = ET.fromstring(self.network_obj.XMLDesc(0))
@@ -438,9 +467,13 @@ class LibvirtHypervisor:
                 libvirt.VIR_NETWORK_UPDATE_AFFECT_LIVE,
             )
 
+        domain_root = ET.fromstring(domain.dom.XMLDesc(0))
+        ifaces = domain_root.findall("./devices/interface/mac[@address]")
+        domain_macs = [iface.attrib["address"] for iface in ifaces]
+
         root = ET.fromstring(self.network_obj.XMLDesc(0))
         for host in root.findall("./ip/dhcp/host[@mac]"):
-            if host.attrib["mac"] not in domain.mac_addresses:
+            if host.attrib["mac"] not in domain_macs:
                 continue
             xml = ET.tostring(host, encoding="unicode")
             self.network_obj.update(
@@ -500,16 +533,21 @@ class LibvirtHypervisor:
 
         if not self.network_obj.isActive():
             self.network_obj.create()
+        self.gateway = self.get_network_gateway(network_name)
+        self.dns = self.gateway
+        self.network = self.gateway.network
 
+    def get_network_gateway(self, network_name):
+        try:
+            self.network_obj = self.conn.networkLookupByName(network_name)
+        except libvirt.libvirtError as e:
+            if e.get_error_code() != libvirt.VIR_ERR_NO_NETWORK:
+                raise (e)
         xml = self.network_obj.XMLDesc(0)
         root = ET.fromstring(xml)
         ip = root.find("./ip")
 
-        self.gateway = ipaddress.IPv4Interface(
-            "{address}/{netmask}".format(**ip.attrib)
-        )
-        self.dns = self.gateway
-        self.network = self.gateway.network
+        return ipaddress.IPv4Interface("{address}/{netmask}".format(**ip.attrib))
 
     def create_network(self, network_name, network_cidr):
         network = ipaddress.ip_network(network_cidr)
@@ -610,6 +648,7 @@ class LibvirtDomain:
         }
         self._ssh_key = None
         self.default_nic_model = None
+        self.nics = []
 
     @property
     def root_password(self):
@@ -816,18 +855,28 @@ class LibvirtDomain:
         disk_root.findall("./source")[0].attrib = {"network": network}
         disk_root.findall("./model")[0].attrib = {"type": nic_model}
 
-        if ipv4 and self.ipv4:
-            logger.error("ipv4 already set!")
-            exit(1)
+        if not ipv4:
+            if not self.nics:
+                raise ValueError("First NIC should have a static IPv4 address.")
+            ipv4_instance = None  # DHCP
         elif isinstance(ipv4, ipaddress.IPv4Interface):
-            self.ipv4 = ipv4
+            ipv4_instance = ipv4
         elif ipv4 and "/" not in ipv4:
-            self.ipv4 = ipaddress.IPv4Interface(ipv4 + "/24")
+            ipv4_instance = ipaddress.IPv4Interface(ipv4 + "/24")
         elif ipv4:
-            self.ipv4 = ipaddress.IPv4Interface(ipv4)
+            ipv4_instance = ipaddress.IPv4Interface(ipv4)
+        self.nics.append({"network": network, "ipv4": ipv4_instance})
+
+        self.ipv4 = self.nics[0]["ipv4"]
 
         xml = ET.tostring(disk_root).decode()
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
+
+        xml = self.dom.XMLDesc(0)
+        root = ET.fromstring(xml)
+        ifaces = root.findall("./devices/interface/mac[@address]")
+        for i, iface in enumerate(ifaces):
+            self.nics[i]["mac"] = iface.attrib["address"]
 
     def add_root_disk(self, root_disk_path):
         self.attachDisk(root_disk_path)
@@ -850,13 +899,6 @@ class LibvirtDomain:
         if not hasattr(value, "append"):
             raise ValueError("bootcmd should be a list of command")
         self.user_data["bootcmd"] = value
-
-    @property
-    def mac_addresses(self):
-        xml = self.dom.XMLDesc(0)
-        root = ET.fromstring(xml)
-        ifaces = root.findall("./devices/interface/mac[@address]")
-        return [iface.attrib["address"] for iface in ifaces]
 
     def set_user_password(self, user, password):
         return self.dom.setUserPassword(user, password)
