@@ -286,8 +286,8 @@ A VM can be tunned at two different places with the following keys:
 - `root_password`: the root password in clear text
 - `groups`: this list of groups will be used if you generate an Ansible inventory.
 - `networks`: a list of network to attach to the VM. The default is: one virtio interface attached to `virt-lightning` network.
-    - `network`: the name of the network. Default is `virt-lightning`
-    - `ipv4`: a static IPv4, this key is only accepted for the first network. Default is a dynamic IPv4 address.
+    - `network`: the name of the network. Default is the key `network_name` from the configuration (`virt-lightning` by default)
+    - `ipv4`: a static IPv4. Default is a dynamic IPv4 address.
     - `nic_model`: the libvirt driver to use. Default is `virtio`
 
 
