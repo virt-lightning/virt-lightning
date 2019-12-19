@@ -1,4 +1,4 @@
-# 🗲 Ride the Lightning!🗲
+# 🗲 a CLI to start local Cloud image on libvirt!🗲
 
 
 [![Build Status](https://travis-ci.org/virt-lightning/virt-lightning.svg?branch=master)](https://travis-ci.org/virt-lightning/virt-lightning)
