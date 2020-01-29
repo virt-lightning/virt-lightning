@@ -923,7 +923,7 @@ class LibvirtDomain:
                         )
                     )
                     return
-            except (OSError, ConnectionRefusedError):
+            except OSError:
                 pass
 
     def exec_ssh(self):
