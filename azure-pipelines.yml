@@ -27,6 +27,7 @@ jobs:
       displayName: 'Use Python $(python.version)'
 
     - script: |
+        sudo apt update
         sudo apt install -y libvirt-bin libvirt-daemon libvirt-dev
       displayName: Install libvirt dependencies
 
