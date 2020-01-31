@@ -539,11 +539,11 @@ class LibvirtHypervisor:
 
     def get_network_gateway(self, network_name):
         try:
-            self.network_obj = self.conn.networkLookupByName(network_name)
+            network_obj = self.conn.networkLookupByName(network_name)
         except libvirt.libvirtError as e:
             if e.get_error_code() != libvirt.VIR_ERR_NO_NETWORK:
                 raise (e)
-        xml = self.network_obj.XMLDesc(0)
+        xml = network_obj.XMLDesc(0)
         root = ET.fromstring(xml)
         ip = root.find("./ip")
 
