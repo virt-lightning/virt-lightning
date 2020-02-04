@@ -537,17 +537,26 @@ class LibvirtHypervisor:
         self.dns = self.gateway
         self.network = self.gateway.network
 
-    def get_network_gateway(self, network_name):
+    def get_network_by_name(self, network_name):
         try:
-            network_obj = self.conn.networkLookupByName(network_name)
+            return self.conn.networkLookupByName(network_name)
         except libvirt.libvirtError as e:
             if e.get_error_code() != libvirt.VIR_ERR_NO_NETWORK:
                 raise (e)
+
+    def get_network_gateway(self, network_name):
+        network_obj = self.get_network_by_name(network_name)
         xml = network_obj.XMLDesc(0)
         root = ET.fromstring(xml)
         ip = root.find("./ip")
-
         return ipaddress.IPv4Interface("{address}/{netmask}".format(**ip.attrib))
+
+    def reuse_mac_address(self, network_name, domain_name, ipv4):
+        network_obj = self.get_network_by_name(network_name)
+        for lease in network_obj.DHCPLeases():
+            if lease["hostname"] == domain_name:
+                if lease["ipaddr"] == str(ipv4.ip):
+                    return lease["mac"]
 
     def create_network(self, network_name, network_cidr):
         network = ipaddress.ip_network(network_cidr)
@@ -848,12 +857,15 @@ class LibvirtDomain:
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
         return device_name
 
-    def attachNetwork(self, network=None, nic_model=None, ipv4=None):
+    def attachNetwork(self, network=None, nic_model=None, ipv4=None, mac=None):
         if not nic_model:
             nic_model = self.default_nic_model
-        disk_root = ET.fromstring(BRIDGE_XML)
-        disk_root.findall("./source")[0].attrib = {"network": network}
-        disk_root.findall("./model")[0].attrib = {"type": nic_model}
+        net_root = ET.fromstring(BRIDGE_XML)
+        net_root.findall("./source")[0].attrib = {"network": network}
+        net_root.findall("./model")[0].attrib = {"type": nic_model}
+        if mac:
+            mac_el = ET.SubElement(net_root, "mac")
+            mac_el.attrib = {"address": mac}
 
         if not ipv4:
             if not self.nics:
@@ -869,7 +881,7 @@ class LibvirtDomain:
 
         self.ipv4 = self.nics[0]["ipv4"]
 
-        xml = ET.tostring(disk_root).decode()
+        xml = ET.tostring(net_root).decode()
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
 
         xml = self.dom.XMLDesc(0)

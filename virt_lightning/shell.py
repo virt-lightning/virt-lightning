@@ -79,6 +79,9 @@ def _start_domain(hv, host, context, configuration):
             network["network"] = configuration.network_name
         if i == 0 and not network.get("ipv4"):
             network["ipv4"] = hv.get_free_ipv4()
+        network["mac"] = hv.reuse_mac_address(
+            network["network"], host["name"], network["ipv4"]
+        )
         domain.attachNetwork(**network)
     hv.start(domain, metadata_format=host.get("metadata_format", {}))
     return domain
