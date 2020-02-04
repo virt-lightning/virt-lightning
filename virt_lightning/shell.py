@@ -160,8 +160,8 @@ def start(configuration, context, **kwargs):
         libvirtaio.virEventRegisterAsyncIOImpl(loop=loop)
 
         def stream_callback(stream, events, _):
-            line = stream.recv(1024).decode()
-            print("\033[0m", "\033[30m", line, end="")  # noqa: T001
+            content = stream.recv(1024).decode()
+            sys.stdout.write(content)
 
         stream.eventAddCallback(
             libvirt.VIR_STREAM_EVENT_READABLE, stream_callback, console
