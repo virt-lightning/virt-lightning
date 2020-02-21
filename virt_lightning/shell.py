@@ -33,6 +33,23 @@ def libvirt_callback(userdata, err):
 libvirt.registerErrorHandler(f=libvirt_callback, ctx=None)
 
 
+def register_aio_virt_impl(loop):
+    # Ensure we may call shell.up() multiple times
+    # from the same asyncio program.
+    loop = loop or asyncio.get_event_loop()
+    if loop not in register_aio_virt_impl.aio_virt_bindinds:
+        try:
+            import libvirtaio
+
+            libvirtaio.virEventRegisterAsyncIOImpl(loop=loop)
+        except ImportError:
+            libvirt.virEventRegisterDefaultImpl()
+        register_aio_virt_impl.aio_virt_bindinds[loop] = True
+
+
+register_aio_virt_impl.__dict__["aio_virt_bindinds"] = {}
+
+
 def _start_domain(hv, host, context, configuration):
     if host["distro"] not in hv.distro_available():
         logger.error("distro not available: %s", host["distro"])
@@ -92,13 +109,9 @@ def up(virt_lightning_yaml, configuration, context, **kwargs):
         if state == 1:
             logger.info("%s %s QEMU agent found", symbols.CUSTOMS.value, dom.name())
 
-    loop = asyncio.get_event_loop()
-    try:
-        import libvirtaio
+    loop = kwargs.get("loop") or asyncio.get_event_loop()
+    register_aio_virt_impl(loop)
 
-        libvirtaio.virEventRegisterAsyncIOImpl(loop=loop)
-    except ImportError:
-        libvirt.virEventRegisterDefaultImpl()
     conn = libvirt.open(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
 
