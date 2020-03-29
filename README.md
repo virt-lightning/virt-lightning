@@ -35,8 +35,7 @@ In the video below, we:
 
 
 
-<details><summary>Debian</summary>
-<p>
+### Debian
 
 First you need to install libvirt and guestfs:
 ```shell
@@ -48,12 +47,9 @@ The second step is to grant to your user the ability to use libvirt:
 ```shell
 sudo usermod -a -G kvm,libvirt,libvirt-qemu $USER
 ```
-</p>
-</details>
 
 
-<details><summary>Fedora-29 and after</summary>
-<p>
+### Fedora-29 and after
 
 First you need to install libvirt and guestfs:
 ```shell
@@ -65,12 +61,9 @@ The second step is to grant to your user the ability to use libvirt:
 ```shell
 sudo usermod -a -G qemu,libvirt $USER
 ```
-</p>
-</details>
 
 
-<details><summary>Ubuntu-16.04</summary>
-<p>
+### Ubuntu-16.04
 
 First you need to install libvirt and guestfs:
 ```shell
@@ -82,12 +75,9 @@ The second step is to grant to your user the ability to use libvirt:
 ```shell
 sudo usermod -a -G kvm,libvirtd $USER
 ```
-</p>
-</details>
 
 
-<details><summary>Ubuntu-18.04</summary>
-<p>
+### Ubuntu-18.04
 
 First you need to install libvirt and guestfs:
 ```shell
@@ -99,12 +89,9 @@ The second step is to grant to your user the ability to use libvirt:
 ```shell
 sudo usermod -a -G kvm,libvirt $USER
 ```
-</p>
-</details>
 
 
-<details><summary>Ubuntu-18.10 and after</summary>
-<p>
+### Ubuntu-18.10 and after
 
 First you need to install libvirt and guestfs:
 ```shell
@@ -116,11 +103,8 @@ The second step is to grant to your user the ability to use libvirt:
 ```shell
 sudo usermod -a -G kvm,libvirt $USER
 ```
-</p>
-</details>
 
-<details><summary>RHEL-8</summary>
-<p>
+### RHEL-8
 
 First you need to install libvirt and guestfs:
 ```shell
@@ -132,11 +116,8 @@ The second step is to grant to your user the ability to use libvirt:
 ```shell
 sudo usermod -a -G libvirt $USER
 ```
-</p>
-</details>
 
-<details><summary>Void Linux</summary>
-<p>
+### Void Linux
 
 First you need to install libvirt and guestfs:
 ```shell
@@ -151,8 +132,6 @@ The second step is to grant to your user the ability to use libvirt:
 ```shell
 sudo usermod -a -G kvm,libvirt $USER
 ```
-</p>
-</details>
 
 ## Installation
 
