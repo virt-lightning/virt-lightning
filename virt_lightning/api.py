@@ -402,6 +402,16 @@ def fetch(configuration, progress_callback=None, **kwargs):
     hv.init_storage_pool(configuration.storage_pool)
     storage_dir = hv.get_storage_dir()
 
+    class RedirectFilter(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, hdrs, newurl):
+            logger.info("downloading image from: %s", newurl)
+            return urllib.request.HTTPRedirectHandler.redirect_request(
+                self, req, fp, code, msg, hdrs, newurl
+            )
+
+    opener = urllib.request.build_opener(RedirectFilter)
+    urllib.request.install_opener(opener)
+
     try:
         r = urllib.request.urlopen(
             "https://virt-lightning.org/images/{distro}/{distro}.qcow2".format(**kwargs)
