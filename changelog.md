@@ -1,3 +1,10 @@
+# 2.0.0
+
+Main change is the introduction of the api module. It exposes a public API.
+
+- api.py: new public API module
+- shell.py: consume `api.py`
+
 # 1.1.0
 
 Main changes are the RHEL8 support and `fetch` action to retrieve images:

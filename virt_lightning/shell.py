@@ -1,345 +1,26 @@
 #!/usr/bin/env python3
 
-from concurrent.futures import ThreadPoolExecutor
 import argparse
-import asyncio
 import logging
-import os
 import pathlib
-import re
-import urllib.request
-import sys
-import distutils.util
-
 import libvirt
+import os
 import yaml
+import sys
 
+
+import virt_lightning.api
 from virt_lightning.configuration import Configuration
 from virt_lightning.symbols import get_symbols
-import virt_lightning.ui as ui
 import virt_lightning.virt_lightning as vl
+import virt_lightning.ui as ui
+
 
 symbols = get_symbols()
 logger = logging.getLogger("virt_lightning")
 logger.setLevel(logging.INFO)
 ch = logging.StreamHandler()
 logger.addHandler(ch)
-
-
-def libvirt_callback(userdata, err):
-    pass
-
-
-libvirt.registerErrorHandler(f=libvirt_callback, ctx=None)
-
-
-def register_aio_virt_impl(loop):
-    # Ensure we may call shell.up() multiple times
-    # from the same asyncio program.
-    loop = loop or asyncio.get_event_loop()
-    if loop not in register_aio_virt_impl.aio_virt_bindinds:
-        try:
-            import libvirtaio
-
-            libvirtaio.virEventRegisterAsyncIOImpl(loop=loop)
-        except ImportError:
-            libvirt.virEventRegisterDefaultImpl()
-        register_aio_virt_impl.aio_virt_bindinds[loop] = True
-
-
-register_aio_virt_impl.__dict__["aio_virt_bindinds"] = {}
-
-
-def _start_domain(hv, host, context, configuration):
-    if host["distro"] not in hv.distro_available():
-        logger.error("distro not available: %s", host["distro"])
-        logger.info(
-            "Please select on of the following distro: %s", hv.distro_available()
-        )
-        exit()
-
-    if "name" not in host:
-        host["name"] = re.sub(r"[^a-zA-Z0-9-]+", "", host["distro"])
-
-    if hv.get_domain_by_name(host["name"]):
-        logger.info("Skipping {name}, already here.".format(**host))
-        return
-
-    # Unfortunatly, i can't decode that symbol
-    # that symbol more well add to check encoding block
-    logger.info("{lightning} {name} ".format(lightning=symbols.LIGHTNING.value, **host))
-
-    user_config = {
-        "groups": host.get("groups"),
-        "memory": host.get("memory"),
-        "python_interpreter": host.get("python_interpreter"),
-        "root_password": host.get("root_password", configuration.root_password),
-        "ssh_key_file": host.get("ssh_key_file", configuration.ssh_key_file),
-        "username": host.get("username"),
-        "vcpus": host.get("vcpus"),
-        "fqdn": host.get("fqdn"),
-        "default_nic_mode": host.get("default_nic_model"),
-        "bootcmd": host.get("bootcmd"),
-    }
-    domain = hv.create_domain(name=host["name"], distro=host["distro"])
-    hv.configure_domain(domain, user_config)
-    domain.context = context
-    root_disk_path = hv.create_disk(
-        name=host["name"],
-        backing_on=host["distro"],
-        size=host.get("root_disk_size", 15),
-    )
-    domain.add_root_disk(root_disk_path)
-    networks = host.get("networks", [{}])
-    for i, network in enumerate(networks):
-        if "network" not in network:
-            network["network"] = configuration.network_name
-        if i == 0 and not network.get("ipv4"):
-            network["ipv4"] = hv.get_free_ipv4()
-        network["mac"] = hv.reuse_mac_address(
-            network["network"], host["name"], network.get("ipv4")
-        )
-        domain.attachNetwork(**network)
-    hv.start(domain, metadata_format=host.get("metadata_format", {}))
-    return domain
-
-
-def up(virt_lightning_yaml, configuration, context, **kwargs):
-    def myDomainEventAgentLifecycleCallback(conn, dom, state, reason, opaque):
-        if state == 1:
-            logger.info("%s %s QEMU agent found", symbols.CUSTOMS.value, dom.name())
-
-    loop = kwargs.get("loop") or asyncio.get_event_loop()
-    register_aio_virt_impl(loop)
-
-    conn = libvirt.open(configuration.libvirt_uri)
-    hv = vl.LibvirtHypervisor(conn)
-
-    conn.setKeepAlive(5, 3)
-    conn.domainEventRegisterAny(
-        None,
-        libvirt.VIR_DOMAIN_EVENT_ID_AGENT_LIFECYCLE,
-        myDomainEventAgentLifecycleCallback,
-        None,
-    )
-
-    hv.init_network(configuration.network_name, configuration.network_cidr)
-    hv.init_storage_pool(configuration.storage_pool)
-
-    pool = ThreadPoolExecutor(max_workers=10)
-
-    async def deploy():
-        futures = []
-        for host in virt_lightning_yaml:
-            futures.append(
-                loop.run_in_executor(
-                    pool, _start_domain, hv, host, context, configuration
-                )
-            )
-
-        domain_reachable_futures = []
-        for f in futures:
-            await f
-            domain = f.result()
-            if domain:
-                domain_reachable_futures.append(domain.reachable())
-        logger.info("%s ok Waiting...", symbols.HOURGLASS.value)
-
-        await asyncio.gather(*domain_reachable_futures)
-
-    loop.run_until_complete(deploy())
-    logger.info("%s You are all set", symbols.THUMBS_UP.value)
-
-
-def start(configuration, context, **kwargs):
-    conn = libvirt.open(configuration.libvirt_uri)
-    hv = vl.LibvirtHypervisor(conn)
-    hv.init_network(configuration.network_name, configuration.network_cidr)
-    hv.init_storage_pool(configuration.storage_pool)
-    host = {
-        k: kwargs[k] for k in ["name", "distro", "memory", "vcpus"] if kwargs.get(k)
-    }
-    domain = _start_domain(hv, host, context, configuration)
-    if not domain:
-        return
-
-    loop = asyncio.get_event_loop()
-
-    if not kwargs["noconsole"]:
-        import time
-
-        time.sleep(4)
-        stream = conn.newStream(libvirt.VIR_STREAM_NONBLOCK)
-        console = domain.dom.openConsole(None, stream, 0)
-        import libvirtaio
-
-        libvirtaio.virEventRegisterAsyncIOImpl(loop=loop)
-
-        def stream_callback(stream, events, _):
-            content = stream.recv(1024).decode()
-            sys.stdout.write(content)
-
-        stream.eventAddCallback(
-            libvirt.VIR_STREAM_EVENT_READABLE, stream_callback, console
-        )
-
-    async def deploy():
-        await domain.reachable()
-
-    loop.run_until_complete(deploy())
-    print(  # noqa: T001
-        (
-            "\033[0m\n**** System is online ****\n"
-            "To connect use:\n"
-            "  vl console {name} (virsh console)"
-            "  vl ssh {name}"
-        ).format(name=domain.name)
-    )
-    if kwargs["ssh"]:
-        domain.exec_ssh()
-
-
-def stop(configuration, **kwargs):
-    conn = libvirt.open(configuration.libvirt_uri)
-    hv = vl.LibvirtHypervisor(conn)
-    hv.init_network(configuration.network_name, configuration.network_cidr)
-    hv.init_storage_pool(configuration.storage_pool)
-    domain = hv.get_domain_by_name(kwargs["name"])
-    if not domain:
-        vm_list = [d.name for d in hv.list_domains()]
-        print(  # noqa: T001
-            "No VM called {name} in {vm_list}".format(
-                name=kwargs["name"], vm_list=vm_list
-            )
-        )
-        exit(1)
-    hv.clean_up(domain)
-
-
-def ansible_inventory(configuration, context, **kwargs):
-    conn = libvirt.open(configuration.libvirt_uri)
-    hv = vl.LibvirtHypervisor(conn)
-
-    ssh_cmd_template = (
-        "{name} ansible_host={ipv4} ansible_user={username} "
-        "ansible_python_interpreter={python_interpreter} "
-        'ansible_ssh_common_args="-o UserKnownHostsFile=/dev/null '
-        '-o StrictHostKeyChecking=no"'
-    )
-
-    groups = {}
-    for domain in hv.list_domains():
-        if domain.context != context:
-            continue
-
-        for group in domain.groups:
-            if group not in groups:
-                groups[group] = []
-            groups[group].append(domain)
-
-        template = ssh_cmd_template
-
-        print(  # noqa: T001
-            template.format(
-                name=domain.name,
-                username=domain.username,
-                ipv4=domain.ipv4.ip,
-                python_interpreter=domain.python_interpreter,
-            )
-        )  # noqa: T001
-
-    for group_name, domains in groups.items():
-        print("\n[{group_name}]".format(group_name=group_name))  # noqa: T001
-        for domain in domains:
-            print(domain.name)  # noqa: T001
-
-
-def ssh_config(configuration, context, **kwargs):
-    conn = libvirt.open(configuration.libvirt_uri)
-    hv = vl.LibvirtHypervisor(conn)
-
-    ssh_host_template = (
-        "Host {name}\n"
-        "     Hostname {ipv4}\n"
-        "     User {username}\n"
-        "     IdentityFile {ssh_key_file}\n"
-    )
-
-    groups = {}
-    for domain in hv.list_domains():
-        for group in domain.groups:
-            groups[group].append(domain)
-
-        if domain.context != context:
-            continue
-
-        template = ssh_host_template
-
-        print(  # noqa: T001
-            template.format(
-                name=domain.name,
-                username=domain.username,
-                ipv4=domain.ipv4.ip,
-                ssh_key_file=domain.ssh_key,
-            )
-        )  # noqa: T001
-
-    for group_name, domains in groups.items():
-        print("\n[{group_name}]".format(group_name=group_name))  # noqa: T001
-        for domain in domains:
-            print(domain.name)  # noqa: T001
-
-
-def get_status(hv, context):
-    status = []
-    for domain in hv.list_domains():
-        if context and context != domain.context:
-            continue
-        name = domain.name
-        status.append(
-            {
-                "name": name,
-                "ipv4": domain.ipv4 and str(domain.ipv4.ip),
-                "context": domain.context,
-                "username": domain.username,
-            }
-        )
-    return status
-
-
-def status(configuration, context=None, **kwargs):
-    conn = libvirt.open(configuration.libvirt_uri)
-    hv = vl.LibvirtHypervisor(conn)
-    results = {}
-
-    for status in get_status(hv, context):
-        results[status["name"]] = {
-            "name": status["name"],
-            "ipv4": status["ipv4"] or "waiting",
-            "context": status["context"],
-            "username": status["username"],
-        }
-
-    output_template = "{computer} {name:<13}   {arrow}   {username}@{ipv4:>5}"
-    for _, v in sorted(results.items()):
-        print(  # noqa: T001
-            output_template.format(
-                computer=symbols.COMPUTER.value, arrow=symbols.RIGHT_ARROW.value, **v
-            )
-        )
-
-
-def ssh(configuration, name=None, **kwargs):
-    conn = libvirt.open(configuration.libvirt_uri)
-    hv = vl.LibvirtHypervisor(conn)
-
-    def go_ssh(domain):
-        domain.exec_ssh()
-
-    if name:
-        hv.get_domain_by_name(name).exec_ssh()
-
-    ui.Selector(sorted(hv.list_domains()), go_ssh)
 
 
 def console(configuration, name=None, **kwargs):
@@ -391,92 +72,6 @@ def viewer(configuration, name=None, **kwargs):
         go_viewer(hv.get_domain_by_name(name))
 
     ui.Selector(sorted(hv.list_domains()), go_viewer)
-
-
-def down(configuration, context, **kwargs):
-    conn = libvirt.open(configuration.libvirt_uri)
-    hv = vl.LibvirtHypervisor(conn)
-    hv.init_network(configuration.network_name, configuration.network_cidr)
-    hv.init_storage_pool(configuration.storage_pool)
-    for domain in hv.list_domains():
-        if context and domain.context != context:
-            continue
-        logger.info("%s purging %s", symbols.TRASHBIN.value, domain.name)
-        hv.clean_up(domain)
-
-    if bool(distutils.util.strtobool(configuration.network_auto_clean_up)):
-        hv.network_obj.destroy()
-
-
-def distro_list(configuration, **kwargs):
-    conn = libvirt.open(configuration.libvirt_uri)
-    hv = vl.LibvirtHypervisor(conn)
-    hv.init_storage_pool(configuration.storage_pool)
-    for distro in hv.distro_available():
-        print("- distro: {distro}".format(distro=distro))  # noqa: T001
-
-
-def storage_dir(configuration, **kwargs):
-    conn = libvirt.open(configuration.libvirt_uri)
-    hv = vl.LibvirtHypervisor(conn)
-    hv.init_storage_pool(configuration.storage_pool)
-    print(hv.get_storage_dir())  # noqa: T001
-
-
-def fetch(configuration, **kwargs):
-    conn = libvirt.open(configuration.libvirt_uri)
-    hv = vl.LibvirtHypervisor(conn)
-    hv.init_storage_pool(configuration.storage_pool)
-    storage_dir = hv.get_storage_dir()
-    try:
-        r = urllib.request.urlopen(
-            "https://virt-lightning.org/images/{distro}/{distro}.qcow2".format(**kwargs)
-        )
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            print("Distro {distro} not found!".format(**kwargs))  # noqa: T001
-            print(  # noqa: T001
-                "Visit https://virt-lightning.org/images/ to get an up to date list."
-            )
-            sys.exit(1)
-        else:
-            logger.exception(e)
-            sys.exit(1)
-    lenght = int(r.headers["Content-Length"])
-    MB = 1024 * 1000
-    chunk_size = MB
-    target_file = pathlib.PosixPath(
-        "{storage_dir}/upstream/{distro}.qcow2".format(
-            storage_dir=storage_dir, **kwargs
-        )
-    )
-    temp_file = target_file.with_suffix(".temp")
-    if target_file.exists():
-        print(  # noqa: T001
-            "File already exists: {target_file}".format(target_file=target_file)
-        )
-        sys.exit(0)
-    with temp_file.open("wb") as fd:
-        while fd.tell() < lenght:
-            chunk = r.read(chunk_size)
-            fd.write(chunk)
-            percent = (fd.tell() * 100) / lenght
-            line = "[{percent:06.2f}%]  {done:6}MB/{full}MB\r".format(
-                percent=percent, done=int(fd.tell() / MB), full=int(lenght / MB)
-            )
-            print(line, end="")  # noqa: T001
-        print("\n")  # noqa: T001
-    temp_file.rename(target_file)
-    try:
-        r = urllib.request.urlopen(
-            "https://virt-lightning.org/images/{distro}/{distro}.yaml".format(**kwargs)
-        )
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            pass
-    with target_file.with_suffix(".yaml").open("wb") as fd:
-        fd.write(r.read())
-    print("Image {distro} is ready!".format(**kwargs))  # noqa: T001
 
 
 def main():
@@ -576,10 +171,11 @@ Example:
     start_parser.add_argument("--vcpus", help="Number of VCPUS", type=int)
     start_parser.add_argument("--context", **context_args)
     start_parser.add_argument(
-        "--noconsole",
+        "--show-console",
         help="Suppress console output during VM creation",
-        action="store_true",
-        default=False,
+        type=bool,
+        dest="enable_console",
+        default=True,
     )
     start_parser.add_argument("distro", help="Name of the distro", type=str)
 
@@ -652,4 +248,73 @@ Example:
     if args.debug:
         logger.setLevel(logging.DEBUG)
 
-    globals()[args.action](configuration=configuration, **vars(args))
+    if args.action == "ansible_inventory":
+        print(  # noqa: T001
+            virt_lightning.api.ansible_inventory(
+                configuration=configuration, **vars(args)
+            )
+        )
+    elif args.action == "ssh_config":
+        print(  # noqa: T001
+            virt_lightning.api.ssh_config(configuration=configuration, **vars(args))
+        )
+    elif args.action == "distro_list":
+        for distro_name in virt_lightning.api.distro_list(
+            configuration=configuration, **vars(args)
+        ):
+            print("- {0}".format(distro_name))  # noqa: T001
+    elif args.action == "storage_dir":
+        print(  # noqa: T001
+            virt_lightning.api.storage_dir(configuration=configuration, **vars(args))
+        )
+    elif args.action == "status":
+        results = {}
+        for status in virt_lightning.api.status(
+            configuration=configuration, **vars(args)
+        ):
+            results[status["name"]] = {
+                "name": status["name"],
+                "ipv4": status["ipv4"] or "waiting",
+                "context": status["context"],
+                "username": status["username"],
+            }
+
+        output_template = "{computer} {name:<13}   {arrow}   {username}@{ipv4:>5}"
+        for _, v in sorted(results.items()):
+            print(  # noqa: T001
+                output_template.format(
+                    computer=symbols.COMPUTER.value,
+                    arrow=symbols.RIGHT_ARROW.value,
+                    **v
+                )
+            )
+    elif args.action == "ssh":
+        if args.name:
+            virt_lightning.api.exec_ssh(args.name)
+
+        def go_ssh(domain):
+            domain.exec_ssh()
+
+        ui.Selector(
+            virt_lightning.api.list_domains(configuration=configuration, **vars(args)),
+            go_ssh,
+        )
+    elif args.action == "fetch":
+
+        def progress_callback(cur, lenght):
+            percent = (cur * 100) / lenght
+            line = "[{percent:06.2f}%]  {done:6}MB/{full}MB\r".format(
+                percent=percent,
+                done=int(cur / virt_lightning.api.MB),
+                full=int(lenght / virt_lightning.api.MB),
+            )
+            print(line, end="")  # noqa: T001
+
+        virt_lightning.api.fetch(
+            configuration=configuration,
+            progress_callback=progress_callback,
+            **vars(args)
+        )
+    else:
+        action_func = getattr(virt_lightning.api, args.action)
+        action_func(configuration=configuration, **vars(args))
