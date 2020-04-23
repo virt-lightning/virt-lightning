@@ -1,0 +1,10 @@
+DOWNLOAD_URL=${MIRROR_URL:-https://cloud.centos.org}/centos/8/x86_64/images/CentOS-8-GenericCloud-8.1.1911-20200113.3.x86_64.qcow2
+IMAGE_NAME=centos-8
+
+function prepare {
+    # https://bugs.centos.org/view.php?id=15426
+    virt-sysprep -a ${UPSTREAM_IMAGE_DIR}/${IMAGE_NAME}.qcow2 \
+        --run-command 'echo "" > /etc/resolv.conf' \
+        --run-command 'echo "UseDNS no" >> /etc/ssh/sshd_config' \
+        --selinux-relabel
+}
