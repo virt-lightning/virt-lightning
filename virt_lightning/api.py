@@ -97,7 +97,7 @@ def _start_domain(hv, host, context, configuration):
         network["mac"] = hv.reuse_mac_address(
             network["network"], host["name"], network.get("ipv4")
         )
-        domain.attachNetwork(**network)
+        domain.attach_network(**network)
     hv.start(domain, metadata_format=host.get("metadata_format", {}))
     return domain
 
@@ -107,7 +107,7 @@ def up(virt_lightning_yaml, configuration, context="default", **kwargs):
     Create a list of VM
     """
 
-    def myDomainEventAgentLifecycleCallback(conn, dom, state, reason, opaque):
+    def _lifecycle_callback(conn, dom, state, reason, opaque):  # noqa: N802
         if state == 1:
             logger.info("%s %s QEMU agent found", symbols.CUSTOMS.value, dom.name())
 
@@ -119,10 +119,7 @@ def up(virt_lightning_yaml, configuration, context="default", **kwargs):
 
     conn.setKeepAlive(5, 3)
     conn.domainEventRegisterAny(
-        None,
-        libvirt.VIR_DOMAIN_EVENT_ID_AGENT_LIFECYCLE,
-        myDomainEventAgentLifecycleCallback,
-        None,
+        None, libvirt.VIR_DOMAIN_EVENT_ID_AGENT_LIFECYCLE, _lifecycle_callback, None,
     )
 
     hv.init_network(configuration.network_name, configuration.network_cidr)
