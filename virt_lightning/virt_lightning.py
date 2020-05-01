@@ -12,7 +12,7 @@ import sys
 import tempfile
 import typing
 import uuid
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET  # noqa: N817
 
 import libvirt
 
@@ -429,7 +429,7 @@ class LibvirtHypervisor:
         else:  # OpenStack format is the default
             cloud_init_iso = self.prepare_cloud_init_openstack_iso(domain)
 
-        domain.attachDisk(cloud_init_iso, device="cdrom", disk_type="raw")
+        domain.attach_disk(cloud_init_iso, device="cdrom", disk_type="raw")
         domain.dom.create()
         self.remove_domain_from_network(domain)
         self.add_domain_to_network(domain)
@@ -795,7 +795,7 @@ class LibvirtDomain:
         )
         self.dom.setMemoryFlags(value, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
 
-    def getNextBlckDevice(self):
+    def get_next_block_device(self):
         if not hasattr(self, "blockdev"):
             self.blockdev = list(string.ascii_lowercase)
             self.blockdev.reverse()
@@ -840,14 +840,14 @@ class LibvirtDomain:
     def groups(self, value):
         self.record_metadata("groups", ",".join(value))
 
-    def attachDisk(self, volume, device="disk", disk_type="qcow2"):
+    def attach_disk(self, volume, device="disk", disk_type="qcow2"):
         if device == "cdrom":
             bus = "ide"
         elif self.distro.startswith("esxi"):
             bus = "sata"
         else:
             bus = "virtio"
-        device_name = self.getNextBlckDevice()
+        device_name = self.get_next_block_device()
         disk_root = ET.fromstring(DISK_XML)
         disk_root.attrib["device"] = device
         disk_root.findall("./driver")[0].attrib = {"name": "qemu", "type": disk_type}
@@ -857,7 +857,7 @@ class LibvirtDomain:
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
         return device_name
 
-    def attachNetwork(self, network=None, nic_model=None, ipv4=None, mac=None):
+    def attach_network(self, network=None, nic_model=None, ipv4=None, mac=None):
         if not nic_model:
             nic_model = self.default_nic_model
         net_root = ET.fromstring(BRIDGE_XML)
@@ -891,7 +891,7 @@ class LibvirtDomain:
             self.nics[i]["mac"] = iface.attrib["address"]
 
     def add_root_disk(self, root_disk_path):
-        self.attachDisk(root_disk_path)
+        self.attach_disk(root_disk_path)
 
     @property
     def ipv4(self):
