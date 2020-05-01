@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import collections
 from concurrent.futures import ThreadPoolExecutor
 import logging
 
@@ -239,14 +240,12 @@ def ansible_inventory(configuration, context="default", **kwargs):
     )
 
     output = ""
-    groups = {}
+    groups = collections.defaultdict(list)
     for domain in hv.list_domains():
         if domain.context != context:
             continue
 
         for group in domain.groups:
-            if group not in groups:
-                groups[group] = []
             groups[group].append(domain)
 
         template = ssh_cmd_template
