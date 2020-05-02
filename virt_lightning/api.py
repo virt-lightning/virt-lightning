@@ -31,6 +31,18 @@ symbols = get_symbols()
 MB = 1024 * 1000
 
 
+class VMNotFound(Exception):
+    pass
+
+
+class ImageNotFoundUpstream(Exception):
+    pass
+
+
+class ImageNotFoundLocally(Exception):
+    pass
+
+
 def _register_aio_virt_impl(loop):
     # Ensure we may call shell.up() multiple times
     # from the same asyncio program.
@@ -54,7 +66,7 @@ def _start_domain(hv, host, context, configuration):
         logger.info(
             "Please select on of the following distro: %s", hv.distro_available()
         )
-        exit()
+        raise ImageNotFoundLocally()
 
     if "name" not in host:
         host["name"] = re.sub(r"[^a-zA-Z0-9-]+", "", host["distro"])
@@ -218,7 +230,7 @@ def stop(configuration, **kwargs):
             logger.info("No VM called %s in: %s", kwargs["name"], ", ".join(vm_list))
         else:
             logger.info("No running VM.")
-        exit(1)
+        raise VMNotFound()
     hv.clean_up(domain)
 
 
@@ -401,10 +413,10 @@ def fetch(configuration, progress_callback=None, **kwargs):
                 kwargs["distro"],
             )
 
-            sys.exit(1)
+            raise ImageNotFoundUpstream()
         else:
             logger.exception(e)
-            sys.exit(1)
+            raise
     lenght = int(r.headers["Content-Length"])
     chunk_size = MB * 1
     target_file = pathlib.PosixPath(

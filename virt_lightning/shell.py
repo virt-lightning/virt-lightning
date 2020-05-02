@@ -310,11 +310,14 @@ Example:
             )
             print(line, end="")  # noqa: T001
 
-        virt_lightning.api.fetch(
-            configuration=configuration,
-            progress_callback=progress_callback,
-            **vars(args)
-        )
+        try:
+            virt_lightning.api.fetch(
+                configuration=configuration,
+                progress_callback=progress_callback,
+                **vars(args)
+            )
+        except virt_lightning.api.ImageNotFoundUpstream:
+            exit(1)
     else:
         action_func = getattr(virt_lightning.api, args.action)
         action_func(configuration=configuration, **vars(args))
