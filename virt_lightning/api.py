@@ -159,6 +159,8 @@ def up(virt_lightning_yaml, configuration, context="default", **kwargs):
         await asyncio.gather(*domain_reachable_futures)
 
     loop.run_until_complete(deploy())
+    if not kwargs.get("loop"):
+        loop.close()
     logger.info("%s You are all set", symbols.THUMBS_UP.value)
 
 
@@ -177,7 +179,7 @@ def start(configuration, context="default", enable_console=False, **kwargs):
     if not domain:
         return
 
-    loop = asyncio.get_event_loop()
+    loop = kwargs.get("loop") or asyncio.get_event_loop()
 
     if enable_console:
         import time
@@ -201,6 +203,8 @@ def start(configuration, context="default", enable_console=False, **kwargs):
         await domain.reachable()
 
     loop.run_until_complete(deploy())
+    if not kwargs.get("loop"):
+        loop.close()
     logger.info(  # noqa: T001
         (
             "\033[0m\n**** System is online ****\n"
