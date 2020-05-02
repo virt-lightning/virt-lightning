@@ -129,7 +129,7 @@ def up(virt_lightning_yaml, configuration, context="default", **kwargs):
     conn = libvirt.open(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
 
-    conn.setKeepAlive(5, 3)
+    conn.setKeepAlive(interval=5, count=3)
     conn.domainEventRegisterAny(
         None, libvirt.VIR_DOMAIN_EVENT_ID_AGENT_LIFECYCLE, _lifecycle_callback, None,
     )
