@@ -32,11 +32,13 @@ MB = 1024 * 1000
 
 
 class VMNotFound(Exception):
-    pass
+    def __init__(self, name):
+        self.name = name
 
 
 class ImageNotFoundUpstream(Exception):
-    pass
+    def __init__(self, name):
+        self.name = name
 
 
 class ImageNotFoundLocally(Exception):
@@ -62,15 +64,13 @@ _register_aio_virt_impl.__dict__["aio_virt_bindinds"] = {}
 
 
 def _start_domain(hv, host, context, configuration):
-    if host["distro"] not in hv.distro_available():
-        logger.error("distro not available: %s", host["distro"])
-        logger.info(
-            "Please select on of the following distro: %s", hv.distro_available()
-        )
-        raise ImageNotFoundLocally(host["distro"])
+    distro = host["distro"]
+    if distro not in hv.distro_available():
+        logger.debug("distro not available: %s", distro)
+        raise ImageNotFoundLocally(distro)
 
     if "name" not in host:
-        host["name"] = re.sub(r"[^a-zA-Z0-9-]+", "", host["distro"])
+        host["name"] = re.sub(r"[^a-zA-Z0-9-]+", "", distro)
 
     if hv.get_domain_by_name(host["name"]):
         logger.info("Skipping {name}, already here.".format(**host))
@@ -92,13 +92,11 @@ def _start_domain(hv, host, context, configuration):
         "default_nic_mode": host.get("default_nic_model"),
         "bootcmd": host.get("bootcmd"),
     }
-    domain = hv.create_domain(name=host["name"], distro=host["distro"])
+    domain = hv.create_domain(name=host["name"], distro=distro)
     hv.configure_domain(domain, user_config)
     domain.context = context
     root_disk_path = hv.create_disk(
-        name=host["name"],
-        backing_on=host["distro"],
-        size=host.get("root_disk_size", 15),
+        name=host["name"], backing_on=distro, size=host.get("root_disk_size", 15),
     )
     domain.add_root_disk(root_disk_path)
     networks = host.get("networks", [{}])
@@ -231,10 +229,12 @@ def stop(configuration, **kwargs):
     if not domain:
         vm_list = [d.name for d in hv.list_domains()]
         if vm_list:
-            logger.info("No VM called %s in: %s", kwargs["name"], ", ".join(vm_list))
+            logger.info(
+                "No VM called %s in: %s", kwargs.get("name"), ", ".join(vm_list)
+            )
         else:
             logger.info("No running VM.")
-        raise VMNotFound()
+        raise VMNotFound(kwargs["name"])
     hv.clean_up(domain)
 
 
@@ -418,16 +418,7 @@ def fetch(configuration, progress_callback=None, **kwargs):
         )
     except urllib.error.HTTPError as e:
         if e.code == 404:
-            logger.error(
-                (
-                    "Distro %s not found!\n"
-                    "Visit https://virt-lightning.org/images/ "
-                    "to get an up to date list."
-                ),
-                kwargs["distro"],
-            )
-
-            raise ImageNotFoundUpstream()
+            raise ImageNotFoundUpstream(kwargs["distro"])
         else:
             logger.exception(e)
             raise
