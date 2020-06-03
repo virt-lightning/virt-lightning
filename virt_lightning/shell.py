@@ -317,6 +317,22 @@ Example:
                 **vars(args)
             )
         except virt_lightning.api.ImageNotFoundUpstream:
+            print(
+                (
+                    "Distro {} cannot be downloaded.\n"
+                    "  Visit https://virt-lightning.org/images/ "
+                    "to get an up to date list."
+                ).format(args.distro)
+            )
+            exit(1)
+    elif args.action in ["up", "start"]:
+        action_func = getattr(virt_lightning.api, args.action)
+        try:
+            action_func(configuration=configuration, **vars(args))
+        except virt_lightning.api.ImageNotFoundLocally as e:
+            print("Image not found locally: {}".format(e.name))
+            print("  Use `vl distro_list` to list local images.")
+            print("  Use `vl fetch foo` to download an image.")
             exit(1)
     elif args.action == "start":
         domain = virt_lightning.api.start(configuration, **vars(args))
