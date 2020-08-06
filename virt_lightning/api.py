@@ -163,7 +163,9 @@ def up(virt_lightning_yaml, configuration, context="default", **kwargs):
     logger.info("%s You are all set", symbols.THUMBS_UP.value)
 
 
-def start(configuration, context="default", enable_console=False, **kwargs):
+def start(
+    configuration, context="default", enable_console=False, console_fd=None, **kwargs
+):
     """
     Start a single VM
     """
@@ -183,16 +185,18 @@ def start(configuration, context="default", enable_console=False, **kwargs):
     if enable_console:
         import time
 
+        if console_fd is None:
+            console_fd = sys.stdout
+
         time.sleep(4)
         stream = conn.newStream(libvirt.VIR_STREAM_NONBLOCK)
         console = domain.dom.openConsole(None, stream, 0)
 
-        loop = kwargs.get("loop") or asyncio.get_event_loop()
-        _register_aio_virt_impl(loop)
+        _register_aio_virt_impl(loop=kwargs.get("loop"))
 
         def stream_callback(stream, events, _):
-            content = stream.recv(1024).decode()
-            sys.stdout.write(content)
+            content = stream.recv(1024 * 1024).decode("utf-8", errors="ignore")
+            console_fd.write(content)
 
         stream.eventAddCallback(
             libvirt.VIR_STREAM_EVENT_READABLE, stream_callback, console
