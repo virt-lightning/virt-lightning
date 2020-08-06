@@ -303,7 +303,7 @@ Example:
 
         def progress_callback(cur, lenght):
             percent = (cur * 100) / lenght
-            line = "[{percent:06.2f}%]  {done:6}MB/{full}MB\r".format(
+            line = "🌍 ➡️  💻 [{percent:06.2f}%]  {done:6}MB/{full}MB\r".format(
                 percent=percent,
                 done=int(cur / virt_lightning.api.MB),
                 full=int(lenght / virt_lightning.api.MB),
