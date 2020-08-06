@@ -40,7 +40,8 @@ class ImageNotFoundUpstream(Exception):
 
 
 class ImageNotFoundLocally(Exception):
-    pass
+    def __init__(self, name):
+        self.name = name
 
 
 def _register_aio_virt_impl(loop):
@@ -66,7 +67,7 @@ def _start_domain(hv, host, context, configuration):
         logger.info(
             "Please select on of the following distro: %s", hv.distro_available()
         )
-        raise ImageNotFoundLocally()
+        raise ImageNotFoundLocally(host["distro"])
 
     if "name" not in host:
         host["name"] = re.sub(r"[^a-zA-Z0-9-]+", "", host["distro"])
