@@ -216,8 +216,7 @@ def start(configuration, context="default", enable_console=False, **kwargs):
         domain.name,
         domain.name,
     )
-    if kwargs.get("ssh"):
-        domain.exec_ssh()
+    return domain
 
 
 def stop(configuration, **kwargs):

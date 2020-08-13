@@ -318,6 +318,10 @@ Example:
             )
         except virt_lightning.api.ImageNotFoundUpstream:
             exit(1)
+    elif args.action == "start":
+        domain = virt_lightning.api.start(configuration, **vars(args))
+        if args.ssh:
+            domain.exec_ssh()
     else:
         try:
             action_func = getattr(virt_lightning.api, args.action)
