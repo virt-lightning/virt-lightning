@@ -318,6 +318,19 @@ Example:
             )
         except virt_lightning.api.ImageNotFoundUpstream:
             exit(1)
+    elif args.action == "start":
+        domain = virt_lightning.api.start(configuration, **vars(args))
+        if args.ssh:
+            domain.exec_ssh()
     else:
-        action_func = getattr(virt_lightning.api, args.action)
-        action_func(configuration=configuration, **vars(args))
+        try:
+            action_func = getattr(virt_lightning.api, args.action)
+            action_func(configuration=configuration, **vars(args))
+        except virt_lightning.api.ImageNotFoundLocally as e:
+            print(
+                (
+                    "ℹ️ You may be able to download the image with the "
+                    "`vl fetch {name}` command."
+                ).format(name=e.name)
+            )
+            exit(1)
