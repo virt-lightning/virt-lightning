@@ -40,7 +40,8 @@ class ImageNotFoundUpstream(Exception):
 
 
 class ImageNotFoundLocally(Exception):
-    pass
+    def __init__(self, name):
+        self.name = name
 
 
 def _register_aio_virt_impl(loop):
@@ -66,7 +67,7 @@ def _start_domain(hv, host, context, configuration):
         logger.info(
             "Please select on of the following distro: %s", hv.distro_available()
         )
-        raise ImageNotFoundLocally()
+        raise ImageNotFoundLocally(host["distro"])
 
     if "name" not in host:
         host["name"] = re.sub(r"[^a-zA-Z0-9-]+", "", host["distro"])
@@ -159,8 +160,6 @@ def up(virt_lightning_yaml, configuration, context="default", **kwargs):
         await asyncio.gather(*domain_reachable_futures)
 
     loop.run_until_complete(deploy())
-    if not kwargs.get("loop"):
-        loop.close()
     logger.info("%s You are all set", symbols.THUMBS_UP.value)
 
 
@@ -207,8 +206,6 @@ def start(
         await domain.reachable()
 
     loop.run_until_complete(deploy())
-    if not kwargs.get("loop"):
-        loop.close()
     logger.info(  # noqa: T001
         (
             "\033[0m\n**** System is online ****\n"
@@ -219,8 +216,7 @@ def start(
         domain.name,
         domain.name,
     )
-    if kwargs.get("ssh"):
-        domain.exec_ssh()
+    return domain
 
 
 def stop(configuration, **kwargs):
