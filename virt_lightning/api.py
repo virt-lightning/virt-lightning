@@ -67,10 +67,6 @@ _register_aio_virt_impl.__dict__["aio_virt_bindinds"] = {}
 
 def _start_domain(hv, host, context, configuration):
     distro = host["distro"]
-    if distro not in hv.distro_available():
-        logger.debug("distro not available: %s", distro)
-        raise ImageNotFoundLocally(distro)
-
     if "name" not in host:
         host["name"] = re.sub(r"[^a-zA-Z0-9-]+", "", distro)
 
@@ -115,6 +111,14 @@ def _start_domain(hv, host, context, configuration):
     return domain
 
 
+def _ensure_image_exists(hv, hosts):
+    for host in hosts:
+        distro = host.get("distro")
+        if distro not in hv.distro_available():
+            logger.debug("distro not available: %s", distro)
+            raise ImageNotFoundLocally(distro)
+
+
 def up(virt_lightning_yaml, configuration, context="default", **kwargs):
     """
     Create a list of VM
@@ -138,6 +142,7 @@ def up(virt_lightning_yaml, configuration, context="default", **kwargs):
     hv.init_network(configuration.network_name, configuration.network_cidr)
     hv.init_storage_pool(configuration.storage_pool)
 
+    _ensure_image_exists(hv, virt_lightning_yaml)
     pool = ThreadPoolExecutor(max_workers=10)
 
     async def deploy():
@@ -176,6 +181,7 @@ def start(
     host = {
         k: kwargs[k] for k in ["name", "distro", "memory", "vcpus"] if kwargs.get(k)
     }
+    _ensure_image_exists(hv, [host])
     domain = _start_domain(hv, host, context, configuration)
     if not domain:
         return
