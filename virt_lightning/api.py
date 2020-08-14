@@ -18,6 +18,8 @@ from virt_lightning.symbols import get_symbols
 
 import virt_lightning.virt_lightning as vl
 
+BASE_URL = "https://virt-lightning.org"
+
 logger = logging.getLogger("virt_lightning")
 
 
@@ -414,7 +416,7 @@ def fetch(configuration, progress_callback=None, **kwargs):
 
     try:
         r = urllib.request.urlopen(
-            "https://virt-lightning.org/images/{distro}/{distro}.qcow2".format(**kwargs)
+            BASE_URL + "/images/{distro}/{distro}.qcow2".format(**kwargs)
         )
     except urllib.error.HTTPError as e:
         if e.code == 404:
@@ -446,7 +448,7 @@ def fetch(configuration, progress_callback=None, **kwargs):
     temp_file.rename(target_file)
     try:
         r = urllib.request.urlopen(
-            "https://virt-lightning.org/images/{distro}/{distro}.yaml".format(**kwargs)
+            BASE_URL + "/images/{distro}/{distro}.yaml".format(**kwargs)
         )
     except urllib.error.HTTPError as e:
         if e.code == 404:
