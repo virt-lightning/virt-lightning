@@ -320,9 +320,9 @@ Example:
             print(
                 (
                     "Distro {} cannot be downloaded.\n"
-                    "  Visit https://virt-lightning.org/images/ "
+                    "  Visit {} "
                     "to get an up to date list."
-                ).format(args.distro)
+                ).format(args.distro, virt_lightning.api.BASE_URL)
             )
             exit(1)
     elif args.action in ["up", "start"]:
