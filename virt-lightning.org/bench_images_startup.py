@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
 
 import io
+import logging
 import time
 import yaml
 import pathlib
 import virt_lightning.api as vla
 from virt_lightning.configuration import Configuration
 
-number_of_runs = 10
+logger = logging.getLogger("virt_lightning")
+logger.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+logger.addHandler(ch)
+
+
+number_of_runs = 1
 
 index_md = pathlib.Path("www/images/index.md")
 
@@ -34,5 +41,5 @@ for distro in distros:
         vla.start(configuration=configuration, distro=distro, enable_console=True, console_fd=my_fd) 
         elapsed_time = time.time() - start_time
         sum += elapsed_time
-        print("distro={distro}, elapsed_time={elapsed_time:06.2f}".format(distro=distro, elapsed_time=elapsed_time))
+        print("- elapsed_time={elapsed_time:06.2f}".format(distro=distro, elapsed_time=elapsed_time))
     print("FINAL distro={distro}: {result}".format(distro=distro, result=sum/number_of_runs))
