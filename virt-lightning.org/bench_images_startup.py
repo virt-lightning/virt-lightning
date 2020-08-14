@@ -41,5 +41,5 @@ for distro in distros:
         vla.start(configuration=configuration, distro=distro, enable_console=True, console_fd=my_fd) 
         elapsed_time = time.time() - start_time
         sum += elapsed_time
-        print("- elapsed_time={elapsed_time:06.2f}".format(distro=distro, elapsed_time=elapsed_time))
+        print("- elapsed_time={elapsed_time:06.2f}".format(elapsed_time=elapsed_time))
     print("FINAL distro={distro}: {result}".format(distro=distro, result=sum/number_of_runs))
