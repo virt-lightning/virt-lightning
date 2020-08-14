@@ -431,6 +431,10 @@ def fetch(configuration, progress_callback=None, **kwargs):
         else:
             logger.exception(e)
             raise
+    last_modified = r.headers["Last-Modified"]
+    logger.debug("Date: %s", last_modified)
+    size = r.headers["Content-Length"]
+    logger.debug("Size: %s", size)
     lenght = int(r.headers["Content-Length"])
     chunk_size = MB * 1
     target_file = pathlib.PosixPath(
@@ -440,9 +444,7 @@ def fetch(configuration, progress_callback=None, **kwargs):
     )
     temp_file = target_file.with_suffix(".temp")
     if target_file.exists():
-        logger.info(
-            "File already exists: {target_file}".format(target_file=target_file)
-        )
+        logger.info("File already exists: %s", target_file)
         return
     with temp_file.open("wb") as fd:
         while fd.tell() < lenght:
