@@ -148,9 +148,9 @@ class LibvirtHypervisor:
         )
         if not distro_configuration_file.exists():
             return {}
-        config: dict = yaml.load(
-            distro_configuration_file.open("r"), Loader=yaml.SafeLoader
-        ) or {}
+        config: dict = (
+            yaml.load(distro_configuration_file.open("r"), Loader=yaml.SafeLoader) or {}
+        )
         return config
 
     def list_domains(self):
