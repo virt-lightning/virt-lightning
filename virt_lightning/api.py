@@ -94,7 +94,9 @@ def _start_domain(hv, host, context, configuration):
     hv.configure_domain(domain, user_config)
     domain.context = context
     root_disk_path = hv.create_disk(
-        name=host["name"], backing_on=distro, size=host.get("root_disk_size", 15),
+        name=host["name"],
+        backing_on=distro,
+        size=host.get("root_disk_size", 15),
     )
     domain.add_root_disk(root_disk_path)
     networks = host.get("networks", [{}])
@@ -136,7 +138,10 @@ def up(virt_lightning_yaml, configuration, context="default", **kwargs):
 
     conn.setKeepAlive(interval=5, count=3)
     conn.domainEventRegisterAny(
-        None, libvirt.VIR_DOMAIN_EVENT_ID_AGENT_LIFECYCLE, _lifecycle_callback, None,
+        None,
+        libvirt.VIR_DOMAIN_EVENT_ID_AGENT_LIFECYCLE,
+        _lifecycle_callback,
+        None,
     )
 
     hv.init_network(configuration.network_name, configuration.network_cidr)
