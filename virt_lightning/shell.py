@@ -101,15 +101,11 @@ Example:
     def list_from_yaml_file(value):
         file_path = pathlib.PosixPath(value)
         if not file_path.exists():
-            raise argparse.ArgumentTypeError(
-                "{path} does not exist.".format(path=value)
-            )
+            raise argparse.ArgumentTypeError(f"{value} does not exist.")
         with file_path.open(encoding="UTF-8") as fd:
             content = yaml.safe_load(fd.read())
             if not isinstance(content, list):
-                raise argparse.ArgumentTypeError(
-                    "{path} should be a YAML list.".format(path=value)
-                )
+                raise argparse.ArgumentTypeError(f"{value} should be a YAML list.")
             return content
 
     vl_lightning_yaml_args = {
@@ -285,7 +281,7 @@ Example:
                 output_template.format(
                     computer=symbols.COMPUTER.value,
                     arrow=symbols.RIGHT_ARROW.value,
-                    **v
+                    **v,
                 )
             )
     elif args.action == "ssh":
@@ -314,15 +310,13 @@ Example:
             virt_lightning.api.fetch(
                 configuration=configuration,
                 progress_callback=progress_callback,
-                **vars(args)
+                **vars(args),
             )
         except virt_lightning.api.ImageNotFoundUpstream:
-            print(
-                (
-                    "Distro {} cannot be downloaded.\n"
-                    "  Visit {} "
-                    "to get an up to date list."
-                ).format(args.distro, virt_lightning.api.BASE_URL)
+            print(  # noqa: T001
+                f"Distro {args.distro} cannot be downloaded.\n"
+                f"  Visit {virt_lightning.api.BASE_URL} "
+                "to get an up to date list."
             )
             exit(1)
     elif args.action in ["up", "start"]:
@@ -330,9 +324,9 @@ Example:
         try:
             action_func(configuration=configuration, **vars(args))
         except virt_lightning.api.ImageNotFoundLocally as e:
-            print("Image not found locally: {}".format(e.name))
-            print("  Use `vl distro_list` to list local images.")
-            print("  Use `vl fetch foo` to download an image.")
+            print(f"Image not found locally: {e.name}")  # noqa: T001
+            print("  Use `vl distro_list` to list local images.")  # noqa: T001
+            print("  Use `vl fetch foo` to download an image.")  # noqa: T001
             exit(1)
     elif args.action == "start":
         domain = virt_lightning.api.start(configuration, **vars(args))
@@ -343,7 +337,7 @@ Example:
             action_func = getattr(virt_lightning.api, args.action)
             action_func(configuration=configuration, **vars(args))
         except virt_lightning.api.ImageNotFoundLocally as e:
-            print(
+            print(  # noqa: T001
                 (
                     "ℹ️ You may be able to download the image with the "
                     "`vl fetch {name}` command."
