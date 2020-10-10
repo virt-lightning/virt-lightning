@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2019 Red Hat, Inc
+# Copyright (C) 2020 Gonéri Le Bouder
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -39,7 +40,7 @@ def _get_readme():
 
 setuptools.setup(
     name="virt-lightning",
-    version="1.2.0",
+    version="2.0.0",
     packages=setuptools.find_packages(),
     author="Gonéri Le Bouder",
     author_email="goneri@lebouder.net",
