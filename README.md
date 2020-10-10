@@ -63,20 +63,6 @@ sudo usermod -a -G qemu,libvirt $USER
 ```
 
 
-### Ubuntu-16.04
-
-First you need to install libvirt and guestfs:
-```shell
-sudo apt install -f libvirt-bin libvirt-daemon python3 python3-libvirt python3-pip python3-urwid
-sudo systemctl start --now libvirtd
-```
-
-The second step is to grant to your user the ability to use libvirt:
-```shell
-sudo usermod -a -G kvm,libvirtd $USER
-```
-
-
 ### Ubuntu-18.04
 
 First you need to install libvirt and guestfs:
@@ -155,7 +141,7 @@ Before you start your first VM, you need to fetch the images. To do so,
 you just use the `vm fetch` command:
 
 ```shell
-$ vl fetch fedora-30
+$ vl fetch fedora-32
 ```
 
 ## Build your images

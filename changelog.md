@@ -4,6 +4,10 @@ Main change is the introduction of the api module. It exposes a public API.
 
 - api.py: new public API module
 - shell.py: consume `api.py`
+- `attachNetwork()` is now called `attach_network()`
+- `getNextBlckDevice()` is now `get_next_block_device()`
+- `attachDisk()` is now `attach_disk()`
+- the `mac_address()` method has been remove method has been removedd
 
 # 1.1.0
 
