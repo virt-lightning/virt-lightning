@@ -315,7 +315,7 @@ Example:
         except virt_lightning.api.ImageNotFoundUpstream:
             print(  # noqa: T001
                 f"Distro {args.distro} cannot be downloaded.\n"
-                f"  Visit {virt_lightning.api.BASE_URL} "
+                f"  Visit {virt_lightning.api.BASE_URL}/images/ "
                 "to get an up to date list."
             )
             exit(1)
