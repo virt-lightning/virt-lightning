@@ -144,24 +144,6 @@ you just use the `vm fetch` command:
 $ vl fetch fedora-32
 ```
 
-## Build your images
-
-If you prefer to build your own images,
-
-```shell
-$ git clone https://github.com/virt-lightning/virt-lightning
-$ cd virt-lightning/images
-$ ./image centos-7 build
-$ ./image debian-9 build
-(…)
-```
-
-Ubuntu requires the use *sudo* to build or prepare images.
-
-You can also use your own images as soon as they embed cloud-init, just copy them in the QCOW2
-format in /var/lib/virt-lightning/pool/upstream/. It's also a good idea to include qemu-guest-agent,
-virt-lightning uses it to set the root password and it offers some other benefits.
-
 # Actions
 
 `vl` is an alias for `virt-lightning`, you can us both. In the rest of the document
