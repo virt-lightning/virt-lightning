@@ -9,7 +9,7 @@ trigger:
 jobs:
   - job: "pytest"
     pool:
-      vmImage: 'ubuntu-latest'
+      vmImage: 'ubuntu-20.04'
     strategy:
       matrix:
         Python36:
@@ -28,7 +28,7 @@ jobs:
 
     - script: |
         sudo apt update
-        sudo apt install -y libvirt-bin libvirt-daemon libvirt-dev
+        sudo apt install -y libvirt-daemon libvirt-dev
       displayName: Install libvirt dependencies
 
     - script: |
