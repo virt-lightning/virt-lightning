@@ -286,7 +286,7 @@ Example:
             )
     elif args.action == "ssh":
         if args.name:
-            virt_lightning.api.exec_ssh(args.name)
+            virt_lightning.api.exec_ssh(configuration=configuration, name=args.name)
 
         def go_ssh(domain):
             domain.exec_ssh()
