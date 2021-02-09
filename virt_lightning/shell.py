@@ -284,6 +284,10 @@ Example:
                     **v,
                 )
             )
+    elif args.action == "console":
+        console(configuration=configuration, name=args.name)
+    elif args.action == "viewer":
+        viewer(configuration=configuration, name=args.name)
     elif args.action == "ssh":
         if args.name:
             virt_lightning.api.exec_ssh(args.name)
