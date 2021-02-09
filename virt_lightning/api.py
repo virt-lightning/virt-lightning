@@ -356,7 +356,10 @@ def exec_ssh(configuration, name=None, **kwargs):
     """
     conn = libvirt.open(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
-    hv.get_domain_by_name(name).exec_ssh()
+    domain = hv.get_domain_by_name(name)
+    if not domain:
+        raise VMNotFound(name)
+    domain.exec_ssh()
 
 
 def list_domains(configuration, name=None, **kwargs):
