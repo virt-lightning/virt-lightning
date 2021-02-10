@@ -1,3 +1,4 @@
+- amazon2-20210126.0
 - centos-6
 - centos-7
 - centos-8
