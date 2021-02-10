@@ -3,6 +3,7 @@
 import ipaddress
 import getpass
 import logging
+import math
 import os
 import pathlib
 import re
@@ -61,6 +62,7 @@ def run_cmd(cmd, cwd=None):
     outs, errs = proc.communicate()
     if proc.returncode != 0:
         raise Exception("A command has failed: ", outs, errs)
+    return outs
 
 
 class LibvirtHypervisor:
@@ -193,26 +195,43 @@ class LibvirtHypervisor:
         disk_source = root.find("./target/path")
         return pathlib.PosixPath(disk_source.text)
 
-    def create_disk(self, name, size=None, backing_on=None):
-        if "/" in name:
-            raise TypeError
-        if not size:
-            size = 20
-        disk_path = pathlib.PosixPath(
-            "{path}/{name}.qcow2".format(path=self.get_storage_dir(), name=name)
-        )
-        logger.debug("create_disk: %s (%dGB)", str(disk_path), size)
-        root = ET.fromstring(STORAGE_VOLUME_XML)
-        root.find("./name").text = disk_path.name
-        root.find("./capacity").text = str(size)
-        root.find("./target/path").text = str(disk_path)
+    def get_qcow_virtual_size(self, qcow_path):
+        qemu_img_info = run_cmd(["qemu-img", "info", "--output=json", str(qcow_path)])
+        return math.ceil(json.loads(qemu_img_info)["virtual-size"] / 1024 ** 3)
 
+    def create_disk(self, name, size=None, backing_on=None):
+        backing_file = None
+        min_size = 0
         if backing_on:
             backing_file = pathlib.PosixPath(
                 "{path}/upstream/{backing_on}.qcow2".format(
                     path=self.get_storage_dir(), backing_on=backing_on
                 )
             )
+            min_size = self.get_qcow_virtual_size(backing_file)
+        disk_path = pathlib.PosixPath(
+            "{path}/{name}.qcow2".format(path=self.get_storage_dir(), name=name)
+        )
+
+        if "/" in name:
+            raise TypeError
+        if not size:
+            size = 20
+        if size < min_size:
+            size = min_size
+            logger.debug(
+                "Increasing the size of the image to match the backing image size: %s (%dGB)",
+                str(disk_path),
+                size,
+            )
+
+        logger.debug("create_disk: %s (%dGB)", str(disk_path), size)
+        root = ET.fromstring(STORAGE_VOLUME_XML)
+        root.find("./name").text = disk_path.name
+        root.find("./capacity").text = str(size)
+        root.find("./target/path").text = str(disk_path)
+
+        if backing_file:
             backing = ET.SubElement(root, "backingStore")
             ET.SubElement(backing, "path").text = str(backing_file)
             ET.SubElement(backing, "format").attrib = {"type": "qcow2"}
