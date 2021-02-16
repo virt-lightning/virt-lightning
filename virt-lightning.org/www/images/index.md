@@ -22,4 +22,5 @@
 - ubuntu-16.04
 - ubuntu-18.04
 - ubuntu-20.04
+- ubuntu-21.04
 - opensuse-leap-15.2
