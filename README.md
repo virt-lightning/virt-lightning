@@ -33,91 +33,10 @@ In the video below, we:
 
 ## Pre-requirements
 
-
-
-### Debian
-
-First you need to install libvirt and guestfs:
-```shell
-sudo apt install -f libvirt-daemon libvirt-daemon-system python3 python3-libvirt python3-pip python3-urwid
-sudo systemctl start --now libvirtd
-```
-
-The second step is to grant to your user the ability to use libvirt:
-```shell
-sudo usermod -a -G kvm,libvirt,libvirt-qemu $USER
-```
-
-
-### Fedora-29 and after
-
-First you need to install libvirt and guestfs:
-```shell
-sudo dnf install -f libselinux-python libvirt libvirt-daemon python3 python3-libvirt python3-pip python3-urwid
-sudo systemctl start --now libvirtd
-```
-
-The second step is to grant to your user the ability to use libvirt:
-```shell
-sudo usermod -a -G qemu,libvirt $USER
-```
-
-
-### Ubuntu-18.04
-
-First you need to install libvirt and guestfs:
-```shell
-sudo apt install -f libvirt-bin libvirt-daemon python3 python3-libvirt python3-pip python3-urwid
-sudo systemctl start --now libvirtd
-```
-
-The second step is to grant to your user the ability to use libvirt:
-```shell
-sudo usermod -a -G kvm,libvirt $USER
-```
-
-
-### Ubuntu-18.10 and after
-
-First you need to install libvirt and guestfs:
-```shell
-sudo apt install -f libvirt-daemon libvirt-daemon-system python3 python3-libvirt python3-pip python3-urwid
-sudo systemctl start --now libvirtd
-```
-
-The second step is to grant to your user the ability to use libvirt:
-```shell
-sudo usermod -a -G kvm,libvirt $USER
-```
-
-### RHEL-8
-
-First you need to install libvirt and guestfs:
-```shell
-sudo apt install -f python3-libvirt libvirt qemu-kvm libvirt-daemon-kvm genisoimage
-sudo systemctl start --now libvirtd
-```
-
-The second step is to grant to your user the ability to use libvirt:
-```shell
-sudo usermod -a -G libvirt $USER
-```
-
-### Void Linux
-
-First you need to install libvirt and guestfs:
-```shell
-sudo xbps-install -Rs libvirt libvirt-python3 qemu python3-pip cdrtools dbus
-sudo ln -s /etc/sv/dbus /var/service
-sudo ln -s /etc/sv/libvirtd /var/service
-sudo ln -s /etc/sv/virtlockd /var/service
-sudo ln -s /etc/sv/virtlogd /var/service
-```
-
-The second step is to grant to your user the ability to use libvirt:
-```shell
-sudo usermod -a -G kvm,libvirt $USER
-```
+- The Python3 binding for libvirt, the package is probably called `python3-libvirt`.
+- You make also want to install `python3-urwid` if you want to get the fancy list of VM. This dependency is optional.
+- Libvirt must be running, most of the time you just need to run: `sudo systemctl start --now libvirtd`
+- Finally, be sure your user can access the system libvirt daemon, e.g with: `virsh -c qemu:///system`
 
 ## Installation
 
