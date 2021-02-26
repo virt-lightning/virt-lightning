@@ -1,3 +1,13 @@
+# 2.0.1
+
+Minor release.
+
+- Deprecate the manual build of the images
+- When an image is missing, the error show up an URL pointing on a list of
+  excepted image names
+- fix the ssh and console parameters
+- properly handle large master image by raising the size of the backing file
+
 # 2.0.0
 
 Main change is the introduction of the api module. It exposes a public API.
