@@ -33,7 +33,7 @@ for distro in distros:
             print("Image not found")
             continue
     log_file = log_dir / (distro + ".log")
-    sum = 0
+    sum = .0
     for i in range(number_of_runs):
         my_fd = log_file.open("w")
         vla.down(configuration)
