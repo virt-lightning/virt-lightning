@@ -1,3 +1,4 @@
+- amazon2-20210126.0
 - centos-6
 - centos-7
 - centos-8
@@ -21,4 +22,5 @@
 - ubuntu-16.04
 - ubuntu-18.04
 - ubuntu-20.04
+- ubuntu-21.04
 - opensuse-leap-15.2
