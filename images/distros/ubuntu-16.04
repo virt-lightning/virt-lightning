@@ -1,7 +1,0 @@
-DOWNLOAD_URL=${MIRROR_URL:-https://cloud-images.ubuntu.com}/xenial/current/xenial-server-cloudimg-amd64-disk1.img
-IMAGE_NAME=ubuntu-16.04
-
-function prepare {
-    virt-sysprep -a ${UPSTREAM_IMAGE_DIR}/${IMAGE_NAME}.qcow2 \
-        --network --run-command 'echo "nameserver 169.254.2.3" > /etc/resolv.conf && apt update && apt install -y qemu-guest-agent python'
-}
