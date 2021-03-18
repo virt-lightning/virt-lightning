@@ -262,6 +262,7 @@ def ansible_inventory(configuration, context="default", **kwargs):
         "{name} ansible_host={ipv4} ansible_user={username} "
         "ansible_python_interpreter={python_interpreter} "
         'ansible_ssh_common_args="-o UserKnownHostsFile=/dev/null '
+        "-o GSSAPIAuthentication=no -o GSSAPIKeyExchange=no "
         '-o StrictHostKeyChecking=no"\n'
     )
 
