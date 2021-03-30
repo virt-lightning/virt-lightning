@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 import logging
 
 import asyncio
+import ipaddress
 import libvirt
 import re
 import pathlib
@@ -105,9 +106,11 @@ def _start_domain(hv, host, context, configuration):
             network["network"] = configuration.network_name
         if i == 0 and not network.get("ipv4"):
             network["ipv4"] = hv.get_free_ipv4()
-        network["mac"] = hv.reuse_mac_address(
-            network["network"], host["name"], network.get("ipv4")
-        )
+        ipv4 = network.get("ipv4")
+        if ipv4:
+            network["mac"] = hv.reuse_mac_address(
+                network["network"], host["name"], ipaddress.ip_interface(ipv4)
+            )
         domain.attach_network(**network)
     hv.start(domain, metadata_format=host.get("metadata_format", {}))
     return domain
