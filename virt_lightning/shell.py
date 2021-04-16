@@ -82,7 +82,7 @@ def main():
 
     usage = """
 usage: vl [--debug DEBUG] [--config CONFIG]
-          {up,down,start,distro_list,storage_dir,ansible_inventory,ssh_config,console,viewer} ..."""
+          {up,down,start,distro_list,storage_dir,ansible_inventory,ssh_config,console,viewer,custom_config} ..."""
     example = """
 Example:
 
@@ -114,7 +114,6 @@ Example:
         "type": list_from_yaml_file,
         "dest": "virt_lightning_yaml",
     }
-
     context_args = {
         "default": "default",
         "help": "alternative context (default: %(default)s)",
@@ -230,6 +229,35 @@ Example:
     )
     fetch_parser.add_argument("distro", help="Name of the VM image", type=str)
 
+    # custom configuration parser
+    config_view_parser = action_subparsers.add_parser(
+        "custom_config_view",
+        help="custom configuration file display",
+        parents=[parent_parser]
+    )
+    config_view_parser.add_argument("--output",
+        dest="output",
+        help="output format for json configuration (default is yaml)",
+        choices=[ 'json', 'yaml' ],
+        default="yaml",
+        type=str)
+    config_update_parser = action_subparsers.add_parser(
+        "custom_config_add",
+        help="add new elements into custom configuration",
+        parents=[parent_parser]
+    )
+    config_update_parser.add_argument("--name",
+            dest="name",
+            help="name of the configuration item",
+            choices=[ 'images_url' ],
+            type=str)
+    def custom_config_value(value) :
+        return [ k for k in value.split(',') if not k == '' ]
+    config_update_parser.add_argument("--value",
+            dest="value",
+            help="comma-separated list of items to add into the configuration items",
+            type=custom_config_value)
+
     args = main_parser.parse_args()
     if not args.action:
         print(title)  # noqa: T001
@@ -301,12 +329,12 @@ Example:
         )
     elif args.action == "fetch":
 
-        def progress_callback(cur, lenght):
-            percent = (cur * 100) / lenght
+        def progress_callback(cur, length):
+            percent = (cur * 100) / length
             line = "🌍 ➡️  💻 [{percent:06.2f}%]  {done:6}MB/{full}MB\r".format(
                 percent=percent,
                 done=int(cur / virt_lightning.api.MB),
-                full=int(lenght / virt_lightning.api.MB),
+                full=int(length / virt_lightning.api.MB),
             )
             print(line, end="")  # noqa: T001
 
@@ -319,7 +347,7 @@ Example:
         except virt_lightning.api.ImageNotFoundUpstream:
             print(  # noqa: T001
                 f"Distro {args.distro} cannot be downloaded.\n"
-                f"  Visit {virt_lightning.api.BASE_URL}/images/ "
+                f"  Visit {virt_lightning.api.BASE_URL}/images/ or private image hub"
                 "to get an up to date list."
             )
             exit(1)
@@ -328,14 +356,19 @@ Example:
         try:
             action_func(configuration=configuration, **vars(args))
         except virt_lightning.api.ImageNotFoundLocally as e:
-            print(f"Image not found locally: {e.name}")  # noqa: T001
-            print("  Use `vl distro_list` to list local images.")  # noqa: T001
-            print("  Use `vl fetch foo` to download an image.")  # noqa: T001
+            print(f"Image not found from url: {e.name}")  # noqa: T001
+            print("  Use `vl custom_config_add --name images_url --value new_url` to add custom location for image.")
             exit(1)
     elif args.action == "start":
         domain = virt_lightning.api.start(configuration, **vars(args))
         if args.ssh:
             domain.exec_ssh()
+    elif args.action == "custom_config_view":
+        print(
+            virt_lightning.api.custom_config_view(configuration=configuration, **vars(args))
+        )
+    elif args.action == "custom_config_add":
+        virt_lightning.api.add_into_custom_config_file(configuration=configuration, **vars(args))
     else:
         try:
             action_func = getattr(virt_lightning.api, args.action)

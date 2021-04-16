@@ -115,7 +115,16 @@ Like `vl console` but with the SPICE console of the VM. Requires `virt-viewer`.
 
 ## **vl fetch**
 
-Fetch a VM image. [You can find here a list of the available images](https://virt-lightning.org/images/).
+Fetch a VM image. [You can find here a list of the available images](https://virt-lightning.org/images/). you can also update the custom configuration to add a private image hub.
+
+## **vl custom_config_view**
+
+Display the custom configuration.
+
+## **vl custom_config_add**
+
+add new element to the custom configuration (`images_url` to define a private image hub).
+
 
 # Configuration
 
