@@ -90,6 +90,7 @@ def _start_domain(hv, host, context, configuration):
         "fqdn": host.get("fqdn"),
         "default_nic_mode": host.get("default_nic_model"),
         "bootcmd": host.get("bootcmd"),
+        "runcmd": host.get("runcmd"),
     }
     domain = hv.create_domain(name=host["name"], distro=distro)
     hv.configure_domain(domain, user_config)
