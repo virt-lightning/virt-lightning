@@ -1,4 +1,4 @@
-# 🗲 a CLI to start local Cloud image on libvirt!🗲
+# 🗲 spawn Cloud instances on libvirt!🗲
 
 
 [![Build Status](https://travis-ci.org/virt-lightning/virt-lightning.svg?branch=master)](https://travis-ci.org/virt-lightning/virt-lightning)
@@ -6,12 +6,16 @@
 
 ![Logo](https://github.com/virt-lightning/virt-lightning/raw/master/logo/logo_no_text.png)
 
-Virt-Lightning can quickly deploy a bunch of new VM. It
-also prepares the Ansible inventory file!
+You want to spawn local VM quickly.. Like... really quickly. You want them to be as generical as possible. Actually you would like to reuse some existing cloud images!
+
+This is the right tool for you.
+
+Virt-Lightning exposes a CLI inspired by the Cloud and Vagrant.
+It can also prepares the Ansible inventory file.
 
 This is handy to quickly validate a new Ansible playbook, or a role on a large number of environments.
 
-## example: test an Ansible command on a new env in ONE minute ⚡
+### example: less than 30 seconds to spawn an instance ⚡
 
 In a nutshell:
 
@@ -22,7 +26,9 @@ vl ansible_inventory
 ansible all -m ping -i inventory
 ```
 
-In the video below, we:
+### example: or 75 seconds for 10 nodes lab ⚡
+
+During this recording, we:
 
 1. use the list of distribution to generate a virt-lightning.yaml file.
 2. we then create a environment based on this file
