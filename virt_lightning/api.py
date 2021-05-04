@@ -12,9 +12,10 @@ import pathlib
 import urllib.request
 import sys
 import distutils.util
-
+import json
+import yaml
 from virt_lightning.symbols import get_symbols
-
+from virt_lightning.configuration import Configuration
 
 import virt_lightning.virt_lightning as vl
 
@@ -423,10 +424,8 @@ def custom_config_view(configuration, **kwargs):
     hv.init_storage_pool(configuration.storage_pool)
     conf = hv.get_vl_configuration()
     if kwargs.get('output') == "json" : 
-        import json
         return json.dumps(conf,indent=2)
     elif kwargs.get('output') == "yaml" :
-        import yaml
         return yaml.dump(conf)
 
 def add_into_custom_config_file(configuration, **kwargs):
@@ -467,7 +466,7 @@ def fetch_from_url(progress_callback=None,url=None,**kwargs):
     logger.debug("Date: %s", last_modified)
     size = r.headers["Content-Length"]
     logger.debug("Size: %s", size)
-    length = int(r.headers["Content-Length"])
+    length = int(size)
     chunk_size = MB * 1
     target_file = pathlib.PosixPath(
         "{storage_dir}/upstream/{distro}.qcow2".format(**kwargs)
@@ -502,21 +501,21 @@ def fetch(configuration=None, progress_callback=None,hv=None,**kwargs):
         hv = vl.LibvirtHypervisor(conn)
         hv.init_storage_pool(configuration.storage_pool)
     
-    custom_images_url = hv.get_vl_configuration().get('images_url',None)
+    configuration = Configuration()
     image_found = False
-    if custom_images_url is not None:
-        for images_url in custom_images_url :
-            try:
-                fetch_from_url(progress_callback=progress_callback,
-                    storage_dir=hv.get_storage_dir(),
-                    url=images_url,
-                    **kwargs)
-                image_found = True
-                break
-            except ImageNotFoundUpstream:
-                pass
-            except Exception as e:
-                raise
+    for images_url in configuration.private_hub:
+        try:
+            fetch_from_url(progress_callback=progress_callback,
+                storage_dir=hv.get_storage_dir(),
+                url=images_url,
+                **kwargs)
+            image_found = True
+            break
+        except ImageNotFoundUpstream:
+            logger.info("Image: %s not found from url: %s", kwargs["distro"], images_url)
+            pass
+        except Exception as e:
+            raise
 
     if not image_found:
         # image not found from custom url

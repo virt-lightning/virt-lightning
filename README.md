@@ -117,15 +117,6 @@ Like `vl console` but with the SPICE console of the VM. Requires `virt-viewer`.
 
 Fetch a VM image. [You can find here a list of the available images](https://virt-lightning.org/images/). you can also update the custom configuration to add a private image hub.
 
-## **vl custom_config_view**
-
-Display the custom configuration.
-
-## **vl custom_config_add**
-
-add new element to the custom configuration (`images_url` to define a private image hub).
-
-
 # Configuration
 
 ## Global configuration
@@ -148,6 +139,8 @@ network_auto_clean_up = True
 **storage_pool**: if you want to use an alternative libvirt storage pool
 
 **network_auto_clean_up**: if you want to automatically remove a network when running `virt-lightning down`
+
+**private_hub**: if you need to set additional url from where images should be read `private_hub=url1,url2`
 
 ## VM configuration keys
 

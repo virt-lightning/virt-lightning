@@ -78,7 +78,6 @@ class LibvirtHypervisor:
         self.gateway = None
         self.dns = None
         self.network = None
-        self._vl_configuration_file = None
 
     @property
     def arch(self):
@@ -664,41 +663,6 @@ class LibvirtHypervisor:
             xml,
             libvirt.VIR_NETWORK_UPDATE_AFFECT_LIVE,
         )
-
-    @property
-    def vl_configuration_file(self):
-        if self._vl_configuration_file is None:
-            vl_config_dir = pathlib.Path(
-                "{storage_dir}/config".format(storage_dir=self.get_storage_dir())
-            )
-            vl_config_dir.mkdir(parents=True, exist_ok=True)
-            self._vl_configuration_file = pathlib.PosixPath(
-                "{storage_dir}/config/conf.yaml".format(
-                    storage_dir=self.get_storage_dir()
-                )
-            )
-        return self._vl_configuration_file
-
-    def get_vl_configuration(self):
-        if self.vl_configuration_file.exists() :
-            return yaml.load(self.vl_configuration_file.open("r"), Loader=yaml.SafeLoader)
-        return {}
-
-    def set_vl_configuration(self,name,value):
-        conf = self.get_vl_configuration()
-        if name == 'images_url':
-            if "images_url" not in conf :
-                conf['images_url'] = []
-            if isinstance(value,list) :
-                for v in value:
-                    if v.rstrip('/') not in conf['images_url'] :
-                        conf['images_url'].append(v.rstrip('/'))
-            else:
-                if value.rstrip('/') not in conf['images_url'] :
-                    conf['images_url'].append(value.rstrip('/'))
-        else:
-            raise Exception("unsupported configuration item: {}".format(name))
-        yaml.dump(conf, self.vl_configuration_file.open("w"))
         
 class LibvirtDomain:
     def __init__(self, dom):

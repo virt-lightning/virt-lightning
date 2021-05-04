@@ -82,7 +82,7 @@ def main():
 
     usage = """
 usage: vl [--debug DEBUG] [--config CONFIG]
-          {up,down,start,distro_list,storage_dir,ansible_inventory,ssh_config,console,viewer,custom_config} ..."""
+          {up,down,start,distro_list,storage_dir,ansible_inventory,ssh_config,console,viewer} ..."""
     example = """
 Example:
 
@@ -229,35 +229,6 @@ Example:
     )
     fetch_parser.add_argument("distro", help="Name of the VM image", type=str)
 
-    # custom configuration parser
-    config_view_parser = action_subparsers.add_parser(
-        "custom_config_view",
-        help="custom configuration file display",
-        parents=[parent_parser]
-    )
-    config_view_parser.add_argument("--output",
-        dest="output",
-        help="output format for json configuration (default is yaml)",
-        choices=[ 'json', 'yaml' ],
-        default="yaml",
-        type=str)
-    config_update_parser = action_subparsers.add_parser(
-        "custom_config_add",
-        help="add new elements into custom configuration",
-        parents=[parent_parser]
-    )
-    config_update_parser.add_argument("--name",
-            dest="name",
-            help="name of the configuration item",
-            choices=[ 'images_url' ],
-            type=str)
-    def custom_config_value(value) :
-        return [ k for k in value.split(',') if not k == '' ]
-    config_update_parser.add_argument("--value",
-            dest="value",
-            help="comma-separated list of items to add into the configuration items",
-            type=custom_config_value)
-
     args = main_parser.parse_args()
     if not args.action:
         print(title)  # noqa: T001
@@ -357,18 +328,11 @@ Example:
             action_func(configuration=configuration, **vars(args))
         except virt_lightning.api.ImageNotFoundLocally as e:
             print(f"Image not found from url: {e.name}")  # noqa: T001
-            print("  Use `vl custom_config_add --name images_url --value new_url` to add custom location for image.")
             exit(1)
     elif args.action == "start":
         domain = virt_lightning.api.start(configuration, **vars(args))
         if args.ssh:
             domain.exec_ssh()
-    elif args.action == "custom_config_view":
-        print(
-            virt_lightning.api.custom_config_view(configuration=configuration, **vars(args))
-        )
-    elif args.action == "custom_config_add":
-        virt_lightning.api.add_into_custom_config_file(configuration=configuration, **vars(args))
     else:
         try:
             action_func = getattr(virt_lightning.api, args.action)
