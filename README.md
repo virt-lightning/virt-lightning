@@ -140,7 +140,11 @@ network_auto_clean_up = True
 
 **network_auto_clean_up**: if you want to automatically remove a network when running `virt-lightning down`
 
-**private_hub**: if you need to set additional url from where images should be read `private_hub=url1,url2`
+**private_hub**: if you need to set additional url from where images should be retreived update the configuration file `~/.config/virt-lightning/config.ini` adding the following
+```
+[private]
+private_hub=url1,url2
+```
 
 ## VM configuration keys
 

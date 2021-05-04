@@ -13,8 +13,7 @@ DEFAULT_CONFIGURATION = {
         "network_name": "virt-lightning",
         "network_cidr": "192.168.123.0/24",
         "network_auto_clean_up": True,
-        "ssh_key_file": "~/.ssh/id_rsa.pub",
-        "private_hub": [],
+        "ssh_key_file": "~/.ssh/id_rsa.pub"
     }
 }
 
@@ -60,7 +59,11 @@ class Configuration(AbstractConfiguration):
             self.load_file(DEFAULT_CONFIGFILE.expanduser())
 
     def __get(self, key):
-        return self.data.get("main", key)
+        try:
+            value = self.data.get("private", key)
+            return value
+        except Exception as e:
+            return self.data.get("main", key)
 
     @property
     def libvirt_uri(self):
@@ -92,7 +95,7 @@ class Configuration(AbstractConfiguration):
     
     @property
     def private_hub(self):
-        return self.__get("private_hub")
+        return [ x for x in self.__get("private_hub").split(',') if x != '' ]
 
     def load_file(self, config_file):
         self.data.read_string(config_file.read_text())
