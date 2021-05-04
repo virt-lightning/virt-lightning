@@ -415,29 +415,6 @@ def storage_dir(configuration, **kwargs):
     hv.init_storage_pool(configuration.storage_pool)
     return hv.get_storage_dir()
 
-def custom_config_view(configuration, **kwargs):
-    """
-    Return the location of the VM image storage directory.
-    """
-    conn = libvirt.open(configuration.libvirt_uri)
-    hv = vl.LibvirtHypervisor(conn)
-    hv.init_storage_pool(configuration.storage_pool)
-    conf = hv.get_vl_configuration()
-    if kwargs.get('output') == "json" : 
-        return json.dumps(conf,indent=2)
-    elif kwargs.get('output') == "yaml" :
-        return yaml.dump(conf)
-
-def add_into_custom_config_file(configuration, **kwargs):
-    """
-    Return the location of the VM image storage directory.
-    """
-    conn = libvirt.open(configuration.libvirt_uri)
-    hv = vl.LibvirtHypervisor(conn)
-    hv.init_storage_pool(configuration.storage_pool)
-    return hv.set_vl_configuration(name=kwargs['name'],value=kwargs['value'])
-
-
 def fetch_from_url(progress_callback=None,url=None,**kwargs):
     """
     Retrieve a VM image from a given url
