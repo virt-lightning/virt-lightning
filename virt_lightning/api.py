@@ -13,8 +13,6 @@ import pathlib
 import urllib.request
 import sys
 import distutils.util
-import json
-import yaml
 from virt_lightning.symbols import get_symbols
 from virt_lightning.configuration import Configuration
 
@@ -504,7 +502,6 @@ def fetch(configuration=None, progress_callback=None, hv=None, **kwargs):
             logger.info(
                 "Image: %s not found from url: %s", kwargs["distro"], images_url
             )
-            pass
         except Exception as e:
             raise
 
