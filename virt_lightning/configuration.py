@@ -13,9 +13,10 @@ DEFAULT_CONFIGURATION = {
         "network_name": "virt-lightning",
         "network_cidr": "192.168.123.0/24",
         "network_auto_clean_up": True,
-        "ssh_key_file": "~/.ssh/id_rsa.pub"
+        "ssh_key_file": "~/.ssh/id_rsa.pub",
     }
 }
+
 
 class AbstractConfiguration(metaclass=ABCMeta):
     @abstractproperty
@@ -51,6 +52,7 @@ class AbstractConfiguration(metaclass=ABCMeta):
             uri=self.libvirt_uri, username=self.username
         )
 
+
 class Configuration(AbstractConfiguration):
     def __init__(self):
         self.data = configparser.ConfigParser()
@@ -59,11 +61,7 @@ class Configuration(AbstractConfiguration):
             self.load_file(DEFAULT_CONFIGFILE.expanduser())
 
     def __get(self, key):
-        try:
-            value = self.data.get("private", key)
-            return value
-        except Exception as e:
-            return self.data.get("main", key)
+        return self.data.get("main", key)
 
     @property
     def libvirt_uri(self):
@@ -92,10 +90,10 @@ class Configuration(AbstractConfiguration):
     @property
     def storage_pool(self):
         return self.__get("storage_pool")
-    
+
     @property
     def private_hub(self):
-        return [ x for x in self.__get("private_hub").split(',') if x != '' ]
+        return [x for x in self.__get("private_hub").split(",") if x != ""]
 
     def load_file(self, config_file):
         self.data.read_string(config_file.read_text())

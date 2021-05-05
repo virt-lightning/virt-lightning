@@ -142,7 +142,7 @@ network_auto_clean_up = True
 
 **private_hub**: if you need to set additional url from where images should be retreived update the configuration file `~/.config/virt-lightning/config.ini` adding the following
 ```
-[private]
+[main]
 private_hub=url1,url2
 ```
 

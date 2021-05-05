@@ -663,7 +663,8 @@ class LibvirtHypervisor:
             xml,
             libvirt.VIR_NETWORK_UPDATE_AFFECT_LIVE,
         )
-        
+
+
 class LibvirtDomain:
     def __init__(self, dom):
         self.dom = dom

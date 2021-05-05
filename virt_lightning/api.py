@@ -120,12 +120,11 @@ def _ensure_image_exists(hv, hosts):
         if distro not in hv.distro_available():
             logger.debug("distro not available: %s, will be fetched", distro)
             try:
-                fetch(hv=hv,distro=distro)
+                fetch(hv=hv, distro=distro)
             except ImageNotFoundUpstream:
                 raise ImageNotFoundLocally(distro)
             except Exception as e:
                 raise
-            
 
 
 def up(virt_lightning_yaml, configuration, context="default", **kwargs):
@@ -415,11 +414,13 @@ def storage_dir(configuration, **kwargs):
     hv.init_storage_pool(configuration.storage_pool)
     return hv.get_storage_dir()
 
-def fetch_from_url(progress_callback=None,url=None,**kwargs):
+
+def fetch_from_url(progress_callback=None, url=None, **kwargs):
     """
     Retrieve a VM image from a given url
         - when url is set to None, this means we are trying to fetch from the default url
     """
+
     class RedirectFilter(urllib.request.HTTPRedirectHandler):
         def redirect_request(self, req, fp, code, msg, hdrs, newurl):
             logger.info("downloading image from: %s", newurl)
@@ -432,7 +433,9 @@ def fetch_from_url(progress_callback=None,url=None,**kwargs):
 
     parent_url = BASE_URL + "/images/{distro}".format(**kwargs) if url is None else url
     try:
-        r = urllib.request.urlopen("{url}/{distro}.qcow2".format(url=parent_url,**kwargs))
+        r = urllib.request.urlopen(
+            "{url}/{distro}.qcow2".format(url=parent_url, **kwargs)
+        )
     except urllib.error.HTTPError as e:
         if e.code == 404:
             raise ImageNotFoundUpstream(kwargs["distro"])
@@ -460,7 +463,9 @@ def fetch_from_url(progress_callback=None,url=None,**kwargs):
                 progress_callback(fd.tell(), length)
     temp_file.rename(target_file)
     try:
-        r = urllib.request.urlopen("{url}/{distro}.yaml".format(url=parent_url,**kwargs))
+        r = urllib.request.urlopen(
+            "{url}/{distro}.yaml".format(url=parent_url, **kwargs)
+        )
     except urllib.error.HTTPError as e:
         if e.code == 404:
             pass
@@ -469,27 +474,31 @@ def fetch_from_url(progress_callback=None,url=None,**kwargs):
     logger.info("Image {distro} is ready!".format(**kwargs))
 
 
-def fetch(configuration=None, progress_callback=None,hv=None,**kwargs):
+def fetch(configuration=None, progress_callback=None, hv=None, **kwargs):
     """
     Retrieve a VM image from Internet.
     """
-    if hv is None :
+    if hv is None:
         conn = libvirt.open(configuration.libvirt_uri)
         hv = vl.LibvirtHypervisor(conn)
         hv.init_storage_pool(configuration.storage_pool)
-    
-    configuration = Configuration()
+
+    configuration = configuration if configuration is not None else Configuration()
     image_found = False
     for images_url in configuration.private_hub:
         try:
-            fetch_from_url(progress_callback=progress_callback,
+            fetch_from_url(
+                progress_callback=progress_callback,
                 storage_dir=hv.get_storage_dir(),
                 url=images_url,
-                **kwargs)
+                **kwargs
+            )
             image_found = True
             break
         except ImageNotFoundUpstream:
-            logger.info("Image: %s not found from url: %s", kwargs["distro"], images_url)
+            logger.info(
+                "Image: %s not found from url: %s", kwargs["distro"], images_url
+            )
             pass
         except Exception as e:
             raise
@@ -497,6 +506,8 @@ def fetch(configuration=None, progress_callback=None,hv=None,**kwargs):
     if not image_found:
         # image not found from custom url
         # fetch from base url
-        fetch_from_url(progress_callback=progress_callback,
-                    storage_dir=hv.get_storage_dir(),
-                    **kwargs)
+        fetch_from_url(
+            progress_callback=progress_callback,
+            storage_dir=hv.get_storage_dir(),
+            **kwargs
+        )
