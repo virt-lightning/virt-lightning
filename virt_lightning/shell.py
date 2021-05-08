@@ -23,6 +23,33 @@ ch = logging.StreamHandler()
 logger.addHandler(ch)
 
 
+def get_local_libvirt_group():
+    etc_group_content = pathlib.Path("/etc/group").read_text()
+    for entry in etc_group_content.split("\n"):
+        group, _, gid = entry.split(":")[0:3]
+        if group == "libvirt":
+            return (group, gid)
+
+
+def how_to_fix_auth_error():
+    import getpass
+
+    libvirt_group = get_local_libvirt_group()
+    if not libvirt_group:
+        return
+    group, gid = libvirt_group
+    if gid not in os.getgroups():
+        print("Virt-Lightning cannot access the local libvirt service.")
+        print(
+            (
+                f"Your user should probably be in the {group} group. "
+                f"You can add the user {getpass. getuser()} in the group {group} with the "
+                "following command:"
+            )
+        )
+        print(f"    sudo usermod --append --groups libvirt {getpass.getuser()}")
+
+
 def console(configuration, name=None, **kwargs):
     conn = libvirt.open(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
@@ -331,6 +358,9 @@ Example:
             action_func(configuration=configuration, **vars(args))
         except virt_lightning.api.ImageNotFoundLocally as e:
             print(f"Image not found from url: {e.name}")  # noqa: T001
+            exit(1)
+        except virt_lightning.api.CannotConnectToLibvirt:
+            how_to_fix_auth_error()
             exit(1)
     elif args.action == "start":
         domain = virt_lightning.api.start(configuration, **vars(args))

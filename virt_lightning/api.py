@@ -48,6 +48,10 @@ class ImageNotFoundLocally(Exception):
         self.name = name
 
 
+class CannotConnectToLibvirt(Exception):
+    pass
+
+
 def _register_aio_virt_impl(loop):
     # Ensure we may call shell.up() multiple times
     # from the same asyncio program.
@@ -187,7 +191,12 @@ def start(
     """
     Start a single VM
     """
-    conn = libvirt.open(configuration.libvirt_uri)
+    try:
+        conn = libvirt.open(configuration.libvirt_uri)
+    except libvirt.libvirtError as e:
+        if e.get_error_code() == libvirt.VIR_ERR_AUTH_UNAVAILABLE:
+            raise CannotConnectToLibvirt()
+        raise
     hv = vl.LibvirtHypervisor(conn)
     hv.init_network(configuration.network_name, configuration.network_cidr)
     hv.init_storage_pool(configuration.storage_pool)
