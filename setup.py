@@ -21,6 +21,12 @@ import os
 import setuptools
 
 
+try:
+    import libvirt
+except ImportError:
+    print("Please install Libvirt's Python binding package. e.g:\n  sudo dnf install -y python3-libvirt")
+    exit(1)
+
 def _get_requirements():
     requirements_path = "{path}/{filename}".format(
         path=os.path.dirname(os.path.abspath(__file__)), filename="requirements.txt"
