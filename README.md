@@ -1,4 +1,4 @@
-# 🗲 a CLI to start local Cloud image on libvirt!🗲
+# 🗲 spawn Cloud instances on libvirt!🗲
 
 
 [![Build Status](https://travis-ci.org/virt-lightning/virt-lightning.svg?branch=master)](https://travis-ci.org/virt-lightning/virt-lightning)
@@ -6,12 +6,16 @@
 
 ![Logo](https://github.com/virt-lightning/virt-lightning/raw/master/logo/logo_no_text.png)
 
-Virt-Lightning can quickly deploy a bunch of new VM. It
-also prepares the Ansible inventory file!
+You want to spawn local VM quickly.. Like... really quickly. You want them to be as generical as possible. Actually you would like to reuse some existing cloud images!
+
+This is the right tool for you.
+
+Virt-Lightning exposes a CLI inspired by the Cloud and Vagrant.
+It can also prepares the Ansible inventory file.
 
 This is handy to quickly validate a new Ansible playbook, or a role on a large number of environments.
 
-## example: test an Ansible command on a new env in ONE minute ⚡
+### example: less than 30 seconds to spawn an instance ⚡
 
 In a nutshell:
 
@@ -22,7 +26,9 @@ vl ansible_inventory
 ansible all -m ping -i inventory
 ```
 
-In the video below, we:
+### example: or 75 seconds for 10 nodes lab ⚡
+
+During this recording, we:
 
 1. use the list of distribution to generate a virt-lightning.yaml file.
 2. we then create a environment based on this file
@@ -115,7 +121,7 @@ Like `vl console` but with the SPICE console of the VM. Requires `virt-viewer`.
 
 ## **vl fetch**
 
-Fetch a VM image. [You can find here a list of the available images](https://virt-lightning.org/images/).
+Fetch a VM image. [You can find here a list of the available images](https://virt-lightning.org/images/). you can also update the custom configuration to add a private image hub.
 
 # Configuration
 
@@ -139,6 +145,12 @@ network_auto_clean_up = True
 **storage_pool**: if you want to use an alternative libvirt storage pool
 
 **network_auto_clean_up**: if you want to automatically remove a network when running `virt-lightning down`
+
+**private_hub**: if you need to set additional url from where images should be retreived update the configuration file `~/.config/virt-lightning/config.ini` adding the following
+```
+[main]
+private_hub=url1,url2
+```
 
 ## VM configuration keys
 

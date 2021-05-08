@@ -114,7 +114,6 @@ Example:
         "type": list_from_yaml_file,
         "dest": "virt_lightning_yaml",
     }
-
     context_args = {
         "default": "default",
         "help": "alternative context (default: %(default)s)",
@@ -301,12 +300,12 @@ Example:
         )
     elif args.action == "fetch":
 
-        def progress_callback(cur, lenght):
-            percent = (cur * 100) / lenght
+        def progress_callback(cur, length):
+            percent = (cur * 100) / length
             line = "🌍 ➡️  💻 [{percent:06.2f}%]  {done:6}MB/{full}MB\r".format(
                 percent=percent,
                 done=int(cur / virt_lightning.api.MB),
-                full=int(lenght / virt_lightning.api.MB),
+                full=int(length / virt_lightning.api.MB),
             )
             print(line, end="")  # noqa: T001
 
@@ -319,7 +318,7 @@ Example:
         except virt_lightning.api.ImageNotFoundUpstream:
             print(  # noqa: T001
                 f"Distro {args.distro} cannot be downloaded.\n"
-                f"  Visit {virt_lightning.api.BASE_URL}/images/ "
+                f"  Visit {virt_lightning.api.BASE_URL}/images/ or private image hub"
                 "to get an up to date list."
             )
             exit(1)
@@ -328,9 +327,7 @@ Example:
         try:
             action_func(configuration=configuration, **vars(args))
         except virt_lightning.api.ImageNotFoundLocally as e:
-            print(f"Image not found locally: {e.name}")  # noqa: T001
-            print("  Use `vl distro_list` to list local images.")  # noqa: T001
-            print("  Use `vl fetch foo` to download an image.")  # noqa: T001
+            print(f"Image not found from url: {e.name}")  # noqa: T001
             exit(1)
     elif args.action == "start":
         domain = virt_lightning.api.start(configuration, **vars(args))

@@ -123,6 +123,7 @@ class LibvirtHypervisor:
             "vcpus": 1,
             "default_nic_model": "virtio",
             "bootcmd": [],
+            "runcmd": [],
         }
         for k, v in self.get_distro_configuration(domain.distro).items():
             if v:
@@ -139,6 +140,7 @@ class LibvirtHypervisor:
         domain.vcpus = config["vcpus"]
         domain.default_nic_model = config["default_nic_model"]
         domain.bootcmd = config["bootcmd"]
+        domain.runcmd = config["runcmd"]
         if "fqdn" in config:
             domain.fqdn = config["fqdn"]
 
@@ -930,6 +932,16 @@ class LibvirtDomain:
         if not hasattr(value, "append"):
             raise ValueError("bootcmd should be a list of command")
         self.user_data["bootcmd"] = value
+
+    @property
+    def runcmd(self):
+        return self.user_data["runcmd"]
+
+    @runcmd.setter
+    def runcmd(self, value):
+        if not hasattr(value, "append"):
+            raise ValueError("runcmd should be a list of command")
+        self.user_data["runcmd"] = value
 
     def set_user_password(self, user, password):
         return self.dom.setUserPassword(user, password)

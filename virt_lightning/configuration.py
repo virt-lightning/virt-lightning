@@ -91,5 +91,9 @@ class Configuration(AbstractConfiguration):
     def storage_pool(self):
         return self.__get("storage_pool")
 
+    @property
+    def private_hub(self):
+        return [x for x in self.__get("private_hub").split(",") if x != ""]
+
     def load_file(self, config_file):
         self.data.read_string(config_file.read_text())
