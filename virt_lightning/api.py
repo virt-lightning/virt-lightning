@@ -38,6 +38,11 @@ class VMNotFound(Exception):
         self.name = name
 
 
+class VMNotRunning(Exception):
+    def __init__(self, name):
+        self.name = name
+
+
 class ImageNotFoundUpstream(Exception):
     def __init__(self, name):
         self.name = name
@@ -74,9 +79,19 @@ def _start_domain(hv, host, context, configuration):
     if "name" not in host:
         host["name"] = re.sub(r"[^a-zA-Z0-9-]+", "", distro)
 
-    if hv.get_domain_by_name(host["name"]):
+    domain = hv.get_domain_by_name(host["name"])
+    if not domain:
+        pass
+    elif domain.dom.isActive():
         logger.info("Skipping {name}, already here.".format(**host))
         return
+    else:
+        logger.info(f"Skipping {host['name']}, already here but is not running.")
+        logger.info(
+            f"You can restart it with: virsh -c qemu:///system start {host['name']}"
+        )
+        logger.info(f"You can also destroy the instance with: vl stop {host['name']}")
+        raise VMNotRunning(host["name"])
 
     # Unfortunatly, i can't decode that symbol
     # that symbol more well add to check encoding block
@@ -504,7 +519,7 @@ def fetch(configuration=None, progress_callback=None, hv=None, **kwargs):
                 progress_callback=progress_callback,
                 storage_dir=hv.get_storage_dir(),
                 url=images_url,
-                **kwargs
+                **kwargs,
             )
             image_found = True
             break
@@ -521,5 +536,5 @@ def fetch(configuration=None, progress_callback=None, hv=None, **kwargs):
         fetch_from_url(
             progress_callback=progress_callback,
             storage_dir=hv.get_storage_dir(),
-            **kwargs
+            **kwargs,
         )

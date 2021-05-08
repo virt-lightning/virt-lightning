@@ -361,6 +361,8 @@ Example:
             exit(1)
         except virt_lightning.api.CannotConnectToLibvirt:
             how_to_fix_auth_error()
+        except virt_lightning.api.VMNotRunning as e:
+            print(f"The following instance is not running: {e.name}")  # noqa: T001
             exit(1)
     elif args.action == "start":
         domain = virt_lightning.api.start(configuration, **vars(args))
