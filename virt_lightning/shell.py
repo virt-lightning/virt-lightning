@@ -272,10 +272,12 @@ Example:
                 "ipv4": status["ipv4"] or "waiting",
                 "context": status["context"],
                 "username": status["username"],
-                "distro": status["distro"]
+                "distro": status["distro"],
             }
 
-        output_template = "{computer} {name:<13}   {arrow}   {username}@{ipv4:>5} [{distro}]"
+        output_template = (
+            "{computer} {name:<13}   {arrow}   {username}@{ipv4:>5} [{distro}]"
+        )
         for _, v in sorted(results.items()):
             print(  # noqa: T001
                 output_template.format(
