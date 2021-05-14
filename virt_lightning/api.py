@@ -356,6 +356,7 @@ def status(configuration, context="default", name=None, **kwargs):
             "ipv4": domain.ipv4 and str(domain.ipv4.ip),
             "context": domain.context,
             "username": domain.username,
+            "distro": domain.distro
         }
 
 
