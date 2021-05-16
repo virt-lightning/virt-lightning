@@ -14,6 +14,7 @@
 - freebsd-11.4
 - freebsd-12.1
 - freebsd-12.2
+- freebsd-13.0
 - netbsd-8.2
 - netbsd-9.1
 - openbsd-6.6
