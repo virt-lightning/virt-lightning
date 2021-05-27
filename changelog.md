@@ -1,3 +1,12 @@
+# 2.1.0
+
+- distro displayed in vl status output (#199)
+- support config for private image hub (#193)
+- expose the runcmd list
+- api: reuse the MAC only if an IPv4 is def
+- ansible_inventory: disable Kerberos auth by default
+- clarify some error message
+
 # 2.0.1
 
 Minor release.
