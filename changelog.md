@@ -6,6 +6,7 @@
 - api: reuse the MAC only if an IPv4 is def
 - ansible_inventory: disable Kerberos auth by default
 - clarify some error message
+- fix `vl distro_list` output to be compatible with the `virt-lightning.yaml` format (#203)
 
 # 2.0.1
 
