@@ -11,7 +11,7 @@ You want to spawn local VM quickly.. Like... really quickly. You want them to be
 This is the right tool for you.
 
 Virt-Lightning exposes a CLI inspired by the Cloud and Vagrant.
-It can also prepares the Ansible inventory file.
+It can also prepare the Ansible inventory file.
 
 This is handy to quickly validate a new Ansible playbook, or a role on a large number of environments.
 
@@ -22,7 +22,7 @@ In a nutshell:
 ```shell
 echo "- distro: centos-7" > virt-lightning.yaml
 vl up
-vl ansible_inventory
+vl ansible_inventory > inventory
 ansible all -m ping -i inventory
 ```
 
@@ -76,7 +76,7 @@ we use the shortest version.
 
 ## **vl distro_list**
 
-List the distro images that can be used. Its output is compatible with `vl up`. You can initialize a new configuration with: `vl distro > virt-lightning.yaml`.
+List the distro images that can be used. Its output is compatible with `vl up`. You can initialize a new configuration with: `vl distro_list > virt-lightning.yaml`.
 
 ## **vl up**
 
@@ -121,7 +121,7 @@ Like `vl console` but with the SPICE console of the VM. Requires `virt-viewer`.
 
 ## **vl fetch**
 
-Fetch a VM image. [You can find here a list of the available images](https://virt-lightning.org/images/). you can also update the custom configuration to add a private image hub.
+Fetch a VM image. [You can find here a list of the available images](https://virt-lightning.org/images/). You can also update the custom configuration to add a private image hub.
 
 # Configuration
 
@@ -146,7 +146,7 @@ network_auto_clean_up = True
 
 **network_auto_clean_up**: if you want to automatically remove a network when running `virt-lightning down`
 
-**private_hub**: if you need to set additional url from where images should be retreived update the configuration file `~/.config/virt-lightning/config.ini` adding the following
+**private_hub**: if you need to set additional url from where images should be retrieved, update the configuration file `~/.config/virt-lightning/config.ini` adding the following
 ```
 [main]
 private_hub=url1,url2
@@ -154,7 +154,7 @@ private_hub=url1,url2
 
 ## VM configuration keys
 
-A VM can be tunned at two different places with the following keys:
+A VM can be tuned at two different places with the following keys:
 
 - `distro`: the name of the base distro image to use, it's the only mandatory parameter.
 - `name`: the VM name
