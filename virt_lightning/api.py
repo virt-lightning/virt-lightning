@@ -144,8 +144,6 @@ def _ensure_image_exists(hv, hosts):
                 fetch(hv=hv, distro=distro)
             except ImageNotFoundUpstream:
                 raise ImageNotFoundLocally(distro)
-            except Exception as e:
-                raise
 
 
 def up(virt_lightning_yaml, configuration, context="default", **kwargs):
@@ -527,8 +525,6 @@ def fetch(configuration=None, progress_callback=None, hv=None, **kwargs):
             logger.info(
                 "Image: %s not found from url: %s", kwargs["distro"], images_url
             )
-        except Exception as e:
-            raise
 
     if not image_found:
         # image not found from custom url
