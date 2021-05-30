@@ -74,6 +74,15 @@ def _register_aio_virt_impl(loop):
 _register_aio_virt_impl.__dict__["aio_virt_bindinds"] = {}
 
 
+def _connect_libvirt(uri):
+    try:
+        return libvirt.open(uri)
+    except libvirt.libvirtError as e:
+        if e.get_error_code() == libvirt.VIR_ERR_AUTH_UNAVAILABLE:
+            raise CannotConnectToLibvirt()
+        raise
+
+
 def _start_domain(hv, host, context, configuration):
     distro = host["distro"]
     if "name" not in host:
@@ -158,7 +167,7 @@ def up(virt_lightning_yaml, configuration, context="default", **kwargs):
     loop = kwargs.get("loop") or asyncio.get_event_loop()
     _register_aio_virt_impl(loop)
 
-    conn = libvirt.open(configuration.libvirt_uri)
+    conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
 
     conn.setKeepAlive(interval=5, count=3)
@@ -204,12 +213,7 @@ def start(
     """
     Start a single VM
     """
-    try:
-        conn = libvirt.open(configuration.libvirt_uri)
-    except libvirt.libvirtError as e:
-        if e.get_error_code() == libvirt.VIR_ERR_AUTH_UNAVAILABLE:
-            raise CannotConnectToLibvirt()
-        raise
+    conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
     hv.init_network(configuration.network_name, configuration.network_cidr)
     hv.init_storage_pool(configuration.storage_pool)
@@ -264,7 +268,7 @@ def stop(configuration, **kwargs):
     """
     Stop a given VM
     """
-    conn = libvirt.open(configuration.libvirt_uri)
+    conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
     hv.init_network(configuration.network_name, configuration.network_cidr)
     hv.init_storage_pool(configuration.storage_pool)
@@ -285,7 +289,7 @@ def ansible_inventory(configuration, context="default", **kwargs):
     """
     Generate an Ansible inventory based on the running VM
     """
-    conn = libvirt.open(configuration.libvirt_uri)
+    conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
 
     ssh_cmd_template = (
@@ -325,7 +329,7 @@ def ssh_config(configuration, context="default", **kwargs):
     """
     Generate an SSH configuration based on the running VM
     """
-    conn = libvirt.open(configuration.libvirt_uri)
+    conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
 
     ssh_host_template = (
@@ -364,7 +368,7 @@ def status(configuration, context="default", name=None, **kwargs):
     """
     Returns the status of the VM of the envionment
     """
-    conn = libvirt.open(configuration.libvirt_uri)
+    conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
 
     for domain in hv.list_domains():
@@ -386,7 +390,7 @@ def exec_ssh(configuration, name=None, **kwargs):
     """
     Open an SSH connection on a host
     """
-    conn = libvirt.open(configuration.libvirt_uri)
+    conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
     domain = hv.get_domain_by_name(name)
     if not domain:
@@ -398,7 +402,7 @@ def list_domains(configuration, name=None, **kwargs):
     """
     Return a list Python-libvirt instance of the running libvirt VM.
     """
-    conn = libvirt.open(configuration.libvirt_uri)
+    conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
     return sorted(hv.list_domains())
 
@@ -407,7 +411,7 @@ def down(configuration, context="default", **kwargs):
     """
     Stop and remove a running environment.
     """
-    conn = libvirt.open(configuration.libvirt_uri)
+    conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
     hv.init_network(configuration.network_name, configuration.network_cidr)
     hv.init_storage_pool(configuration.storage_pool)
@@ -425,7 +429,7 @@ def distro_list(configuration, **kwargs):
     """
     Return a list of VM images that are available on the system.
     """
-    conn = libvirt.open(configuration.libvirt_uri)
+    conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
     hv.init_storage_pool(configuration.storage_pool)
     return hv.distro_available()
@@ -435,7 +439,7 @@ def storage_dir(configuration, **kwargs):
     """
     Return the location of the VM image storage directory.
     """
-    conn = libvirt.open(configuration.libvirt_uri)
+    conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
     hv.init_storage_pool(configuration.storage_pool)
     return hv.get_storage_dir()
@@ -505,7 +509,7 @@ def fetch(configuration=None, progress_callback=None, hv=None, **kwargs):
     Retrieve a VM image from Internet.
     """
     if hv is None:
-        conn = libvirt.open(configuration.libvirt_uri)
+        conn = _connect_libvirt(configuration.libvirt_uri)
         hv = vl.LibvirtHypervisor(conn)
         hv.init_storage_pool(configuration.storage_pool)
 

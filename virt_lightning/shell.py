@@ -347,6 +347,8 @@ Example:
                 progress_callback=progress_callback,
                 **vars(args),
             )
+        except virt_lightning.api.CannotConnectToLibvirt:
+            how_to_fix_auth_error()
         except virt_lightning.api.ImageNotFoundUpstream:
             print(  # noqa: T001
                 f"Distro {args.distro} cannot be downloaded.\n"
