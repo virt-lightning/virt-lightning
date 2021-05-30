@@ -17,7 +17,7 @@
 # under the License.
 
 import os
-
+import sys
 import setuptools
 
 
@@ -37,6 +37,10 @@ def _get_readme():
     with open(readme_path, "r", encoding="utf-8") as f:
         return f.read()
 
+
+if sys.hexversion < 0x3600000:
+    print("Please use Python version 3.6 or greater")
+    exit(1)
 
 setuptools.setup(
     name="virt-lightning",
