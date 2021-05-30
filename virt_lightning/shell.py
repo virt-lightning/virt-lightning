@@ -284,7 +284,7 @@ Example:
         for distro_name in virt_lightning.api.distro_list(
             configuration=configuration, **vars(args)
         ):
-            print("- {0}".format(distro_name))  # noqa: T001
+            print("- distro: {0}".format(distro_name))  # noqa: T001
     elif args.action == "storage_dir":
         print(  # noqa: T001
             virt_lightning.api.storage_dir(configuration=configuration, **vars(args))
