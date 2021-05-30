@@ -39,15 +39,17 @@ def how_to_fix_auth_error():
         return
     group, gid = libvirt_group
     if gid not in os.getgroups():
-        print("Virt-Lightning cannot access the local libvirt service.")
-        print(
+        print("Virt-Lightning cannot access the local libvirt service.")  # noqa: T001
+        print(  # noqa: T001
             (
                 f"Your user should probably be in the {group} group. "
                 f"You can add the user {getpass. getuser()} in the group {group} with the "
                 "following command:"
             )
         )
-        print(f"    sudo usermod --append --groups libvirt {getpass.getuser()}")
+        print(  # noqa: T001
+            f"    sudo usermod --append --groups libvirt {getpass.getuser()}"
+        )
 
 
 def console(configuration, name=None, **kwargs):
