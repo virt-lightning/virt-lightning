@@ -7,6 +7,8 @@
 - debian-testing
 - dragonflybsd-5.6.3
 - dragonflybsd-5.8.3
+- dragonflybsd-6.0.0-ufs
+- dragonflybsd-6.0.0-hammer2
 - fedora-31
 - fedora-32
 - fedora-33
@@ -14,7 +16,8 @@
 - freebsd-11.4
 - freebsd-12.1
 - freebsd-12.2
-- freebsd-13.0
+- freebsd-13.0-ufs
+- freebsd-13.0-zfs
 - netbsd-8.2
 - netbsd-9.1
 - netbsd-9.2
