@@ -63,7 +63,7 @@ source ~/.bashrc
 # Fetch some images
 
 Before you start your first VM, you need to fetch the images. To do so,
-you just use the `vm fetch` command:
+you just use the `vl fetch` command:
 
 ```shell
 $ vl fetch fedora-32
