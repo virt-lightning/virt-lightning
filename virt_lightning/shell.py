@@ -376,6 +376,8 @@ Example:
         try:
             action_func = getattr(virt_lightning.api, args.action)
             action_func(configuration=configuration, **vars(args))
+        except virt_lightning.api.VMNotFound as e:
+            pass
         except virt_lightning.api.ImageNotFoundLocally as e:
             print(  # noqa: T001
                 (
