@@ -1,3 +1,7 @@
+# 2.1.1
+
+- reconnect to libvirt after the download step (#218)
+
 # 2.1.0
 
 - distro displayed in vl status output (#199)

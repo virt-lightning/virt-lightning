@@ -170,6 +170,11 @@ def up(virt_lightning_yaml, configuration, context="default", **kwargs):
     conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
 
+    hv.init_network(configuration.network_name, configuration.network_cidr)
+    hv.init_storage_pool(configuration.storage_pool)
+
+    _ensure_image_exists(hv, virt_lightning_yaml)
+    conn = _connect_libvirt(configuration.libvirt_uri)
     conn.setKeepAlive(interval=5, count=3)
     conn.domainEventRegisterAny(
         None,
@@ -178,10 +183,6 @@ def up(virt_lightning_yaml, configuration, context="default", **kwargs):
         None,
     )
 
-    hv.init_network(configuration.network_name, configuration.network_cidr)
-    hv.init_storage_pool(configuration.storage_pool)
-
-    _ensure_image_exists(hv, virt_lightning_yaml)
     pool = ThreadPoolExecutor(max_workers=10)
 
     async def deploy():
