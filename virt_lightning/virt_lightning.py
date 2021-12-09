@@ -879,12 +879,30 @@ class LibvirtDomain:
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
         return device_name
 
-    def attach_network(self, network=None, nic_model=None, ipv4=None, mac=None):
+    def attach_network(
+        self,
+        network=None,
+        nic_model=None,
+        ipv4=None,
+        mac=None,
+        bridge=None,
+        virtualport_type=None,
+    ):
         if not nic_model:
             nic_model = self.default_nic_model
         net_root = ET.fromstring(BRIDGE_XML)
-        net_root.findall("./source")[0].attrib = {"network": network}
+
+        if bridge:
+            source_attrs = {"bridge": bridge}
+            net_root.attrib["type"] = "bridge"
+        elif network:
+            source_attrs = {"network": network}
+        net_root.findall("./source")[0].attrib = source_attrs
         net_root.findall("./model")[0].attrib = {"type": nic_model}
+
+        if virtualport_type:
+            net_root.append(ET.Element("virtualport", type=virtualport_type))
+
         if mac:
             mac_el = ET.SubElement(net_root, "mac")
             mac_el.attrib = {"address": mac}
