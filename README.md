@@ -213,4 +213,7 @@ networks:
     nic_model: virtio
   - network: default
     nic_model: e1000
+  - bridge: ovs-bridge-name
+    mac: '52:54:00:71:b1:b6'
+    virtualport_type: openvswitch
 ```
