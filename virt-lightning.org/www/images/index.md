@@ -26,6 +26,7 @@
 - openbsd-6.7
 - openbsd-6.8
 - openbsd-6.9
+- openbsd-7.0
 - ubuntu-14.04
 - ubuntu-16.04
 - ubuntu-18.04
