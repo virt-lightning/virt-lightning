@@ -9,6 +9,8 @@
 - dragonflybsd-5.8.3
 - dragonflybsd-6.0.0-ufs
 - dragonflybsd-6.0.0-hammer2
+- dragonflybsd-6.0.1-ufs
+- dragonflybsd-6.0.1-hammer2
 - fedora-31
 - fedora-32
 - fedora-33
