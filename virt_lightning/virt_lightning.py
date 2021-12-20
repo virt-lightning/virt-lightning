@@ -450,7 +450,7 @@ class LibvirtHypervisor:
         else:  # OpenStack format is the default
             cloud_init_iso = self.prepare_cloud_init_openstack_iso(domain)
 
-        domain.attach_disk(cloud_init_iso, device="cdrom", disk_type="raw")
+        domain.attach_disk(cloud_init_iso, device="disk", disk_type="raw")
         domain.dom.create()
         self.remove_domain_from_network(domain)
         self.add_domain_to_network(domain)
