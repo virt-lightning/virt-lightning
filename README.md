@@ -169,10 +169,12 @@ A VM can be tuned at two different places with the following keys:
 - `ssh_key_file`: the path of the public key for connecting to the VM
 - `groups`: this list of groups will be used if you generate an Ansible inventory.
 - `networks`: a list of network to attach to the VM. The default is: one virtio interface attached to `virt-lightning` network.
-    - `network`: the name of the network. Default is the key `network_name` from the configuration (`virt-lightning` by default)
+    - `network`: the name of the libvirt network. Default is the key `network_name` from the configuration (`virt-lightning` by default). The key cannot be used with `bridge`.
     - `ipv4`: a static IPv4. Default is a dynamic IPv4 address.
     - `nic_model`: the libvirt driver to use. Default is `virtio`
-
+    - `mac`: an optional static MAC address, e.g: '52:54:00:71:b1:b6'
+    - `bridge`: optional, the name of a bridge to connect too. This key replace the `network` key.
+    - `virtualport_type`: The type of the virtualport, currently, this is can be used with `bridge`.
 
 ### Example: a `virt-lightning.yaml` file:
 
@@ -205,6 +207,15 @@ A VM can be tuned at two different places with the following keys:
     - yum update -y
 ```
 
+### Example: connect to an OpenvSwitch bridge
+
+```yaml
+- name: controller
+  distro: fedora-35
+  - bridge: my-ovs-bridge-name
+    virtualport_type: openvswitch
+```
+
 ### You can also associate some parameters to the distro image itself
 
 ```shell
@@ -217,7 +228,4 @@ networks:
     nic_model: virtio
   - network: default
     nic_model: e1000
-  - bridge: ovs-bridge-name
-    mac: '52:54:00:71:b1:b6'
-    virtualport_type: openvswitch
 ```
