@@ -137,6 +137,7 @@ network_name = virt-lightning
 root_password = root
 storage_pool = virt-lightning
 network_auto_clean_up = True
+ssh_key_file = ~/.ssh/id_rsa.pub
 ```
 
 **network_name**: if you want to use an alternative libvirt network
@@ -146,6 +147,8 @@ network_auto_clean_up = True
 **storage_pool**: if you want to use an alternative libvirt storage pool
 
 **network_auto_clean_up**: if you want to automatically remove a network when running `virt-lightning down`
+
+**ssh_key_file**: if you want to use an alternative public key
 
 **private_hub**: if you need to set additional url from where images should be retrieved, update the configuration file `~/.config/virt-lightning/config.ini` adding the following
 ```
@@ -163,6 +166,7 @@ A VM can be tuned at two different places with the following keys:
 - `root_disk_size`: the size of the root disk in GB
 - `vcpus`: the number of vcpu to dedicate to the VM
 - `root_password`: the root password in clear text
+- `ssh_key_file`: the path of the public key for connecting to the VM
 - `groups`: this list of groups will be used if you generate an Ansible inventory.
 - `networks`: a list of network to attach to the VM. The default is: one virtio interface attached to `virt-lightning` network.
     - `network`: the name of the network. Default is the key `network_name` from the configuration (`virt-lightning` by default)
