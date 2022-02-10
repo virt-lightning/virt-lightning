@@ -33,27 +33,27 @@ symbols = get_symbols()
 MB = 1024 * 1000
 
 
-class VMNotFound(Exception):
+class VMNotFoundError(Exception):
     def __init__(self, name):
         self.name = name
 
 
-class VMNotRunning(Exception):
+class VMNotRunningError(Exception):
     def __init__(self, name):
         self.name = name
 
 
-class ImageNotFoundUpstream(Exception):
+class ImageNotFoundUpstreamError(Exception):
     def __init__(self, name):
         self.name = name
 
 
-class ImageNotFoundLocally(Exception):
+class ImageNotFoundLocallyError(Exception):
     def __init__(self, name):
         self.name = name
 
 
-class CannotConnectToLibvirt(Exception):
+class CannotConnectToLibvirtError(Exception):
     pass
 
 
@@ -79,7 +79,7 @@ def _connect_libvirt(uri):
         return libvirt.open(uri)
     except libvirt.libvirtError as e:
         if e.get_error_code() == libvirt.VIR_ERR_AUTH_UNAVAILABLE:
-            raise CannotConnectToLibvirt()
+            raise CannotConnectToLibvirtError()
         raise
 
 
@@ -100,7 +100,7 @@ def _start_domain(hv, host, context, configuration):
             f"You can restart it with: virsh -c qemu:///system start {host['name']}"
         )
         logger.info(f"You can also destroy the instance with: vl stop {host['name']}")
-        raise VMNotRunning(host["name"])
+        raise VMNotRunningError(host["name"])
 
     # Unfortunatly, i can't decode that symbol
     # that symbol more well add to check encoding block
@@ -151,8 +151,8 @@ def _ensure_image_exists(hv, hosts):
             logger.debug("distro not available: %s, will be fetched", distro)
             try:
                 fetch(hv=hv, distro=distro)
-            except ImageNotFoundUpstream:
-                raise ImageNotFoundLocally(distro)
+            except ImageNotFoundUpstreamError:
+                raise ImageNotFoundLocallyError(distro)
 
 
 def up(virt_lightning_yaml, configuration, context="default", **kwargs):
@@ -282,7 +282,7 @@ def stop(configuration, **kwargs):
             )
         else:
             logger.info("No running VM.")
-        raise VMNotFound(kwargs["name"])
+        raise VMNotFoundError(kwargs["name"])
     hv.clean_up(domain)
 
 
@@ -395,7 +395,7 @@ def exec_ssh(configuration, name=None, **kwargs):
     hv = vl.LibvirtHypervisor(conn)
     domain = hv.get_domain_by_name(name)
     if not domain:
-        raise VMNotFound(name)
+        raise VMNotFoundError(name)
     domain.exec_ssh()
 
 
@@ -469,7 +469,7 @@ def fetch_from_url(progress_callback=None, url=None, **kwargs):
         )
     except urllib.error.HTTPError as e:
         if e.code == 404:
-            raise ImageNotFoundUpstream(kwargs["distro"])
+            raise ImageNotFoundUpstreamError(kwargs["distro"])
         else:
             logger.exception(e)
             raise
@@ -526,7 +526,7 @@ def fetch(configuration=None, progress_callback=None, hv=None, **kwargs):
             )
             image_found = True
             break
-        except ImageNotFoundUpstream:
+        except ImageNotFoundUpstreamError:
             logger.info(
                 "Image: %s not found from url: %s", kwargs["distro"], images_url
             )

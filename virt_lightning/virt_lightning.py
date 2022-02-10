@@ -199,7 +199,7 @@ class LibvirtHypervisor:
 
     def get_qcow_virtual_size(self, qcow_path):
         qemu_img_info = run_cmd(["qemu-img", "info", "--output=json", str(qcow_path)])
-        return math.ceil(json.loads(qemu_img_info)["virtual-size"] / 1024 ** 3)
+        return math.ceil(json.loads(qemu_img_info)["virtual-size"] / 1024**3)
 
     def create_disk(self, name, size=None, backing_on=None):
         backing_file = None

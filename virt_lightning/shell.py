@@ -347,9 +347,9 @@ Example:
                 progress_callback=progress_callback,
                 **vars(args),
             )
-        except virt_lightning.api.CannotConnectToLibvirt:
+        except virt_lightning.api.CannotConnectToLibvirtError:
             how_to_fix_auth_error()
-        except virt_lightning.api.ImageNotFoundUpstream:
+        except virt_lightning.api.ImageNotFoundUpstreamError:
             print(  # noqa: T001
                 f"Distro {args.distro} cannot be downloaded.\n"
                 f"  Visit {virt_lightning.api.BASE_URL}/images/ or private image hub"
@@ -360,12 +360,12 @@ Example:
         action_func = getattr(virt_lightning.api, args.action)
         try:
             action_func(configuration=configuration, **vars(args))
-        except virt_lightning.api.ImageNotFoundLocally as e:
+        except virt_lightning.api.ImageNotFoundLocallyError as e:
             print(f"Image not found from url: {e.name}")  # noqa: T001
             exit(1)
-        except virt_lightning.api.CannotConnectToLibvirt:
+        except virt_lightning.api.CannotConnectToLibvirtError:
             how_to_fix_auth_error()
-        except virt_lightning.api.VMNotRunning as e:
+        except virt_lightning.api.VMNotRunningError as e:
             print(f"The following instance is not running: {e.name}")  # noqa: T001
             exit(1)
     elif args.action == "start":
@@ -376,10 +376,10 @@ Example:
         try:
             action_func = getattr(virt_lightning.api, args.action)
             action_func(configuration=configuration, **vars(args))
-        except virt_lightning.api.VMNotFound as e:
-            pass
-        except virt_lightning.api.ImageNotFoundLocally as e:
-            print(  # noqa: T001
+        except virt_lightning.api.VMNotFoundError as e:
+            logger.error("VM {name} not found".format(name=e.name))
+        except virt_lightning.api.ImageNotFoundLocallyError as e:
+            logger.error(
                 (
                     "ℹ️ You may be able to download the image with the "
                     "`vl fetch {name}` command."

@@ -17,3 +17,4 @@ flake8-type-annotations==0.1.0
 pep8-naming
 pytest
 pytest-cov
+types-PyYAML
