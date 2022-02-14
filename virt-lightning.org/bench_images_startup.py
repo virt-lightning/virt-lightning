@@ -29,7 +29,7 @@ for distro in distros:
         print("Fetching {distro}".format(distro=distro))
         try:
             vla.fetch(configuration=configuration, distro=distro)
-        except vla.ImageNotFoundUpstream:
+        except vla.ImageNotFoundUpstreamError:
             print("Image not found")
             continue
     log_file = log_dir / (distro + ".log")

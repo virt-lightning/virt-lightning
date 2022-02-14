@@ -1,0 +1,40 @@
+name: Run tests
+on: [push]
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ '3.6', '3.7', '3.8', '3.9' ]
+    steps:
+      - name: Check out
+        uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install libvirt-dev
+        run: sudo apt update; sudo apt install -y libvirt-dev
+      - name: install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install tox tox-gh-actions
+      - name: Run tox
+        run: tox
+  linters:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v2
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Install libvirt-dev
+        run: sudo apt update; sudo apt install -y libvirt-dev
+      - name: install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install tox tox-gh-actions
+      - name: Run tox
+        run: tox -eblack,pep8

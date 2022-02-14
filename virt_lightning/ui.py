@@ -33,7 +33,7 @@ class Selector:
         main = urwid.Padding(self.menu(), left=2, right=2)
         top = urwid.Overlay(
             main,
-            urwid.SolidFill(u"\N{MEDIUM SHADE}"),
+            urwid.SolidFill("\N{MEDIUM SHADE}"),
             align="center",
             width=("relative", 60),
             valign="middle",
