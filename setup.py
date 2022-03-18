@@ -48,6 +48,9 @@ setuptools.setup(
     long_description=_get_readme(),
     long_description_content_type="text/markdown",
     install_requires=_get_requirements(),
+    extra_requirements={
+        'cli2': ['cli2'],
+    },
     url="https://virt-lightning.org",
     use_scm_version={"write_to": "virt_lightning/version.py"},
     license="Apache v2.0",
@@ -68,6 +71,7 @@ setuptools.setup(
         "console_scripts": [
             "virt-lightning = virt_lightning.shell:main",
             "vl = virt_lightning.shell:main",
+            "vl2 = virt_lightning.shell_cli2:cli.entry_point",
         ]
     },
     setup_requires=["setuptools_scm"],
