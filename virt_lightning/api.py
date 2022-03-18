@@ -267,7 +267,7 @@ def start(
 
 def stop(configuration, **kwargs):
     """
-    Stop a given VM
+    Stop and delete a given VM
     """
     conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
