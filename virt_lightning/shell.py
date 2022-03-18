@@ -110,8 +110,10 @@ def main():
     )
 
     usage = """
-usage: vl [--debug DEBUG] [--config CONFIG]
-          {up,down,start,distro_list,storage_dir,ansible_inventory,ssh_config,console,viewer} ..."""
+usage: vl [--debug DEBUG] [--config CONFIG] COMMAND
+
+Run vl without a command to see list of accepted commands.
+"""
     example = """
 Example:
 
@@ -125,7 +127,20 @@ Example:
    $ vl ansible_inventory
 
  The file is ready to be used by Ansible:
-   $ ansible all -m ping -i inventory"""
+   $ ansible all -m ping -i inventory
+
+Commands:
+    up                  Start VMs defined in virt-lightning.yaml
+    down                Delete all VMs created by virt-lightning
+    start               Start a new VM
+    stop                Delete a VM
+    distro_list         Dump list of supported distros
+    storage_dir         Dump the VM image storage directory
+    ansible_inventory   Dump an inventory file for ansible
+    ssh_config          Dump an SSH config
+    console             Open console on a VM
+    viewer              Open VM with virt-viewer
+    """
 
     def list_from_yaml_file(value):
         file_path = pathlib.PosixPath(value)
@@ -204,7 +219,7 @@ Example:
     start_parser.add_argument("distro", help="Name of the distro", type=str)
 
     stop_parser = action_subparsers.add_parser(
-        "stop", help="Stop a VM", parents=[parent_parser]
+        "stop", help="Stop and delete a VM", parents=[parent_parser]
     )
     stop_parser.add_argument("name", help="Name of the VM", type=str)
 
