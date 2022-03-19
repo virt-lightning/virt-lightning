@@ -103,6 +103,27 @@ def viewer(configuration, name=None, **kwargs):
     ui.Selector(sorted(hv.list_domains()), go_viewer)
 
 
+def progress_callback(cur, length):
+    percent = (cur * 100) / length
+    line = "🌍 ➡️  💻 [{percent:06.2f}%]  {done:6}MB/{full}MB\r".format(
+        percent=percent,
+        done=int(cur / virt_lightning.api.MB),
+        full=int(length / virt_lightning.api.MB),
+    )
+    print(line, end="")  # noqa: T001
+
+
+def list_from_yaml_file(value):
+    file_path = pathlib.PosixPath(value)
+    if not file_path.exists():
+        raise argparse.ArgumentTypeError(f"{value} does not exist.")
+    with file_path.open(encoding="UTF-8") as fd:
+        content = yaml.safe_load(fd.read())
+        if not isinstance(content, list):
+            raise argparse.ArgumentTypeError(f"{value} should be a YAML list.")
+        return content
+
+
 def main():
 
     title = "{lightning} Virt-Lightning {lightning}".format(
@@ -141,16 +162,6 @@ Commands:
     console             Open console on a VM
     viewer              Open VM with virt-viewer
     """
-
-    def list_from_yaml_file(value):
-        file_path = pathlib.PosixPath(value)
-        if not file_path.exists():
-            raise argparse.ArgumentTypeError(f"{value} does not exist.")
-        with file_path.open(encoding="UTF-8") as fd:
-            content = yaml.safe_load(fd.read())
-            if not isinstance(content, list):
-                raise argparse.ArgumentTypeError(f"{value} should be a YAML list.")
-            return content
 
     vl_lightning_yaml_args = {
         "default": "virt-lightning.yaml",
@@ -346,16 +357,6 @@ Commands:
             go_ssh,
         )
     elif args.action == "fetch":
-
-        def progress_callback(cur, length):
-            percent = (cur * 100) / length
-            line = "🌍 ➡️  💻 [{percent:06.2f}%]  {done:6}MB/{full}MB\r".format(
-                percent=percent,
-                done=int(cur / virt_lightning.api.MB),
-                full=int(length / virt_lightning.api.MB),
-            )
-            print(line, end="")  # noqa: T001
-
         try:
             virt_lightning.api.fetch(
                 configuration=configuration,
