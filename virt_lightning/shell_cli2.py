@@ -60,7 +60,7 @@ def status():
 
 
 @cli.cmd
-def up(context='default', console=True, yaml='virt-lightning.yaml'):
+def up(context='default', console: bool=True, yaml='virt-lightning.yaml'):
     """
     Start VMs defined in virt-lightning.yaml
 
@@ -99,8 +99,8 @@ def down(context='default'):
 
 
 @cli.cmd
-def create(distro, name=None, vcpus=None, memory=None, context='default',
-           console=True):
+def create(distro, name=None, vcpus: int=None, memory: int=None,
+           context='default', console: bool=True):
     """
     Create and start a new VM.
 
