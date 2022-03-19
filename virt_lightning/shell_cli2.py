@@ -15,52 +15,54 @@ configuration = Configuration()
 class Command(cli2.Command):
     def setargs(self):
         super().setargs()
-        self['config'] = cli2.Argument(
+        self["config"] = cli2.Argument(
             self,
             inspect.Parameter(
-                'config',
+                "config",
                 inspect.Parameter.KEYWORD_ONLY,
             ),
-            doc='Configuration file to use',
+            doc="Configuration file to use",
         )
 
     def call(self, *args, **kwargs):
-        cfgpath = kwargs.pop('config', None)
+        cfgpath = kwargs.pop("config", None)
         if cfgpath:
             configuration.load_file(args.config)
         try:
             return super().call(*args, **kwargs)
         except api.ImageNotFoundLocallyError as e:
-            print(f'Image not found from url: {e.name}')  # noqa: T001
+            print(f"Image not found from url: {e.name}")  # noqa: T001
             sys.exit(1)
         except api.CannotConnectToLibvirtError:
             shell.how_to_fix_auth_error()
         except api.VMNotRunningError as e:
-            print(f'The following instance is not running: {e.name}')  # noqa: T001
+            print(f"The following instance is not running: {e.name}")  # noqa: T001
             sys.exit(1)
 
 
 cli = cli2.Group(doc=__doc__, cmdclass=Command, posix=True, log=False)
 
 
-@cli.cmd(color='green')
+@cli.cmd(color="green")
 def status():
     """
     Dump the status of Virt-Lightning VMs.
     """
     table = cli2.Table()
     for status in api.status(configuration=configuration):
-        table.append([
-            status['name'],
-            '@'.join([status['username'], status['ipv4']]),
-            status['distro'],
-            status['context'] if status['context'] != 'default' else '',
-        ])
+        table.append(
+            [
+                status["name"],
+                "@".join([status["username"], status["ipv4"]]),
+                status["distro"],
+                status["context"] if status["context"] != "default" else "",
+            ]
+        )
     table.print()
 
 
 @cli.cmd
-def up(context='default', console: bool=True, yaml='virt-lightning.yaml'):
+def up(context="default", console: bool = True, yaml="virt-lightning.yaml"):
     """
     Start VMs defined in virt-lightning.yaml
 
@@ -73,6 +75,7 @@ def up(context='default', console: bool=True, yaml='virt-lightning.yaml'):
     def list_from_yaml_file(value):
         import pathlib
         import yaml
+
         file_path = pathlib.PosixPath(value)
         if not file_path.exists():
             raise argparse.ArgumentTypeError(f"{value} does not exist.")
@@ -90,8 +93,8 @@ def up(context='default', console: bool=True, yaml='virt-lightning.yaml'):
     )
 
 
-@cli.cmd(color='red')
-def down(context='default'):
+@cli.cmd(color="red")
+def down(context="default"):
     """
     Destroy VMs.
     """
@@ -99,8 +102,14 @@ def down(context='default'):
 
 
 @cli.cmd
-def create(distro, name=None, vcpus: int=None, memory: int=None,
-           context='default', console: bool=True):
+def create(
+    distro,
+    name=None,
+    vcpus: int = None,
+    memory: int = None,
+    context="default",
+    console: bool = True,
+):
     """
     Create and start a new VM.
 
@@ -120,7 +129,7 @@ def create(distro, name=None, vcpus: int=None, memory: int=None,
     )
 
 
-@cli.cmd(color='green')
+@cli.cmd(color="green")
 def distro_list():
     """
     List distributions supported by Virt-Lightning.
@@ -129,7 +138,7 @@ def distro_list():
         print("- distro: {0}".format(distro_name))  # noqa: T001
 
 
-@cli.cmd(color='green')
+@cli.cmd(color="green")
 def storage_dir():
     """
     Dump storage directory path for Virt-Lightning VMs.
@@ -137,7 +146,7 @@ def storage_dir():
     print(api.storage_dir(configuration=configuration))
 
 
-@cli.cmd(color='green')
+@cli.cmd(color="green")
 def ansible_inventory():
     """
     Dump ansible inventory file.
@@ -150,16 +159,16 @@ def ansible_inventory():
     print(api.ansible_inventory(configuration=configuration))
 
 
-@cli.cmd(color='green')
-def ssh_config(context='default'):
+@cli.cmd(color="green")
+def ssh_config(context="default"):
     """
     Dump ssh configuration for the VMs.
     """
     print(api.ssh_config(configuration=configuration, context=context))
 
 
-@cli.cmd(color='green')
-def ssh(name=None, context='default'):
+@cli.cmd(color="green")
+def ssh(name=None, context="default"):
     """
     Open an SSH connection on a VM.
 
@@ -177,13 +186,14 @@ def ssh(name=None, context='default'):
     )
 
 
-@cli.cmd(color='green')
+@cli.cmd(color="green")
 def fetch(distro):
     """
     Fetch a distribution image.
 
     :param distro: Name of the distribution for the VM image to download.
     """
+
     def progress_callback(cur, length):
         percent = (cur * 100) / length
         line = "🌍 ➡️  💻 [{percent:06.2f}%]  {done:6}MB/{full}MB\r".format(
@@ -208,7 +218,7 @@ def fetch(distro):
         exit(1)
 
 
-@cli.cmd(color='green')
+@cli.cmd(color="green")
 def console(name):
     """
     Open a serial console to a named VM.
@@ -218,7 +228,7 @@ def console(name):
     shell.console(configuration=configuration, name=name)
 
 
-@cli.cmd(color='green')
+@cli.cmd(color="green")
 def viewer(name):
     """
     Open a graphical screen to a named VM.
