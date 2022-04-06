@@ -2,6 +2,8 @@
 - centos-6
 - centos-7
 - centos-8
+- centos-8-stream
+- centos-9-stream
 - debian-9
 - debian-10
 - debian-testing
