@@ -118,6 +118,8 @@ def _start_domain(hv, host, context, configuration):
         "default_nic_mode": host.get("default_nic_model"),
         "bootcmd": host.get("bootcmd"),
         "runcmd": host.get("runcmd"),
+        "meta_data_media_type": host.get("meta_data_media_type"),
+        "default_bus_type": host.get("default_bus_type"),
     }
     domain = hv.create_domain(name=host["name"], distro=distro)
     hv.configure_domain(domain, user_config)

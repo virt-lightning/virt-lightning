@@ -124,6 +124,8 @@ class LibvirtHypervisor:
             "default_nic_model": "virtio",
             "bootcmd": [],
             "runcmd": [],
+            "meta_data_media_type": "disk",
+            "default_bus_type": "virtio",
         }
         for k, v in self.get_distro_configuration(domain.distro).items():
             if v:
@@ -141,6 +143,8 @@ class LibvirtHypervisor:
         domain.default_nic_model = config["default_nic_model"]
         domain.bootcmd = config["bootcmd"]
         domain.runcmd = config["runcmd"]
+        domain.meta_data_media_type = config["meta_data_media_type"]
+        domain.default_bus_type = config["default_bus_type"]
         if "fqdn" in config:
             domain.fqdn = config["fqdn"]
 
@@ -450,7 +454,8 @@ class LibvirtHypervisor:
         else:  # OpenStack format is the default
             cloud_init_iso = self.prepare_cloud_init_openstack_iso(domain)
 
-        domain.attach_disk(cloud_init_iso, device="disk", disk_type="raw")
+        media_type = domain.meta_data_media_type
+        domain.attach_disk(cloud_init_iso, device=media_type, disk_type="raw")
         domain.dom.create()
         self.remove_domain_from_network(domain)
         self.add_domain_to_network(domain)
@@ -680,6 +685,8 @@ class LibvirtDomain:
         self._ssh_key = None
         self.default_nic_model = None
         self.nics = []
+        self.meta_data_media_type = None
+        self.default_bus_type = None
 
     @property
     def root_password(self):
@@ -864,11 +871,11 @@ class LibvirtDomain:
 
     def attach_disk(self, volume, device="disk", disk_type="qcow2"):
         if device == "cdrom":
+            # virtio does not support ejectable media
             bus = "ide"
-        elif self.distro.startswith("esxi"):
-            bus = "sata"
         else:
-            bus = "virtio"
+            bus = self.default_bus_type or "virtio"
+
         device_name = self.get_next_block_device()
         disk_root = ET.fromstring(DISK_XML)
         disk_root.attrib["device"] = device
