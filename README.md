@@ -40,6 +40,7 @@ During this recording, we:
 
 ## Pre-requirements
 
+- Python 3.8 or greater.
 - The Python3 binding for libvirt, the package is probably called `python3-libvirt`.
 - You make also want to install `python3-urwid` if you want to get the fancy list of VM. This dependency is optional.
 - Libvirt must be running, most of the time you just need to run: `sudo systemctl start --now libvirtd`
