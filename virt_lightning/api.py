@@ -454,6 +454,14 @@ def fetch_from_url(progress_callback=None, url=None, **kwargs):
         - when url is set to None, this means we are trying to fetch from the default url
     """
 
+    target_file = pathlib.PosixPath(
+        "{storage_dir}/upstream/{distro}.qcow2".format(**kwargs)
+    )
+    temp_file = target_file.with_suffix(".temp")
+    if target_file.exists():
+        logger.info("File already exists: %s", target_file)
+        return
+
     class RedirectFilter(urllib.request.HTTPRedirectHandler):
         def redirect_request(self, req, fp, code, msg, hdrs, newurl):
             logger.info("downloading image from: %s", newurl)
@@ -481,13 +489,6 @@ def fetch_from_url(progress_callback=None, url=None, **kwargs):
     logger.debug("Size: %s", size)
     length = int(size)
     chunk_size = MB * 1
-    target_file = pathlib.PosixPath(
-        "{storage_dir}/upstream/{distro}.qcow2".format(**kwargs)
-    )
-    temp_file = target_file.with_suffix(".temp")
-    if target_file.exists():
-        logger.info("File already exists: %s", target_file)
-        return
     with temp_file.open("wb") as fd:
         while fd.tell() < length:
             chunk = r.read(chunk_size)
