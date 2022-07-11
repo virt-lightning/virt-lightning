@@ -163,11 +163,12 @@ A VM can be tuned at two different places with the following keys:
 - `distro`: the name of the base distro image to use, it's the only mandatory parameter.
 - `name`: the VM name
 - `memory`: the amount of memory to dedicate to the VM
-- `root_disk_size`: the size of the root disk in GB
 - `vcpus`: the number of vcpu to dedicate to the VM
 - `root_password`: the root password in clear text
 - `ssh_key_file`: the path of the public key for connecting to the VM
 - `groups`: this list of groups will be used if you generate an Ansible inventory.
+- `disks`: a list of disks to create and attach to the VM. The first one is used as the root disk. Default to `[{"size": 15}]`
+    - `size` the size of the disk in GB. Default is `1`.
 - `networks`: a list of network to attach to the VM. The default is: one virtio interface attached to `virt-lightning` network.
     - `network`: the name of the libvirt network. Default is the key `network_name` from the configuration (`virt-lightning` by default). The key cannot be used with `bridge`.
     - `ipv4`: a static IPv4. Default is a dynamic IPv4 address.

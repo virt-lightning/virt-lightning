@@ -124,12 +124,6 @@ def _start_domain(hv, host, context, configuration):
     domain = hv.create_domain(name=host["name"], distro=distro)
     hv.configure_domain(domain, user_config)
     domain.context = context
-    root_disk_path = hv.create_disk(
-        name=host["name"],
-        backing_on=distro,
-        size=host.get("root_disk_size", 15),
-    )
-    domain.add_root_disk(root_disk_path)
     networks = host.get("networks", [{}])
     for i, network in enumerate(networks):
         if "network" not in network:
@@ -142,6 +136,25 @@ def _start_domain(hv, host, context, configuration):
                 network["network"], host["name"], ipaddress.ip_interface(ipv4)
             )
         domain.attach_network(**network)
+
+    if "root_disk_size" in host:
+        logger.debug("The key 'root_disk_size' is deprecated. Use 'disks' instead")
+
+    disks = host.get("disks", [{"size": 15}])
+    for i, disk in enumerate(disks):
+        size = 1
+        if "size" in disk:
+            size = int(disk["size"])
+
+        # Old behavior
+        if "disks" not in host and "root_disk_size" in host:
+            size = int(host["root_disk_size"])
+
+        volume = hv.create_disk(
+            name=f"{host['name']}-{i}", backing_on=(distro if i == 0 else ""), size=size
+        )
+        domain.attach_disk(volume=volume)
+
     hv.start(domain, metadata_format=host.get("metadata_format", {}))
     return domain
 
