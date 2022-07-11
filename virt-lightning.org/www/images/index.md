@@ -1,3 +1,5 @@
+- almalinux-8
+- almalinux-9
 - amazon2-20210126.0
 - centos-6
 - centos-7
