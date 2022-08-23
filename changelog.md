@@ -1,3 +1,13 @@
+# 2.2.0
+
+- Cosmetic documentation changes
+- Don't try to fetch an image that already exists
+- Add ability to boot old system with no virtio support
+- Use Libvirt default settings when possible
+- Use the VNC display by default
+- Add support for OpenVSwitch (a.k.a OVS )bridge
+- vl stop: avoid a Python backtrace if the VM doesn't exist
+
 # 2.1.1
 
 - reconnect to libvirt after the download step (#218)
