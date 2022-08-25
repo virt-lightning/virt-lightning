@@ -228,6 +228,14 @@ Commands:
         default=True,
     )
     start_parser.add_argument("distro", help="Name of the distro", type=str)
+    start_parser.add_argument(
+        "--disk",
+        action="extend",
+        nargs=1,
+        metavar="SIZE",
+        help="Size of disk in GB. Multiple disks might be defined",
+        type=int,
+    )
 
     stop_parser = action_subparsers.add_parser(
         "stop", help="Stop and delete a VM", parents=[parent_parser]
