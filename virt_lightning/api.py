@@ -236,6 +236,8 @@ def start(
     host = {
         k: kwargs[k] for k in ["name", "distro", "memory", "vcpus"] if kwargs.get(k)
     }
+    if kwargs.get("disk"):
+        host.update({"disks": [{"size": x} for x in kwargs["disk"]]})
     _ensure_image_exists(hv, [host])
     domain = _start_domain(hv, host, context, configuration)
     if not domain:
