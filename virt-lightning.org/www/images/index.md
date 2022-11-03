@@ -9,6 +9,7 @@
 - debian-9
 - debian-10
 - debian-testing
+- debian-11
 - dragonflybsd-5.6.3
 - dragonflybsd-5.8.3
 - dragonflybsd-6.0.0-ufs
@@ -40,3 +41,5 @@
 - ubuntu-20.04
 - ubuntu-21.04
 - opensuse-leap-15.2
+- rockylinux-8
+- rockylinux-9
