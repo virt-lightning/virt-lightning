@@ -16,6 +16,8 @@
 - dragonflybsd-6.0.0-hammer2
 - dragonflybsd-6.0.1-ufs
 - dragonflybsd-6.0.1-hammer2
+- dragonflybsd-6.2.2-ufs
+- dragonflybsd-6.2.2-hammer2
 - fedora-31
 - fedora-32
 - fedora-33
@@ -35,11 +37,15 @@
 - openbsd-6.8
 - openbsd-6.9
 - openbsd-7.0
+- openbsd-7.1
+- openbsd-7.2
 - ubuntu-14.04
 - ubuntu-16.04
 - ubuntu-18.04
 - ubuntu-20.04
 - ubuntu-21.04
+- ubuntu-22.04
+- ubuntu-22.10
 - opensuse-leap-15.2
 - rockylinux-8
 - rockylinux-9
