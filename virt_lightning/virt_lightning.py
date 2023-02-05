@@ -260,7 +260,6 @@ class LibvirtHypervisor:
             raise
 
     def get_openstack_network_data(self, domain):
-
         openstack_network_data = {
             "links": [],
             "networks": [],
