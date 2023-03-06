@@ -125,7 +125,6 @@ def list_from_yaml_file(value):
 
 
 def main():
-
     title = "{lightning} Virt-Lightning {lightning}".format(
         lightning=symbols.LIGHTNING.value
     )
