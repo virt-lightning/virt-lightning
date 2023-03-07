@@ -71,4 +71,7 @@ setuptools.setup(
         ]
     },
     setup_requires=["setuptools_scm"],
+    project_urls={
+        'Source': 'https://github.com/virt-lightning/virt-lightning',
+    }
 )
