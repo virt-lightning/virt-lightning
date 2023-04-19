@@ -1,0 +1,22 @@
+[tool.ruff]
+line-length = 100
+select = [
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+#    "D",  # pydocstyle
+    "E",  # Error
+    "F",  # pyflakes
+    "I",  # isort
+    "ISC", # flake8-implicit-str-concat
+    "N",  # pep8-naming
+    "PGH",  # pygrep-hooks
+    "PTH", # flake8-use-pathlib
+    "Q",  # flake8-quotes
+#    "S",  # bandit
+    "SIM",  # flake8-simplify
+#    "TRY",  # tryceratops
+    "UP",  # pyupgrade
+    "W",  # Warning
+    "YTT", # flake8-2020
+]
+ignore = ["N806"]

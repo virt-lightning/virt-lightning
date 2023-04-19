@@ -2,19 +2,18 @@
 
 import argparse
 import logging
-import pathlib
-import libvirt
 import os
-import yaml
+import pathlib
 import sys
 
+import libvirt
+import yaml
 
 import virt_lightning.api
+import virt_lightning.ui as ui
+import virt_lightning.virt_lightning as vl
 from virt_lightning.configuration import Configuration
 from virt_lightning.symbols import get_symbols
-import virt_lightning.virt_lightning as vl
-import virt_lightning.ui as ui
-
 
 symbols = get_symbols()
 logger = logging.getLogger("virt_lightning")
@@ -41,11 +40,9 @@ def how_to_fix_auth_error():
     if gid not in os.getgroups():
         print("Virt-Lightning cannot access the local libvirt service.")  # noqa: T001
         print(  # noqa: T001
-            (
-                f"Your user should probably be in the {group} group. "
-                f"You can add the user {getpass. getuser()} in the group {group} with the "
-                "following command:"
-            )
+            f"Your user should probably be in the {group} group. "
+            f"You can add the user {getpass. getuser()} in the group {group} with the "
+            "following command:"
         )
         print(  # noqa: T001
             f"    sudo usermod --append --groups libvirt {getpass.getuser()}"
@@ -319,7 +316,7 @@ Commands:
         for distro_name in virt_lightning.api.distro_list(
             configuration=configuration, **vars(args)
         ):
-            print("- distro: {0}".format(distro_name))  # noqa: T001
+            print(f"- distro: {distro_name}")  # noqa: T001
     elif args.action == "storage_dir":
         print(  # noqa: T001
             virt_lightning.api.storage_dir(configuration=configuration, **vars(args))
@@ -396,7 +393,7 @@ Commands:
             action_func = getattr(virt_lightning.api, args.action)
             action_func(configuration=configuration, **vars(args))
         except virt_lightning.api.VMNotFoundError as e:
-            logger.error("VM {name} not found".format(name=e.name))
+            logger.error(f"VM {e.name} not found")
         except virt_lightning.api.ImageNotFoundLocallyError as e:
             logger.error(
                 (

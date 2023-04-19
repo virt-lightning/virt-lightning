@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# TODO: move to pyproject.toml
+# ruff: noqa: PTH120, PTH100, PTH123
 #
 # Copyright (C) 2019 Red Hat, Inc
 # Copyright (C) 2020 Gonéri Le Bouder
@@ -25,7 +26,7 @@ def _get_requirements():
     requirements_path = "{path}/{filename}".format(
         path=os.path.dirname(os.path.abspath(__file__)), filename="requirements.txt"
     )
-    with open(requirements_path, "r", encoding="utf-8") as f:
+    with open(requirements_path, encoding="utf-8") as f:
         return f.read()
 
 
@@ -34,7 +35,7 @@ def _get_readme():
         path=os.path.dirname(os.path.abspath(__file__)), filename="README.md"
     )
 
-    with open(readme_path, "r", encoding="utf-8") as f:
+    with open(readme_path, encoding="utf-8") as f:
         return f.read()
 
 

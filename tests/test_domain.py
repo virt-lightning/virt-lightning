@@ -1,9 +1,3 @@
-import virt_lightning
-
-import pathlib
-from unittest.mock import patch
-import libvirt
-
 IF_XML = """
 <domain>
   <devices>
@@ -20,7 +14,7 @@ def test_name(domain):
 
 
 def test_context(domain):
-    assert domain.context == None
+    assert domain.context is None
     domain.context = "something"
     assert domain.context == "something"
 

@@ -1,16 +1,15 @@
-import pytest
+import pathlib
+from unittest.mock import Mock, patch
 
 import libvirt
+import pytest
+
 import virt_lightning.virt_lightning as vl
-import pathlib
-from unittest.mock import patch
-from unittest.mock import Mock
 
 DEFAULT_INI = """
 [main]
 root_password=boby
 """
-
 
 
 def clean_up():
@@ -28,7 +27,7 @@ def hv(scope="function"):
     conn = libvirt.open("test:///default")
     conn.getURI = Mock(return_value="qemu:///system")
     hv = vl.LibvirtHypervisor(conn)
-    with patch.object(pathlib.Path, 'exists') as mock_exists:
+    with patch.object(pathlib.Path, "exists") as mock_exists:
         mock_exists.return_value = False
         hv.init_storage_pool("foo_bar")
     hv.get_qcow_virtual_size = Mock(return_value=2)
@@ -42,12 +41,14 @@ def domain(hv, scope="function"):
     yield hv.create_domain(name="a", distro="b")
     clean_up()
 
+
 @pytest.fixture(autouse=True)
 def kvm_binaries(tmp_path):
     kvm_f = tmp_path / "kvm-dummy"
-    with kvm_f.open(mode='wt') as fd:
+    with kvm_f.open(mode="wt") as fd:
         fd.write("aa")
     vl.KVM_BINARIES = (kvm_f,)
+
 
 @pytest.fixture(autouse=True)
 def qemu_dir(tmp_path):
@@ -55,6 +56,7 @@ def qemu_dir(tmp_path):
     if not qemu_dir.exists():
         qemu_dir.mkdir()
     vl.QEMU_DIR = str(qemu_dir)
+
 
 @pytest.fixture(autouse=True)
 def storage_dir(tmp_path):
@@ -65,6 +67,7 @@ def storage_dir(tmp_path):
     if not upstream_dir.exists():
         upstream_dir.mkdir()
     vl.DEFAULT_STORAGE_DIR = str(pool_dir)
+
 
 @pytest.fixture
 def config_file(tmp_path):
