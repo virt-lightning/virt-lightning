@@ -1,11 +1,6 @@
-import virt_lightning
+from unittest.mock import Mock, patch
 
-import ipaddress
 import libvirt
-import pathlib
-from unittest.mock import call
-from unittest.mock import Mock
-from unittest.mock import patch
 
 
 def test_arch(hv):
@@ -94,4 +89,4 @@ def test_remove_domain_from_network(hv, domain):
     hv.network_obj.XMLDesc = Mock(return_value=NET_XML)
     hv.network_obj.update = Mock()
     hv.remove_domain_from_network(domain)
-    hv.network_obj.update.call_count == 3
+    assert hv.network_obj.update.call_count == 2

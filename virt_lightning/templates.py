@@ -57,7 +57,7 @@ DOMAIN_XML = """
     <memballoon model='virtio'></memballoon>
   </devices>
 </domain>
-"""  # NOQA
+"""
 
 BRIDGE_XML = """
 <interface type='network'>
