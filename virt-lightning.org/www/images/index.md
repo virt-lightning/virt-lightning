@@ -24,6 +24,8 @@
 - fedora-34
 - fedora-35
 - fedora-36
+- fedora-37
+- fedora-38
 - freebsd-11.4
 - freebsd-12.1
 - freebsd-12.2
