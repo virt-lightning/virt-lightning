@@ -277,6 +277,9 @@ class LibvirtHypervisor:
 
             gateway = self.get_network_gateway(nic["network"])
             if nic["ipv4"]:
+                net_dns_nameservers = (
+                    [str(self.dns.ip)] if self.dns.ip in nic["ipv4"].network else []
+                )
                 openstack_network_data["networks"].append(
                     {
                         "id": "private-ipv4-{i}".format(i=i),
@@ -292,6 +295,14 @@ class LibvirtHypervisor:
                             }
                         ],
                         "network_id": domain.dom.UUIDString(),
+                        # Workaround for CloudInit, sources.helpers.openstack read the
+                        # subnet DNS from ths dns_nameservers and ignore the
+                        # services key.
+                        # https://opendev.org/openstack/nova/commit/4b333b989dfc778a8b61db4a1b8552e988a10471
+                        "dns_nameservers": net_dns_nameservers,
+                        "services": [
+                            {"type": "dns", "address": ns} for ns in net_dns_nameservers
+                        ],
                     }
                 )
             else:
