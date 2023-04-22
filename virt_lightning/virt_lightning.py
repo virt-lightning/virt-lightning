@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
-import ipaddress
+import asyncio
 import getpass
+import ipaddress
+import json
 import logging
 import math
 import os
@@ -11,25 +13,20 @@ import string
 import subprocess
 import sys
 import tempfile
-import typing
 import uuid
 import xml.etree.ElementTree as ET  # noqa: N817
 
 import libvirt
-
-import json
 import yaml
-
-import asyncio
 
 from virt_lightning.symbols import get_symbols
 
 from .templates import (
     BRIDGE_XML,
-    META_DATA_ENI,
-    NETWORK_DHCP_ENTRY,
     DISK_XML,
     DOMAIN_XML,
+    META_DATA_ENI,
+    NETWORK_DHCP_ENTRY,
     NETWORK_HOST_ENTRY,
     NETWORK_XML,
     STORAGE_POOL_XML,
@@ -134,7 +131,7 @@ class LibvirtHypervisor:
             if v:
                 config[k] = v
         domain.groups = config["groups"]
-        domain.load_ssh_key_file(config["ssh_key_file"])
+        domain.load_ssh_key_file(pathlib.Path(config["ssh_key_file"]))
         domain.memory = config["memory"]
         domain.python_interpreter = config["python_interpreter"]
         domain.root_password = config["root_password"]
@@ -148,7 +145,7 @@ class LibvirtHypervisor:
         if "fqdn" in config:
             domain.fqdn = config["fqdn"]
 
-    def get_distro_configuration(self, distro) -> typing.Dict:
+    def get_distro_configuration(self, distro) -> dict:
         distro_configuration_file = pathlib.PosixPath(
             "{storage_dir}/upstream/{distro}.yaml".format(
                 storage_dir=self.get_storage_dir(), distro=distro
@@ -185,7 +182,7 @@ class LibvirtHypervisor:
             used_ips.append(interface)
 
         for ip in self.network:
-            cidr_ip = "{ip}/24".format(ip=ip)
+            cidr_ip = f"{ip}/24"
             interface = ipaddress.IPv4Interface(cidr_ip)
             if int(interface.ip.exploded.split(".")[3]) < 5:
                 continue
@@ -215,9 +212,7 @@ class LibvirtHypervisor:
                 )
             )
             min_size = self.get_qcow_virtual_size(backing_file)
-        disk_path = pathlib.PosixPath(
-            "{path}/{name}.qcow2".format(path=self.get_storage_dir(), name=name)
-        )
+        disk_path = pathlib.PosixPath(f"{self.get_storage_dir()}/{name}.qcow2")
 
         if "/" in name:
             raise TypeError
@@ -269,7 +264,7 @@ class LibvirtHypervisor:
         for i, nic in enumerate(domain.nics):
             openstack_network_data["links"].append(
                 {
-                    "id": "interface{i}".format(i=i),
+                    "id": f"interface{i}",
                     "type": "phy",
                     "ethernet_mac_address": nic["mac"],
                 }
@@ -282,9 +277,9 @@ class LibvirtHypervisor:
                 )
                 openstack_network_data["networks"].append(
                     {
-                        "id": "private-ipv4-{i}".format(i=i),
+                        "id": f"private-ipv4-{i}",
                         "type": "ipv4",
-                        "link": "interface{i}".format(i=i),
+                        "link": f"interface{i}",
                         "ip_address": str(nic["ipv4"].ip),
                         "netmask": str(nic["ipv4"].netmask.exploded),
                         "routes": [
@@ -308,9 +303,9 @@ class LibvirtHypervisor:
             else:
                 openstack_network_data["networks"].append(
                     {
-                        "id": "private-ipv4-{i}".format(i=i),
+                        "id": f"private-ipv4-{i}",
                         "type": "ipv4_dhcp",
-                        "link": "interface{i}".format(i=i),
+                        "link": f"interface{i}",
                         "network_id": domain.dom.UUIDString(),
                     }
                 )
@@ -349,7 +344,7 @@ class LibvirtHypervisor:
                 fd.write("#cloud-config\n")
                 fd.write(yaml.dump(domain.user_data, Dumper=yaml.Dumper))
 
-            cidata_file = temp_dir / "{name}-cidata.iso".format(name=domain.name)
+            cidata_file = temp_dir / f"{domain.name}-cidata.iso"
             run_cmd(
                 [
                     str(self.iso_binary),
@@ -388,7 +383,7 @@ class LibvirtHypervisor:
                 network_config.append(
                     {
                         "type": "physical",
-                        "name": "eth{i}".format(i=i),
+                        "name": f"eth{i}",
                         "mac_address": nic["mac"],
                         "subnets": [
                             {
@@ -404,7 +399,7 @@ class LibvirtHypervisor:
                 network_config.append(
                     {
                         "type": "physical",
-                        "name": "eth{i}".format(i=i),
+                        "name": f"eth{i}",
                         "mac_address": nic["mac"],
                         "subnets": [{"type": "dhcp"}],
                     }
@@ -433,7 +428,7 @@ class LibvirtHypervisor:
             with network_config_file.open("w") as fd:
                 fd.write(yaml.dump(domain._network_meta, Dumper=yaml.Dumper))
 
-            cidata_file = temp_dir / "{name}-cidata.iso".format(name=domain.name)
+            cidata_file = temp_dir / f"{domain.name}-cidata.iso"
             run_cmd(
                 [
                     str(self.iso_binary),
@@ -457,7 +452,7 @@ class LibvirtHypervisor:
             return cdrom
 
     def start(self, domain, metadata_format):
-        if metadata_format.get("provider", "") == "nocloud":
+        if metadata_format.get("provider", "") == "nocloud":  # noqa: SIM114
             cloud_init_iso = self.prepare_cloud_init_nocloud_iso(domain)
         elif domain.distro.startswith("rhel-6") or domain.distro.startswith("centos-6"):
             cloud_init_iso = self.prepare_cloud_init_nocloud_iso(domain)
@@ -590,9 +585,8 @@ class LibvirtHypervisor:
     def reuse_mac_address(self, network_name, domain_name, ipv4):
         network_obj = self.get_network_by_name(network_name)
         for lease in network_obj.DHCPLeases():
-            if lease["hostname"] == domain_name:
-                if lease["ipaddr"] == str(ipv4.ip):
-                    return lease["mac"]
+            if lease["hostname"] == domain_name and lease["ipaddr"] == str(ipv4.ip):
+                return lease["mac"]
 
     def create_network(self, network_name, network_cidr):
         network = ipaddress.ip_network(network_cidr)
@@ -707,7 +701,7 @@ class LibvirtDomain:
         self.user_data["disable_root"] = False
         self.user_data["password"] = value
         self.user_data["chpasswd"] = {
-            "list": "root:{value}\n".format(value=value),
+            "list": f"root:{value}\n",
             "expire": False,
         }
         self.user_data["ssh_pwauth"] = True
@@ -722,11 +716,10 @@ class LibvirtDomain:
         self._ssh_key = value
 
     def load_ssh_key_file(self, ssh_key_file):
-        doc_url = "https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/#generating-a-new-ssh-key"  # NOQA
+        doc_url = "https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/#generating-a-new-ssh-key"
         try:
-            with open(os.path.expanduser(ssh_key_file), "r") as fd:
-                self.ssh_key = fd.read()
-        except IOError:
+            self.ssh_key = ssh_key_file.expanduser().read_text()
+        except OSError:
             logger.error(
                 (
                     "Can not read {filename}. If you don't have any SSH key, "
@@ -792,7 +785,7 @@ class LibvirtDomain:
     def fqdn(self, value):
         fqdn_validate = re.compile(r"^[\.a-z0-9]+$", re.IGNORECASE)
         if not value or not fqdn_validate.match(value):
-            logger.error("Invalid FQDN: {value}".format(value=value))
+            logger.error(f"Invalid FQDN: {value}")
             return
         self.user_data["fqdn"] = value
         self.record_metadata("fqdn", value)
@@ -838,10 +831,10 @@ class LibvirtDomain:
         if not hasattr(self, "blockdev"):
             self.blockdev = list(string.ascii_lowercase)
             self.blockdev.reverse()
-        return "vd{block}".format(block=self.blockdev.pop())
+        return f"vd{self.blockdev.pop()}"
 
     def record_metadata(self, k, v):
-        meta = "<{k} name='{v}' />".format(k=k, v=v)
+        meta = f"<{k} name='{v}' />"
         self.dom.setMetadata(
             libvirt.VIR_DOMAIN_METADATA_ELEMENT,
             meta,
@@ -880,7 +873,7 @@ class LibvirtDomain:
         self.record_metadata("groups", ",".join(value))
 
     def attach_disk(self, volume, device="disk", disk_type="qcow2"):
-        if device == "cdrom":
+        if device == "cdrom":  # noqa: SIM108
             # virtio does not support ejectable media
             bus = "ide"
         else:
@@ -1013,5 +1006,5 @@ class LibvirtDomain:
             "StrictHostKeyChecking=no",
             "-o",
             "UserKnownHostsFile=/dev/null",
-            "{username}@{ipv4}".format(username=self.username, ipv4=self.ipv4.ip),
+            f"{self.username}@{self.ipv4.ip}",
         )

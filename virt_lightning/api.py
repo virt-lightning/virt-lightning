@@ -1,22 +1,21 @@
 #!/usr/bin/env python3
 
-import collections
-from concurrent.futures import ThreadPoolExecutor
-import logging
-
 import asyncio
-import ipaddress
-import libvirt
-import re
-import pathlib
-
-import urllib.request
-import sys
+import collections
 import distutils.util
-from virt_lightning.symbols import get_symbols
-from virt_lightning.configuration import Configuration
+import ipaddress
+import logging
+import pathlib
+import re
+import sys
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor
+
+import libvirt
 
 import virt_lightning.virt_lightning as vl
+from virt_lightning.configuration import Configuration
+from virt_lightning.symbols import get_symbols
 
 BASE_URL = "https://virt-lightning.org"
 
@@ -79,7 +78,7 @@ def _connect_libvirt(uri):
         return libvirt.open(uri)
     except libvirt.libvirtError as e:
         if e.get_error_code() == libvirt.VIR_ERR_AUTH_UNAVAILABLE:
-            raise CannotConnectToLibvirtError()
+            raise CannotConnectToLibvirtError() from None
         raise
 
 
@@ -167,13 +166,11 @@ def _ensure_image_exists(hv, hosts):
             try:
                 fetch(hv=hv, distro=distro)
             except ImageNotFoundUpstreamError:
-                raise ImageNotFoundLocallyError(distro)
+                raise ImageNotFoundLocallyError(distro) from None
 
 
 def up(virt_lightning_yaml, configuration, context="default", **kwargs):
-    """
-    Create a list of VM
-    """
+    """Create a list of VM."""
 
     def _lifecycle_callback(conn, dom, state, reason, opaque):  # noqa: N802
         if state == 1:
@@ -226,9 +223,7 @@ def up(virt_lightning_yaml, configuration, context="default", **kwargs):
 def start(
     configuration, context="default", enable_console=False, console_fd=None, **kwargs
 ):
-    """
-    Start a single VM
-    """
+    """Start a single VM."""
     conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
     hv.init_network(configuration.network_name, configuration.network_cidr)
@@ -283,9 +278,7 @@ def start(
 
 
 def stop(configuration, **kwargs):
-    """
-    Stop and delete a given VM
-    """
+    """Stop and delete a given VM."""
     conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
     hv.init_network(configuration.network_name, configuration.network_cidr)
@@ -304,9 +297,7 @@ def stop(configuration, **kwargs):
 
 
 def ansible_inventory(configuration, context="default", **kwargs):
-    """
-    Generate an Ansible inventory based on the running VM
-    """
+    """Generate an Ansible inventory based on the running VM."""
     conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
 
@@ -337,16 +328,14 @@ def ansible_inventory(configuration, context="default", **kwargs):
         )  # noqa: T001
 
     for group_name, domains in groups.items():
-        output += "\n[{group_name}]\n".format(group_name=group_name)
+        output += f"\n[{group_name}]\n"
         for domain in domains:
             output += domain.name + "\n"
     return output
 
 
 def ssh_config(configuration, context="default", **kwargs):
-    """
-    Generate an SSH configuration based on the running VM
-    """
+    """Generate an SSH configuration based on the running VM."""
     conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
 
@@ -376,16 +365,14 @@ def ssh_config(configuration, context="default", **kwargs):
         )
 
     for group_name, domains in groups.items():
-        output += "\n[{group_name}]".format(group_name=group_name)
+        output += f"\n[{group_name}]"
         for domain in domains:
             output += domain.name
     return output
 
 
 def status(configuration, context="default", name=None, **kwargs):
-    """
-    Returns the status of the VM of the envionment
-    """
+    """Returns the status of the VM of the envionment."""
     conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
 
@@ -405,9 +392,7 @@ def status(configuration, context="default", name=None, **kwargs):
 
 
 def exec_ssh(configuration, name=None, **kwargs):
-    """
-    Open an SSH connection on a host
-    """
+    """Open an SSH connection on a host."""
     conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
     domain = hv.get_domain_by_name(name)
@@ -417,18 +402,14 @@ def exec_ssh(configuration, name=None, **kwargs):
 
 
 def list_domains(configuration, name=None, **kwargs):
-    """
-    Return a list Python-libvirt instance of the running libvirt VM.
-    """
+    """Return a list Python-libvirt instance of the running libvirt VM."""
     conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
     return sorted(hv.list_domains())
 
 
 def down(configuration, context="default", **kwargs):
-    """
-    Stop and remove a running environment.
-    """
+    """Stop and remove a running environment."""
     conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
     hv.init_network(configuration.network_name, configuration.network_cidr)
@@ -444,9 +425,7 @@ def down(configuration, context="default", **kwargs):
 
 
 def distro_list(configuration, **kwargs):
-    """
-    Return a list of VM images that are available on the system.
-    """
+    """Return a list of VM images that are available on the system."""
     conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
     hv.init_storage_pool(configuration.storage_pool)
@@ -454,9 +433,7 @@ def distro_list(configuration, **kwargs):
 
 
 def storage_dir(configuration, **kwargs):
-    """
-    Return the location of the VM image storage directory.
-    """
+    """Return the location of the VM image storage directory."""
     conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
     hv.init_storage_pool(configuration.storage_pool)
@@ -464,11 +441,9 @@ def storage_dir(configuration, **kwargs):
 
 
 def fetch_from_url(progress_callback=None, url=None, **kwargs):
+    """Retrieve a VM image from a given url
+    - when url is set to None, this means we are trying to fetch from the default url.
     """
-    Retrieve a VM image from a given url
-        - when url is set to None, this means we are trying to fetch from the default url
-    """
-
     target_file = pathlib.PosixPath(
         "{storage_dir}/upstream/{distro}.qcow2".format(**kwargs)
     )
@@ -494,7 +469,7 @@ def fetch_from_url(progress_callback=None, url=None, **kwargs):
         )
     except urllib.error.HTTPError as e:
         if e.code == 404:
-            raise ImageNotFoundUpstreamError(kwargs["distro"])
+            raise ImageNotFoundUpstreamError(kwargs["distro"]) from None
         else:
             logger.exception(e)
             raise
@@ -524,9 +499,7 @@ def fetch_from_url(progress_callback=None, url=None, **kwargs):
 
 
 def fetch(configuration=None, progress_callback=None, hv=None, **kwargs):
-    """
-    Retrieve a VM image from Internet.
-    """
+    """Retrieve a VM image from Internet."""
     if hv is None:
         conn = _connect_libvirt(configuration.libvirt_uri)
         hv = vl.LibvirtHypervisor(conn)
