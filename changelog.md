@@ -1,3 +1,15 @@
+# 2.3.0
+
+- tox: add "build" target
+- run tox with Github Action
+- move from setup.py to pyproject.toml
+- cloudinit: add a workaround for the DNS and Fedora
+- github: add a ruff-based test
+- Add CodeQL workflow for GitHub code scanning (#257)
+- Set the Source project URL in setup.py
+- reindent with black
+- Implement disk size parameter for 'start' command
+
 # 2.2.0
 
 - Cosmetic documentation changes
