@@ -1,3 +1,47 @@
+[build-system]
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "virt-lightning"
+description = "Deploy your testing VM in a couple of seconds"
+readme = "README.md"
+authors = [{ name = "Gonéri Le Bouder", email="goneri@lebouder.net" }]
+requires-python = ">=3.8"
+classifiers = [
+    "Environment :: Console",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+        "Operating System :: POSIX :: Linux",
+]
+dynamic = ["dependencies", "version"]
+keywords = ["libvirt", "cloud", "qemu", "cloudinit"]
+
+[project.urls]
+Homepage = "https://https://virt-lightning.org/"
+Source = "https://github.com/virt-lightning/virt-lightning"
+
+[project.optional-dependencies]
+test = [
+    "tox",
+]
+
+[project.scripts]
+virt-lightning = "virt_lightning.shell:main"
+vl = "virt_lightning.shell:main"
+
+
+[tool]
+
+[tool.setuptools_scm]
+write_to = "virt_lightning/version.py"
+
+[tool.setuptools]
+packages = ["virt_lightning"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
 [tool.ruff]
 line-length = 100
 select = [
