@@ -24,6 +24,8 @@
 - fedora-34
 - fedora-35
 - fedora-36
+- fedora-37
+- fedora-38
 - freebsd-11.4
 - freebsd-12.1
 - freebsd-12.2
@@ -46,6 +48,7 @@
 - ubuntu-21.04
 - ubuntu-22.04
 - ubuntu-22.10
+- ubuntu-23.04
 - opensuse-leap-15.2
 - rockylinux-8
 - rockylinux-9
