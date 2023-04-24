@@ -1,6 +1,7 @@
 - almalinux-8
 - almalinux-9
 - amazon2-20210126.0
+- amazon2-20230320.0
 - centos-6
 - centos-7
 - centos-8
@@ -18,6 +19,8 @@
 - dragonflybsd-6.0.1-hammer2
 - dragonflybsd-6.2.2-ufs
 - dragonflybsd-6.2.2-hammer2
+- dragonflybsd-6.4.0-ufs
+- dragonflybsd-6.4.0-hammer2
 - fedora-31
 - fedora-32
 - fedora-33
@@ -31,9 +34,12 @@
 - freebsd-12.2
 - freebsd-13.0-ufs
 - freebsd-13.0-zfs
+- freebsd-13.2-ufs
+- freebsd-13.2-zfs
 - netbsd-8.2
 - netbsd-9.1
 - netbsd-9.2
+- netbsd-9.3
 - openbsd-6.6
 - openbsd-6.7
 - openbsd-6.8
@@ -41,6 +47,7 @@
 - openbsd-7.0
 - openbsd-7.1
 - openbsd-7.2
+- openbsd-7.3
 - ubuntu-14.04
 - ubuntu-16.04
 - ubuntu-18.04
