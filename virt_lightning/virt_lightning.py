@@ -121,7 +121,7 @@ class LibvirtHypervisor:
             "default_nic_model": "virtio",
             "bootcmd": [],
             "runcmd": [],
-            "meta_data_media_type": "disk",
+            "meta_data_media_type": "cdrom",
             "default_bus_type": "virtio",
         }
         for k, v in self.get_distro_configuration(domain.distro).items():
