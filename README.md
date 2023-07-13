@@ -231,3 +231,20 @@ networks:
   - network: default
     nic_model: e1000
 ```
+
+### Example: working with snapshots
+
+User can create a snapshot of VM to restore it later. Default configuration of `virt-lightning` supports snapshots both
+for running and powered off VMs. `qcow2` disk format used allows diskspace-wise incremental snapshotting, keeping only
+updated storage blocks. `virsh` tool supports it by CLI, `virt-manager` provides a neat GUI supporting the most of
+the features
+```shell
+# create first snapshot of running machine
+virsh snapshot-create-as --domain vm_name --name snapshot_1
+# create second snapshot
+virsh snapshot-create-as --domain vm_name --name snapshot_2
+# validate that both of them were saved
+virsh snapshot-list vm_name
+# and revert to the first one
+virsh snapshot-revert vm_name --snapshotname snapshot_1
+```
