@@ -49,8 +49,8 @@ class AbstractConfiguration(metaclass=ABCMeta):
         pass
 
     def __repr__(self):
-        return "Configuration(libvirt_uri={uri}, username={username})".format(
-            uri=self.libvirt_uri, username=self.username
+        return (
+            f"Configuration(libvirt_uri={self.libvirt_uri}, username={self.username})"
         )
 
 

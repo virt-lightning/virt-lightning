@@ -147,9 +147,7 @@ class LibvirtHypervisor:
 
     def get_distro_configuration(self, distro) -> dict:
         distro_configuration_file = pathlib.PosixPath(
-            "{storage_dir}/upstream/{distro}.yaml".format(
-                storage_dir=self.get_storage_dir(), distro=distro
-            )
+            f"{self.get_storage_dir()}/upstream/{distro}.yaml"
         )
         if not distro_configuration_file.exists():
             return {}
@@ -207,9 +205,7 @@ class LibvirtHypervisor:
         min_size = 0
         if backing_on:
             backing_file = pathlib.PosixPath(
-                "{path}/upstream/{backing_on}.qcow2".format(
-                    path=self.get_storage_dir(), backing_on=backing_on
-                )
+                f"{self.get_storage_dir()}/upstream/{backing_on}.qcow2"
             )
             min_size = self.get_qcow_virtual_size(backing_file)
         disk_path = pathlib.PosixPath(f"{self.get_storage_dir()}/{name}.qcow2")
@@ -816,11 +812,7 @@ class LibvirtDomain:
     @memory.setter
     def memory(self, value):
         if value < 256:
-            logger.warning(
-                "low memory: {value}MB for VM {name}".format(
-                    value=value, name=self.name
-                )
-            )
+            logger.warning(f"low memory: {value}MB for VM {self.name}")
         value *= 1024
         self.dom.setMemoryFlags(
             value, libvirt.VIR_DOMAIN_AFFECT_CONFIG | libvirt.VIR_DOMAIN_MEM_MAXIMUM
@@ -988,11 +980,7 @@ class LibvirtDomain:
                 data = await reader.read(10)
                 if data.decode().startswith("SSH"):
                     logger.info(
-                        "{computer} {name} found at {ipv4}!".format(
-                            computer=symbols.COMPUTER.value,
-                            name=self.name,
-                            ipv4=self.ipv4.ip,
-                        )
+                        f"{symbols.COMPUTER.value} {self.name} found at {self.ipv4.ip}!"
                     )
                     return
             except OSError:

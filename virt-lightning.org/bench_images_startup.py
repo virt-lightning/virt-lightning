@@ -49,7 +49,5 @@ for distro in distros:
         sum += elapsed_time
         print(f"- elapsed_time={elapsed_time:06.2f}")
     print(
-        "FINAL distro={distro}: {result}".format(
-            distro=distro, result=sum / number_of_runs
-        )
+        f"FINAL distro={distro}: {sum / number_of_runs}"
     )
