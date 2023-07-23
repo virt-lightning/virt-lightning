@@ -9,8 +9,9 @@
 - centos-9-stream
 - debian-9
 - debian-10
-- debian-testing
 - debian-11
+- debian-12
+- debian-sid
 - dragonflybsd-5.6.3
 - dragonflybsd-5.8.3
 - dragonflybsd-6.0.0-ufs
