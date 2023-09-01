@@ -42,6 +42,9 @@ During this recording, we:
 
 - Python 3.8 or greater.
 - The Python3 binding for libvirt, the package is probably called `python3-libvirt`.
+- You can also just build the binding during the install, in this case, you will need to install some packages first:
+    - `dnf install libvirt-devel python3-devel` (Fedora/RHEL)
+    - `apt install libvirt-dev python3-dev` (Debian/Ubuntu)
 - You make also want to install `python3-urwid` if you want to get the fancy list of VM. This dependency is optional.
 - Libvirt must be running, most of the time you just need to run: `sudo systemctl start --now libvirtd`
 - Finally, be sure your user can access the system libvirt daemon, e.g with: `virsh -c qemu:///system`
