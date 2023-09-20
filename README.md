@@ -251,3 +251,31 @@ virsh snapshot-list vm_name
 # and revert to the first one
 virsh snapshot-revert vm_name --snapshotname snapshot_1
 ```
+=======
+### Development
+install libvirt-dev package:
+
+Debian/Ubuntu:
+```shell
+apt-get install python3-venv python3-dev pkg-config gcc libvirt-dev
+```
+
+Fedora/RHEL:
+```shell
+dnf install python3-devel gcc libvirt-devel
+```
+
+You can run a development copy in a virtual env:
+```shell
+python3 -m venv /tmp/vl-dev-venv
+. /tmp/vl-dev-venv/bin/activate
+pip3 install -r requirements.txt
+pip3 install -e /path/to/my-virt-lightning-copy
+vl
+```
+
+The changes that are introduce in /path/to/my-virt-lightning-copy should be visible when you run vl from within the virtual env.
+running test will require:
+```shell
+pip3 install -r test-requirements.txt
+```
