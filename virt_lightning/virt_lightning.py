@@ -239,13 +239,11 @@ class LibvirtHypervisor:
         except libvirt.libvirtError as e:
             if e.get_error_code() == libvirt.VIR_ERR_STORAGE_VOL_EXIST:
                 logger.error(
-                    (
-                        "A volume image already exists and prevent the creation "
-                        " of a new one. You can remove it with the following "
-                        "command:\n"
-                        "  sudo virsh vol-delete --pool "
-                        "{pool_name} {vol_name}.qcow2"
-                    ).format(pool_name=self.storage_pool_obj.name(), vol_name=name)
+                    f"A volume image already exists and prevent the creation "
+                    " of a new one. You can remove it with the following "
+                    "command:\n"
+                    "  sudo virsh vol-delete --pool "
+                    "{self.storage_pool_obj.name()} {name}.qcow2"
                 )
                 sys.exit(1)
             raise
@@ -717,10 +715,8 @@ class LibvirtDomain:
             self.ssh_key = ssh_key_file.expanduser().read_text()
         except OSError:
             logger.error(
-                (
-                    "Can not read {filename}. If you don't have any SSH key, "
-                    "please follow the steps describe here:\n  {doc_url}"
-                ).format(filename=ssh_key_file, doc_url=doc_url)
+                f"Can not read {ssh_key_file}. If you don't have any SSH key, "
+                "please follow the steps describe here:\n  {doc_url}"
             )
             raise
 
