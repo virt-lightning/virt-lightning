@@ -72,3 +72,6 @@ virt-lightning.yaml
 .pytest_cache
 
 ansible/roles/
+
+#IDE
+virt-lightning.code-workspace

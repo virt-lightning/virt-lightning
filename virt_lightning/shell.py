@@ -122,9 +122,7 @@ def list_from_yaml_file(value):
 
 
 def main():
-    title = "{lightning} Virt-Lightning {lightning}".format(
-        lightning=symbols.LIGHTNING.value
-    )
+    title = f"{symbols.LIGHTNING.value} Virt-Lightning {symbols.LIGHTNING.value}"
 
     usage = """
 usage: vl [--debug DEBUG] [--config CONFIG] COMMAND
@@ -396,9 +394,6 @@ Commands:
             logger.error(f"VM {e.name} not found")
         except virt_lightning.api.ImageNotFoundLocallyError as e:
             logger.error(
-                (
-                    "ℹ️ You may be able to download the image with the "
-                    "`vl fetch {name}` command."
-                ).format(name=e.name)
+                f"ℹ️ You may be able to download the image with the `vl fetch {e.name}` command."
             )
             exit(1)
