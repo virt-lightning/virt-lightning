@@ -37,4 +37,4 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install tox tox-gh-actions
       - name: Run tox
-        run: tox -eblack,pep8
+        run: tox -eblack,flake8
