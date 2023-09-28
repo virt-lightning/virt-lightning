@@ -1,3 +1,14 @@
+# 2.3.1
+
+- Renamed Tox env name in GH Actions job
+- README: explain how to install the dep to build the Python binding
+- clean up ruff errors, convert string.format calls to f-strings (#279)
+- remove debian-testing image, link nolonger exists, and was based on debian-10 add debian-12 image add debian-sid
+- Update README with snapshots example
+- Add fixes fo fstrings
+- Change default "meta_data_media_type" to "cdrom"
+- refresh the BSD and Amazon images
+
 # 2.3.0
 
 - tox: add "build" target
