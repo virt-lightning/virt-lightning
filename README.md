@@ -38,24 +38,32 @@ During this recording, we:
 
 [![demo](https://asciinema.org/a/230671.svg)](https://asciinema.org/a/230671?autoplay=1)
 
-## Pre-requirements
 
-- Python 3.8 or greater.
-- The Python3 binding for libvirt, the package is probably called `python3-libvirt`.
-- You can also just build the binding during the install, in this case, you will need to install some packages first:
-    - `dnf install libvirt-devel python3-devel` (Fedora/RHEL)
-    - `apt install libvirt-dev python3-dev` (Debian/Ubuntu)
-- You make also want to install `python3-urwid` if you want to get the fancy list of VM. This dependency is optional.
+## Requirements
+- Python 3.8 or greater
+- The Python3 binding for libvirt, the package is probably called `python3-libvirt` or 'libvirt-python' according to pip.
 - Libvirt must be running, most of the time you just need to run: `sudo systemctl start --now libvirtd`
 - Finally, be sure your user can access the system libvirt daemon, e.g with: `virsh -c qemu:///system`
 
-## Installation
+## Optional
+- You make also want to install `python3-urwid` if you want to get the fancy list of VM. This dependency is optional.
 
+
+## Installation (Fedora/RHEL)
 ```shell
-pip3 install --user virt-lightning
+sudo dnf install libvirt-devel gcc python3-devel pipx
+pipx ensurepath
+pipx install virt-lightning
 ```
 
-If you use Ubuntu, you will need the `--no-deps` argument (See: https://github.com/pypa/pip/issues/4222).
+## Installation (Debian/Ubuntu)
+```shell
+sudo apt install python3-venv pkg-config gcc libvirt-dev python3-dev pipx
+pipx ensurepath
+pipx install virt-lightning
+```
+
+## Post Installation
 
 `virt-lightning` will be installed in ~/.local/bin/. Add it in your `$PATH` if
 it's not already the case. For instance if you use:
@@ -251,13 +259,13 @@ virsh snapshot-list vm_name
 # and revert to the first one
 virsh snapshot-revert vm_name --snapshotname snapshot_1
 ```
-=======
+
 ### Development
 install libvirt-dev package:
 
 Debian/Ubuntu:
 ```shell
-apt-get install python3-venv python3-dev pkg-config gcc libvirt-dev
+apt install python3-venv pkg-config gcc libvirt-dev python3-dev
 ```
 
 Fedora/RHEL:
