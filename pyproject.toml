@@ -18,7 +18,7 @@ dynamic = ["dependencies", "version"]
 keywords = ["libvirt", "cloud", "qemu", "cloudinit"]
 
 [project.urls]
-Homepage = "https://https://virt-lightning.org/"
+Homepage = "https://virt-lightning.org/"
 Source = "https://github.com/virt-lightning/virt-lightning"
 
 [project.optional-dependencies]
