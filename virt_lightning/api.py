@@ -2,7 +2,6 @@
 
 import asyncio
 import collections
-import distutils.util
 import ipaddress
 import logging
 import pathlib
@@ -16,6 +15,7 @@ import libvirt
 import virt_lightning.virt_lightning as vl
 from virt_lightning.configuration import Configuration
 from virt_lightning.symbols import get_symbols
+from virt_lightning.util import strtobool
 
 BASE_URL = "https://virt-lightning.org"
 
@@ -420,7 +420,7 @@ def down(configuration, context="default", **kwargs):
         logger.info("%s purging %s", symbols.TRASHBIN.value, domain.name)
         hv.clean_up(domain)
 
-    if bool(distutils.util.strtobool(configuration.network_auto_clean_up)):
+    if strtobool(configuration.network_auto_clean_up):
         hv.network_obj.destroy()
 
 
