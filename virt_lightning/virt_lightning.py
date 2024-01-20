@@ -544,7 +544,12 @@ class LibvirtHypervisor:
                 exe = i / binary
                 if exe.exists():
                     return exe
-        raise Exception("Failed to find %s in %s", ":".join(ISO_BINARIES), paths)
+        error_msg = (
+            f"Failed to find {' or '.join(ISO_BINARIES)} in "
+            f"{', '.join([x.as_posix() for x in paths])} "
+            "\nPlease install genisoimage tool"
+        )
+        raise Exception(error_msg)
 
     def init_network(self, network_name, network_cidr):
         try:
