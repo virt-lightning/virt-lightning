@@ -40,6 +40,7 @@ from virt_lightning.util import strtobool
 def test_strtobool(str_value: str, expected: bool):
     assert strtobool(str_value) == expected
 
+
 @pytest.mark.parametrize(
     "str_value",
     [
@@ -55,6 +56,7 @@ def test_strtobool(str_value: str, expected: bool):
 def test_strtobool__value_error(str_value: str):
     with pytest.raises(ValueError):
         strtobool(str_value)
+
 
 @pytest.mark.parametrize(
     "str_value",
