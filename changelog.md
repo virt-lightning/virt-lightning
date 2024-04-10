@@ -1,3 +1,12 @@
+# 2.3.2
+
+- Fixed error message for missing genisoimage
+- Remove and replace distutils.util.strtobool
+- Enabled Python 3.12 for tests
+- Add fedora-39 image
+- Remove duplicate protocol from Homepage URL
+- Update Readme installation instructions for Debian to use pip
+
 # 2.3.1
 
 - Renamed Tox env name in GH Actions job
