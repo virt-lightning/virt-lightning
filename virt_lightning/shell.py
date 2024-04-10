@@ -102,11 +102,9 @@ def viewer(configuration, name=None, **kwargs):
 
 def progress_callback(cur, length):
     percent = (cur * 100) / length
-    line = "🌍 ➡️  💻 [{percent:06.2f}%]  {done:6}MB/{full}MB\r".format(
-        percent=percent,
-        done=int(cur / virt_lightning.api.MB),
-        full=int(length / virt_lightning.api.MB),
-    )
+    done = int(cur / virt_lightning.api.MB)
+    full = int(length / virt_lightning.api.MB)
+    line = f"🌍 ➡️  💻 [{percent:06.2f}%]  {done:6}MB/{full}MB\r"
     print(line, end="")  # noqa: T001
 
 
