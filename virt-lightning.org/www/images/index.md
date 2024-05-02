@@ -58,6 +58,8 @@
 - ubuntu-22.04
 - ubuntu-22.10
 - ubuntu-23.04
+- ubuntu-23.10
+- ubuntu-24.04
 - opensuse-leap-15.2
 - rockylinux-8
 - rockylinux-9
