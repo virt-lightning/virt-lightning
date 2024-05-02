@@ -91,7 +91,7 @@ def _start_domain(hv, host, context, configuration):
     if not domain:
         pass
     elif domain.dom.isActive():
-        logger.info("Skipping {name}, already here.".format(**host))
+        logger.info(f"Skipping {host['name']}, already here.")
         return
     else:
         logger.info(f"Skipping {host['name']}, already here but is not running.")
@@ -101,9 +101,7 @@ def _start_domain(hv, host, context, configuration):
         logger.info(f"You can also destroy the instance with: vl stop {host['name']}")
         raise VMNotRunningError(host["name"])
 
-    # Unfortunatly, i can't decode that symbol
-    # that symbol more well add to check encoding block
-    logger.info("{lightning} {name} ".format(lightning=symbols.LIGHTNING.value, **host))
+    logger.info(f"{symbols.LIGHTNING.value} {host['name']} ")
 
     user_config = {
         "groups": host.get("groups"),
@@ -470,9 +468,7 @@ def fetch_from_url(progress_callback=None, url=None, **kwargs):
     except urllib.error.HTTPError as e:
         if e.code == 404:
             raise ImageNotFoundUpstreamError(kwargs["distro"]) from None
-        else:
-            logger.exception(e)
-            raise
+        raise
     last_modified = r.headers["Last-Modified"]
     logger.debug("Date: %s", last_modified)
     size = r.headers["Content-Length"]
@@ -487,15 +483,13 @@ def fetch_from_url(progress_callback=None, url=None, **kwargs):
                 progress_callback(fd.tell(), length)
     temp_file.rename(target_file)
     try:
-        r = urllib.request.urlopen(
-            "{url}/{distro}.yaml".format(url=parent_url, **kwargs)
-        )
+        r = urllib.request.urlopen(f"{parent_url}/{kwargs['distro']}.yaml")
     except urllib.error.HTTPError as e:
         if e.code == 404:
             pass
     with target_file.with_suffix(".yaml").open("wb") as fd:
         fd.write(r.read())
-    logger.info("Image {distro} is ready!".format(**kwargs))
+    logger.info(f"Image {kwargs['distro']} is ready!")
 
 
 def fetch(configuration=None, progress_callback=None, hv=None, **kwargs):

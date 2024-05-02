@@ -621,7 +621,7 @@ class LibvirtHypervisor:
         if not dir_exists:
             qemu_dir = pathlib.PosixPath(QEMU_DIR)
             logger.error(
-                USER_CREATE_STORAGE_POOL_DIR.format(
+                USER_CREATE_STORAGE_POOL_DIR.format(  # noqa: G001
                     user=getpass.getuser(),
                     qemu_user=qemu_dir.owner(),
                     qemu_group=qemu_dir.group(),
