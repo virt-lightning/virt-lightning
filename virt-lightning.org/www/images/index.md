@@ -11,6 +11,7 @@
 - debian-10
 - debian-11
 - debian-12
+- debian-13
 - debian-sid
 - dragonflybsd-5.6.3
 - dragonflybsd-5.8.3
