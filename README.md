@@ -7,7 +7,7 @@
 
 ![Logo](https://github.com/virt-lightning/virt-lightning/raw/master/logo/logo_no_text.png)
 
-You want to spawn local VM quickly.. Like... really quickly. You want them to be as generical as possible. Actually you would like to reuse some existing cloud images!
+You want to spawn local VM quickly.. Like... really quickly. You want them to be as generic as possible. Actually you would like to reuse some existing cloud images!
 
 This is the right tool for you.
 
@@ -31,8 +31,8 @@ ansible all -m ping -i inventory
 
 During this recording, we:
 
-1. use the list of distribution to generate a virt-lightning.yaml file.
-2. we then create a environment based on this file
+1. use the list of distributions to generate a virt-lightning.yaml file.
+2. we then create an environment based on this file
 3. once the environment is ready, we generate an Ansible inventory file
 4. and we use it to call Ansible's ping module on all the host.
 
@@ -46,7 +46,7 @@ During this recording, we:
 - Finally, be sure your user can access the system libvirt daemon, e.g with: `virsh -c qemu:///system`
 
 ## Optional
-- You make also want to install `python3-urwid` if you want to get the fancy list of VM. This dependency is optional.
+- You make also want to install `python3-urwid` if you want to get the fancy list of VMs. This dependency is optional.
 
 
 ## Installation (Fedora/RHEL)
@@ -97,7 +97,7 @@ List the distro images that can be used. Its output is compatible with `vl up`. 
 
 ## **vl down**
 
-Destroy all the VM managed by Virt-Lightning.
+Destroy all the VMs managed by Virt-Lightning.
 
 ## **vl start**
 
@@ -186,8 +186,8 @@ A VM can be tuned at two different places with the following keys:
     - `ipv4`: a static IPv4. Default is a dynamic IPv4 address.
     - `nic_model`: the libvirt driver to use. Default is `virtio`
     - `mac`: an optional static MAC address, e.g: '52:54:00:71:b1:b6'
-    - `bridge`: optional, the name of a bridge to connect too. This key replace the `network` key.
-    - `virtualport_type`: The type of the virtualport, currently, this is can be used with `bridge`.
+    - `bridge`: optional, the name of a bridge to connect to. This key replace the `network` key.
+    - `virtualport_type`: The type of the virtualport, currently, this can be used with `bridge`.
 
 ### Example: a `virt-lightning.yaml` file:
 
@@ -246,8 +246,8 @@ networks:
 ### Example: working with snapshots
 
 User can create a snapshot of VM to restore it later. Default configuration of `virt-lightning` supports snapshots both
-for running and powered off VMs. `qcow2` disk format used allows diskspace-wise incremental snapshotting, keeping only
-updated storage blocks. `virsh` tool supports it by CLI, `virt-manager` provides a neat GUI supporting the most of
+for running and powering off VMs. `qcow2` disk format used allows diskspace-wise incremental snapshotting, keeping only
+updated storage blocks. `virsh` tool supports it by CLI, `virt-manager` provides a neat GUI supporting most of
 the features
 ```shell
 # create first snapshot of running machine
