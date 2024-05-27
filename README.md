@@ -66,7 +66,7 @@ pipx install virt-lightning
 ## Post Installation
 
 `virt-lightning` will be installed in ~/.local/bin/. Add it in your `$PATH` if
-it's not already the case. For instance if you use:
+it's not already the case. For instance you can use:
 
 ```shell
 echo "export PATH=$PATH:~/.local/bin/" >> ~/.bashrc
@@ -84,7 +84,7 @@ $ vl fetch fedora-32
 
 # Actions
 
-`vl` is an alias for `virt-lightning`, you can us both. In the rest of the document
+`vl` is an alias for `virt-lightning`, you can use both. In the rest of the document
 we use the shortest version.
 
 ## **vl distro_list**
@@ -109,7 +109,7 @@ Stop just one VM.
 
 ## **vl status**
 
-List the VM, their IP and if they are reachable.
+List the VMs, their IP and if they are reachable.
 
 ## **vl ansible_inventory**
 
