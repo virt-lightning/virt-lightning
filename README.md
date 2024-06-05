@@ -229,6 +229,20 @@ A VM can be tuned at two different places with the following keys:
     virtualport_type: openvswitch
 ```
 
+### Example: To getting DHCP working with a bridge connection
+
+```yaml
+- name: vlvm-fedora-40
+  distro: fedora-40
+  networks:
+    - network: virt-lightning
+      nic_model: virtio
+    - bridge: br0
+      nic_model: virtio
+```
+
+
+
 ### You can also associate some parameters to the distro image itself
 
 ```shell

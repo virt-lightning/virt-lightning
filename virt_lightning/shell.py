@@ -150,9 +150,11 @@ Commands:
     distro_list         Dump list of supported distros
     storage_dir         Dump the VM image storage directory
     ansible_inventory   Dump an inventory file for ansible
+    ssh                 SSH into VM
     ssh_config          Dump an SSH config
     console             Open console on a VM
     viewer              Open VM with virt-viewer
+    status              Get status of running VM's
     """
 
     vl_lightning_yaml_args = {
