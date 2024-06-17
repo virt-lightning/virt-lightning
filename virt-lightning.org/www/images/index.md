@@ -5,8 +5,8 @@
 - centos-6
 - centos-7
 - centos-8
-- centos-8-stream
-- centos-9-stream
+- centos-stream-8
+- centos-stream-9
 - debian-9
 - debian-10
 - debian-11
