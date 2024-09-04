@@ -50,13 +50,35 @@ During this recording, we:
 
 
 ## Installation (Fedora/RHEL)
+
 ```shell
 sudo dnf install libvirt-devel gcc python3-devel pipx
 pipx ensurepath
 pipx install virt-lightning
 ```
 
+## Installation (Fedora Atomic, e.g Silverblue)
+
+Virt-Lightning won't work from toolbox or a container.
+
+
+``` shell
+rpm-ostree install genisoimage libvirt libvirt-client libvirt-daemon-kvm python3-libvirt
+systemctl reboot
+(...)
+sudo systemctl enable --now libvirtd
+sudo systemctl enable --now virtqemud.socket
+sudo systemctl enable --now virtnetworkd.socket
+sudo systemctl enable --now virtstoraged.socket
+
+# You can also layer pipx
+python3 -m venv venv --system-site-packages
+./venv/bin/pip install virt-lightning
+./venv/bin/vl
+```
+
 ## Installation (Debian/Ubuntu)
+
 ```shell
 sudo apt install python3-venv pkg-config gcc libvirt-dev python3-dev pipx
 pipx ensurepath
