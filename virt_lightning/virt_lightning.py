@@ -722,6 +722,12 @@ class LibvirtDomain:
             logger.error(
                 f"Can not read {ssh_key_file}. If you don't have any SSH key, "
                 f"please follow the steps describe here:\n  {doc_url}"
+                "\n"
+                "If you're SSH key is not ~/.ssh/id_rsa.pub, you need to configure "
+                "the ~/.config/virt-lightning/config.ini file, e.g:\n"
+                "\n"
+                "[main]\n"
+                "ssh_key_file = ~/.ssh/id_ed25519.pub\n"
             )
             raise
 
