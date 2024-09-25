@@ -928,6 +928,12 @@ class LibvirtDomain:
             ipv4_instance = ipaddress.IPv4Interface(ipv4)
         self.nics.append({"network": network, "ipv4": ipv4_instance})
 
+        # add metadata for the additional NICs
+        if len(self.nics) > 1:
+            add_nics = self.additional_nics or ""
+            add_nics += f"{network}_ipv4={ipv4_instance} "
+            self.additional_nics = add_nics
+
         self.ipv4 = self.nics[0]["ipv4"]
 
         xml = ET.tostring(net_root).decode()
@@ -950,6 +956,15 @@ class LibvirtDomain:
     @ipv4.setter
     def ipv4(self, value):
         self.record_metadata("ipv4", value)
+
+    @property
+    def additional_nics(self):
+        if self.get_metadata("additional_nics"):
+            return self.get_metadata("additional_nics")
+
+    @additional_nics.setter
+    def additional_nics(self, value):
+        self.record_metadata("additional_nics", value)
 
     @property
     def bootcmd(self):
