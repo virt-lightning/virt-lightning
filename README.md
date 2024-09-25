@@ -204,7 +204,7 @@ A VM can be tuned at two different places with the following keys:
 - `disks`: a list of disks to create and attach to the VM. The first one is used as the root disk. Default to `[{"size": 15}]`
     - `size` the size of the disk in GB. Default is `1`.
 - `networks`: a list of network to attach to the VM. The default is: one virtio interface attached to `virt-lightning` network.
-    - `network`: the name of the libvirt network. Default is the key `network_name` from the configuration (`virt-lightning` by default). The key cannot be used with `bridge`.
+    - `network`: the name of the libvirt network. Default is the key `network_name` from the configuration (`virt-lightning` by default). The key cannot be used with `bridge`. A host variable is added to in the Ansible inventory, with the network name with suffix "_ipv4" as key and the IPv4 as value, e.g. "private_ipv4".
     - `ipv4`: a static IPv4. Default is a dynamic IPv4 address.
     - `nic_model`: the libvirt driver to use. Default is `virtio`
     - `mac`: an optional static MAC address, e.g: '52:54:00:71:b1:b6'
