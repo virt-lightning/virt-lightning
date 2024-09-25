@@ -301,6 +301,7 @@ def ansible_inventory(configuration, context="default", **kwargs):
 
     ssh_cmd_template = (
         "{name} ansible_host={ipv4} ansible_user={username} "
+        "{additional_nics}"
         "ansible_python_interpreter={python_interpreter} "
         'ansible_ssh_common_args="-o UserKnownHostsFile=/dev/null '
         "-o GSSAPIAuthentication=no -o GSSAPIKeyExchange=no "
@@ -322,6 +323,7 @@ def ansible_inventory(configuration, context="default", **kwargs):
             name=domain.name,
             username=domain.username,
             ipv4=domain.ipv4.ip,
+            additional_nics=domain.additional_nics,
             python_interpreter=domain.python_interpreter,
         )  # noqa: T001
 
