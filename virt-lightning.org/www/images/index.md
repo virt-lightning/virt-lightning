@@ -40,6 +40,10 @@
 - freebsd-13.0-zfs
 - freebsd-13.2-ufs
 - freebsd-13.2-zfs
+- freebsd-13.3-ufs
+- freebsd-13.3-zfs
+- freebsd-14.0-ufs
+- freebsd-14.0-zfs
 - netbsd-8.2
 - netbsd-9.1
 - netbsd-9.2
