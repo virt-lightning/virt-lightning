@@ -263,7 +263,34 @@ A VM can be tuned at two different places with the following keys:
       nic_model: virtio
 ```
 
+### Example: Addressing multiple interfaces
+```yaml
+- name: example
+  distro: fedora-40
+  networks:
+    - network: default
+      ipv4: 192.168.122.50
+    - network: management
+      ipv4: 192.168.123.50
+```
 
+The variable `management_ipv4` holds the IP address and netmask.
+```yaml
+- hosts: all
+  tasks:
+    - name: Default address
+      debug: msg="{{ ansible_host }}"
+      # "msg": "192.168.122.50"
+    - name: Management address
+      debug: msg="{{ management_ipv4 }}"
+      # "msg": "192.168.123.50/24"
+    - name: Management address
+      debug: msg="{{ management_ipv4 | ansible.utils.ipaddr('address') }}"
+      # "msg": "192.168.123.50"
+    - name: Management address
+      debug: msg="{{ management_ipv4 | ansible.utils.ipaddr('netmask') }}"
+      # "msg": "255.255.255.0"
+```
 
 ### You can also associate some parameters to the distro image itself
 
