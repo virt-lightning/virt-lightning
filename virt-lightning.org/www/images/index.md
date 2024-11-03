@@ -48,6 +48,7 @@
 - netbsd-9.1
 - netbsd-9.2
 - netbsd-9.3
+- netbsd-9.4
 - openbsd-6.6
 - openbsd-6.7
 - openbsd-6.8
