@@ -1,0 +1,292 @@
+[
+  {
+    "name": "debian-9",
+    "qcow2_url": "https://cdimage.debian.org/cdimage/openstack/current-9/debian-9-openstack-amd64.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "debian-10",
+    "qcow2_url": "https://cdimage.debian.org/cdimage/openstack/current-10/debian-10-openstack-amd64.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "debian-11",
+    "qcow2_url": "https://cdimage.debian.org/cdimage/cloud/bullseye/latest/debian-11-generic-amd64.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "debian-12",
+    "qcow2_url": "https://cdimage.debian.org/cdimage/cloud/bookworm/latest/debian-12-generic-amd64.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "debian-13",
+    "qcow2_url": "https://cloud.debian.org/images/cloud/trixie/daily/latest/debian-13-generic-amd64-daily.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "debian-sid",
+    "qcow2_url": "https://cdimage.debian.org/cdimage/cloud/sid/daily/latest/debian-sid-generic-amd64-daily.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "centos-7",
+    "qcow2_url": "http://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "centos-6",
+    "qcow2_url": "https://cloud.centos.org/centos/6/images/CentOS-6-x86_64-GenericCloud.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "centos-8",
+    "qcow2_url": "https://cloud.centos.org/centos/8/x86_64/images/CentOS-8-GenericCloud-8.1.1911-20200113.3.x86_64.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "centos-8-stream",
+    "qcow2_url": "https://cloud.centos.org/centos/8-stream/x86_64/images/CentOS-Stream-GenericCloud-8-latest.x86_64.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "centos-9-stream",
+    "qcow2_url": "https://cloud.centos.org/centos/9-stream/x86_64/images/CentOS-Stream-GenericCloud-9-latest.x86_64.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "centos-stream-8",
+    "qcow2_url": "https://cloud.centos.org/centos/8-stream/x86_64/images/CentOS-Stream-GenericCloud-8-latest.x86_64.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "centos-stream-9",
+    "qcow2_url": "https://cloud.centos.org/centos/9-stream/x86_64/images/CentOS-Stream-GenericCloud-9-latest.x86_64.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "almalinux-8",
+    "qcow2_url": "https://repo.almalinux.org/almalinux/8/cloud/x86_64/images/AlmaLinux-8-GenericCloud-latest.x86_64.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "almalinux-9",
+    "qcow2_url": "https://repo.almalinux.org/almalinux/9/cloud/x86_64/images/AlmaLinux-9-GenericCloud-latest.x86_64.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "rockylinux-8",
+    "qcow2_url": "https://download.rockylinux.org/pub/rocky/8/images/x86_64/Rocky-8-GenericCloud.latest.x86_64.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "rockylinux-9",
+    "qcow2_url": "https://download.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-GenericCloud.latest.x86_64.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-14.04",
+    "qcow2_url": "https://cloud-images.ubuntu.com/trusty/current/trusty-server-cloudimg-amd64-disk1.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-16.04",
+    "qcow2_url": "https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-18.04",
+    "qcow2_url": "https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-20.04",
+    "qcow2_url": "https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-22.04",
+    "qcow2_url": "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-24.04",
+    "qcow2_url": "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-24.10",
+    "qcow2_url": "https://cloud-images.ubuntu.com/oracular/current/oracular-server-cloudimg-amd64.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "cirros-0.4.0",
+    "qcow2_url": "http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "opensuse-leap-15.2",
+    "qcow2_url": "https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.2/images/openSUSE-Leap-15.2-OpenStack.x86_64.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "gentoo-latest",
+    "qcow2_url": "http://gentoo.osuosl.org/experimental/amd64/openstack/gentoo-openstack-amd64-default-latest.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "gentoo-systemd-latest",
+    "qcow2_url": "http://gentoo.osuosl.org/experimental/amd64/openstack/gentoo-openstack-amd64-systemd-latest.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "amazon2-20210126.0",
+    "qcow2_url": "https://cdn.amazonlinux.com/os-images/2.0.20210126.0/kvm/amzn2-kvm-2.0.20210126.0-x86_64.xfs.gpt.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "amazon2-20230320.0",
+    "qcow2_url": "https://cdn.amazonlinux.com/os-images/2.0.20230320.0/kvm/amzn2-kvm-2.0.20230320.0-x86_64.xfs.gpt.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "fedora-39",
+    "qcow2_url": "https://download.fedoraproject.org/pub/fedora/linux/releases/39/Cloud/x86_64/images//Fedora-Cloud-Base-39-1.5.x86_64.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "fedora-40",
+    "qcow2_url": "https://download.fedoraproject.org/pub/fedora/linux/releases/40/Cloud/x86_64/images//Fedora-Cloud-Base-Generic.x86_64-40-1.14.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "fedora-41",
+    "qcow2_url": "https://download.fedoraproject.org/pub/fedora/linux/releases/41/Cloud/x86_64/images//Fedora-Cloud-Base-Generic-41-1.4.x86_64.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "freebsd-13.4-ufs",
+    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/freebsd/13.4/2024-10-28/ufs/freebsd-13.4-ufs-2024-10-28.qcow2",
+    "meta": {
+      "python_interpreter": "/usr/local/bin/python3"
+    },
+    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/freebsd/13.4/2024-10-28/ufs/freebsd-13.4-ufs-2024-10-28.yaml"
+  },
+  {
+    "name": "freebsd-13.4-zfs",
+    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/freebsd/13.4/2024-10-28/zfs/freebsd-13.4-zfs-2024-10-28.qcow2",
+    "meta": {
+      "python_interpreter": "/usr/local/bin/python3"
+    },
+    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/freebsd/13.4/2024-10-28/zfs/freebsd-13.4-zfs-2024-10-28.yaml"
+  },
+  {
+    "name": "freebsd-14.1-ufs",
+    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/freebsd/14.1/2024-10-28/ufs/freebsd-14.1-ufs-2024-10-28.qcow2",
+    "meta": {
+      "python_interpreter": "/usr/local/bin/python3"
+    },
+    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/freebsd/14.1/2024-10-28/ufs/freebsd-14.1-ufs-2024-10-28.yaml"
+  },
+  {
+    "name": "freebsd-14.1-zfs",
+    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/freebsd/14.1/2024-10-28/zfs/freebsd-14.1-zfs-2024-10-28.qcow2",
+    "meta": {
+      "python_interpreter": "/usr/local/bin/python3"
+    },
+    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/freebsd/14.1/2024-10-28/zfs/freebsd-14.1-zfs-2024-10-28.yaml"
+  },
+  {
+    "name": "netbsd-9.4-ufs",
+    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/netbsd/9.4/2024-11-02/ufs/netbsd-9.4-2024-11-02.qcow2",
+    "meta": {
+      "python_interpreter": "/usr/pkg/bin/python3.12"
+    },
+    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/netbsd/9.4/2024-11-02/ufs/netbsd-9.4-2024-11-02.yaml"
+  },
+  {
+    "name": "netbsd-10.0-ufs",
+    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/netbsd/10.0/2024-11-05/ufs/netbsd-10.0-2024-11-05.qcow2",
+    "meta": {
+      "python_interpreter": "/usr/pkg/bin/python3.12"
+    },
+    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/netbsd/10.0/2024-11-05/ufs/netbsd-10.0-2024-11-05.yaml"
+  },
+  {
+    "name": "openbsd-7.5-ufs",
+    "qcow2_url": "https://github.com/hcartiaux/openbsd-cloud-image/releases/download/v7.5_2024-05-13-15-25/openbsd-min.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "openbsd-7.6-ufs",
+    "qcow2_url": "https://github.com/hcartiaux/openbsd-cloud-image/releases/download/v7.6_2024-10-08-22-40/openbsd-min.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "dragonflybsd-6.2.2-ufs",
+    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/dragonflybsd/6.2.2/2022-09-06/ufs/dragonflybsd-6.2.2-ufs-2022-09-06.qcow2",
+    "meta": {
+      "python_interpreter": "/usr/local/bin/python3.8"
+    },
+    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/dragonflybsd/6.2.2/2022-09-06/ufs/dragonflybsd-6.2.2-ufs-2022-09-06.yaml"
+  },
+  {
+    "name": "dragonflybsd-6.2.2-hammer2",
+    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/dragonflybsd/6.2.2/2022-09-06/hammer2/dragonflybsd-6.2.2-hammer2-2022-09-06.qcow2",
+    "meta": {
+      "python_interpreter": "/usr/local/bin/python3.8"
+    },
+    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/dragonflybsd/6.2.2/2022-09-06/hammer2/dragonflybsd-6.2.2-hammer2-2022-09-06.yaml"
+  },
+  {
+    "name": "dragonflybsd-6.4.0-ufs",
+    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/dragonflybsd/6.4.0/2023-04-23/ufs/dragonflybsd-6.4.0-ufs-2023-04-23.qcow2",
+    "meta": {
+      "python_interpreter": "/usr/local/bin/python3.9"
+    },
+    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/dragonflybsd/6.4.0/2023-04-23/ufs/dragonflybsd-6.4.0-ufs-2023-04-23.yaml"
+  },
+  {
+    "name": "dragonflybsd-6.4.0-hammer2",
+    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/dragonflybsd/6.4.0/2023-04-23/hammer2/dragonflybsd-6.4.0-hammer2-2023-04-23.qcow2",
+    "meta": {
+      "python_interpreter": "/usr/local/bin/python3.9"
+    },
+    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/dragonflybsd/6.4.0/2023-04-23/hammer2/dragonflybsd-6.4.0-hammer2-2023-04-23.yaml"
+  }
+]
