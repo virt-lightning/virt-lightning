@@ -44,7 +44,7 @@ dependencies = {file = ["requirements.txt"]}
 
 [tool.ruff]
 line-length = 100
-select = [
+lint.select = [
     "B",  # flake8-bugbear
     "C4", # flake8-comprehensions
 #    "D",  # pydocstyle
@@ -63,4 +63,4 @@ select = [
     "W",  # Warning
     "YTT", # flake8-2020
 ]
-ignore = ["N806"]
+lint.ignore = ["N806"]
