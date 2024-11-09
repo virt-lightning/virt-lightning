@@ -137,6 +137,8 @@ List the VMs, their IP and if they are reachable.
 
 Export an inventory in the Ansible format.
 
+**Note:** Created VMs use various Python versions, which can cause compatibility issues with the Ansible version on the control node (host). In case of errors related to Python version compatibility, please consult the Ansible [changelog](https://docs.ansible.com/ansible/latest/reference_appendices/release_and_maintenance.html) for details on supported Python versions.
+
 ## **vl ssh**
 
 Show up a menu to select a host and open a ssh connection.
