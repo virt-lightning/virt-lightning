@@ -106,10 +106,16 @@ def get_bsd_images() -> list[Image]:
     images: list[Image] = []
     for os in resp.json():
         for version in os["versions"]:
-            for image in version["images"]:
-                name = f"{os['name']}-{version['name']}-{image['flavor'].lower()}"
-                image = Image(name, image["url"])
+            for image_dict in version["images"]:
+                name = f"{os['name']}-{version['name']}-{image_dict['flavor'].lower()}"
+                image = Image(name, image_dict["url"])
                 image.retrieve_metadata()
+
+                python_interpreter = image_dict.get("python_interpreter")
+
+                if python_interpreter:
+                    image.meta["python_interpreter"] = python_interpreter
+
                 images.append(image)
     return images
 
