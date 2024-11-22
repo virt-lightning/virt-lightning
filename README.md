@@ -139,6 +139,16 @@ Export an inventory in the Ansible format.
 
 **Note:** Created VMs use various Python versions, which can cause compatibility issues with the Ansible version on the control node (host). In case of errors related to Python version compatibility, please consult the Ansible [changelog](https://docs.ansible.com/ansible/latest/reference_appendices/release_and_maintenance.html) for details on supported Python versions.
 
+In can you need a different Python version for a given image (`ansible_python_interpreter`), you can define it in a YAML file aside of the qcow2 image. E.g:
+
+```
+$ ls -l /var/lib/virt-lightning/pool/upstream/netbsd-10.0.qcow2
+-rw-r--r--. 1 qemu qemu 242483200 Nov  5 18:50 /var/lib/virt-lightning/pool/upstream/netbsd-10.0.qcow2
+$ cat /var/lib/virt-lightning/pool/upstream/netbsd-10.0.yaml
+python_interpreter: /usr/pkg/bin/python3.12
+
+```
+
 ## **vl ssh**
 
 Show up a menu to select a host and open a ssh connection.
