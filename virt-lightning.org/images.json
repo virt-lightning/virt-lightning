@@ -262,6 +262,14 @@
     "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/netbsd/10.0/2024-11-05/ufs/netbsd-10.0-2024-11-05.yaml"
   },
   {
+    "name": "netbsd-10.1-ufs",
+    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/netbsd/10.1/2025-02-15/ufs/netbsd-10.1-2025-02-15.qcow2",
+    "meta": {
+      "python_interpreter": "/usr/pkg/bin/python3.13"
+    },
+    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/netbsd/10.1/2025-02-15/ufs/netbsd-10.1-2025-02-15.yaml"
+  },
+  {
     "name": "openbsd-7.5-ufs",
     "qcow2_url": "https://github.com/hcartiaux/openbsd-cloud-image/releases/download/v7.5_2024-05-13-15-25/openbsd-min.qcow2",
     "meta": {

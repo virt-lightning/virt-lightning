@@ -32,6 +32,7 @@
 - gentoo-latest
 - gentoo-systemd-latest
 - netbsd-10.0-ufs
+- netbsd-10.1-ufs
 - netbsd-9.4-ufs
 - openbsd-7.5-ufs
 - openbsd-7.6-ufs
