@@ -3,6 +3,7 @@
 import asyncio
 import collections
 import ipaddress
+import json
 import logging
 import pathlib
 import re
@@ -440,6 +441,14 @@ def storage_dir(configuration, **kwargs):
     return hv.get_storage_dir()
 
 
+class RedirectFilter(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, hdrs, newurl):
+        logger.info("downloading image from: %s", newurl)
+        return urllib.request.HTTPRedirectHandler.redirect_request(
+            self, req, fp, code, msg, hdrs, newurl
+        )
+
+
 def fetch_from_url(progress_callback=None, url=None, **kwargs):
     """Retrieve a VM image from a given url
     - when url is set to None, this means we are trying to fetch from the default url.
@@ -452,21 +461,11 @@ def fetch_from_url(progress_callback=None, url=None, **kwargs):
         logger.info("File already exists: %s", target_file)
         return
 
-    class RedirectFilter(urllib.request.HTTPRedirectHandler):
-        def redirect_request(self, req, fp, code, msg, hdrs, newurl):
-            logger.info("downloading image from: %s", newurl)
-            return urllib.request.HTTPRedirectHandler.redirect_request(
-                self, req, fp, code, msg, hdrs, newurl
-            )
-
     opener = urllib.request.build_opener(RedirectFilter)
     urllib.request.install_opener(opener)
 
-    parent_url = BASE_URL + "/images/{distro}".format(**kwargs) if url is None else url
     try:
-        r = urllib.request.urlopen(
-            "{url}/{distro}.qcow2".format(url=parent_url, **kwargs)
-        )
+        r = urllib.request.urlopen("{url}/{distro}.qcow2".format(url=url, **kwargs))
     except urllib.error.HTTPError as e:
         if e.code == 404:
             raise ImageNotFoundUpstreamError(kwargs["distro"]) from None
@@ -484,13 +483,65 @@ def fetch_from_url(progress_callback=None, url=None, **kwargs):
             if progress_callback:
                 progress_callback(fd.tell(), length)
     temp_file.rename(target_file)
+    logger.info(f"Image {kwargs['distro']} is ready!")
+
+
+def get_image_index():
+    f = urllib.request.urlopen(
+        "https://raw.githubusercontent.com/virt-lightning/virt-lightning/refs/heads/main/virt-lightning.org/images.json"
+    )
+    return json.loads(f.read())
+
+
+def fetch_distro(progress_callback=None, url=None, **kwargs):
+    """Retrieve a VM image from a given url
+    - when url is set to None, this means we are trying to fetch from the default url.
+    """
+    image_index = get_image_index()
     try:
-        r = urllib.request.urlopen(f"{parent_url}/{kwargs['distro']}.yaml")
+        image_info = [i for i in image_index if i["name"] == kwargs["distro"]][0]
+    except (IndexError, KeyError):
+        raise ImageNotFoundUpstreamError(kwargs["distro"]) from None
+
+    target_file = pathlib.PosixPath(
+        "{storage_dir}/upstream/{distro}.qcow2".format(**kwargs)
+    )
+    temp_file = target_file.with_suffix(".temp")
+    if target_file.exists():
+        logger.info("File already exists: %s", target_file)
+        return
+
+    opener = urllib.request.build_opener(RedirectFilter)
+    urllib.request.install_opener(opener)
+
+    try:
+        r = urllib.request.urlopen(image_info["qcow2_url"])
     except urllib.error.HTTPError as e:
         if e.code == 404:
-            pass
-    with target_file.with_suffix(".yaml").open("wb") as fd:
-        fd.write(r.read())
+            raise ImageNotFoundUpstreamError(kwargs["distro"]) from None
+        raise
+    last_modified = r.headers["Last-Modified"]
+    logger.debug("Date: %s", last_modified)
+    size = r.headers["Content-Length"]
+    logger.debug("Size: %s", size)
+    length = int(size)
+    chunk_size = MB * 1
+    with temp_file.open("wb") as fd:
+        while fd.tell() < length:
+            chunk = r.read(chunk_size)
+            fd.write(chunk)
+            if progress_callback:
+                progress_callback(fd.tell(), length)
+    temp_file.rename(target_file)
+
+    if image_info["yaml_url"]:
+        try:
+            r = urllib.request.urlopen(image_info["yaml_url"])
+            with target_file.with_suffix(".yaml").open("wb") as fd:
+                fd.write(r.read())
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                pass
     logger.info(f"Image {kwargs['distro']} is ready!")
 
 
@@ -502,7 +553,7 @@ def fetch(configuration=None, progress_callback=None, hv=None, **kwargs):
         hv.init_storage_pool(configuration.storage_pool)
 
     configuration = configuration if configuration is not None else Configuration()
-    image_found = False
+
     for images_url in configuration.private_hub:
         try:
             fetch_from_url(
@@ -511,18 +562,14 @@ def fetch(configuration=None, progress_callback=None, hv=None, **kwargs):
                 url=images_url,
                 **kwargs,
             )
-            image_found = True
-            break
+            return
         except ImageNotFoundUpstreamError:
             logger.info(
                 "Image: %s not found from url: %s", kwargs["distro"], images_url
             )
 
-    if not image_found:
-        # image not found from custom url
-        # fetch from base url
-        fetch_from_url(
-            progress_callback=progress_callback,
-            storage_dir=hv.get_storage_dir(),
-            **kwargs,
-        )
+    fetch_distro(
+        progress_callback=progress_callback,
+        storage_dir=hv.get_storage_dir(),
+        **kwargs,
+    )
