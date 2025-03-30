@@ -218,7 +218,7 @@ A VM can be tuned at two different places with the following keys:
 - `memory`: the amount of memory to dedicate to the VM
 - `vcpus`: the number of vcpu to dedicate to the VM
 - `root_password`: the root password in clear text
-- `ssh_key_file`: the path of the public key for connecting to the VM
+- `ssh_key_file`: the path of the public key for connecting to the VM. If the value, Virt-Lightning will pick the first key matching `~/.ssh/id_*.pub`.
 - `groups`: this list of groups will be used if you generate an Ansible inventory.
 - `disks`: a list of disks to create and attach to the VM. The first one is used as the root disk. Default to `[{"size": 15}]`
     - `size` the size of the disk in GB. Default is `1`.
