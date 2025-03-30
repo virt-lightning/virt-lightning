@@ -9,8 +9,8 @@ DISK_XML = """
 DOMAIN_XML = """
 <domain type='kvm'>
   <name></name>
-  <memory unit='KiB'>786432</memory>
-  <currentMemory unit='KiB'>786432</currentMemory>
+  <memory unit='KiB'>1048576</memory>
+  <currentMemory unit='KiB'>1048576</currentMemory>
   <vcpu>2</vcpu>
   <os>
     <type arch='x86_64' machine='pc'>hvm</type>
