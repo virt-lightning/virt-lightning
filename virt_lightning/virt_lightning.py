@@ -113,7 +113,7 @@ class LibvirtHypervisor:
     def configure_domain(self, domain, user_config):
         config = {
             "groups": [],
-            "memory": 768,
+            "memory": 1024,
             "python_interpreter": "/usr/bin/python3",
             "root_password": "root",
             "username": getpass.getuser(),
