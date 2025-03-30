@@ -1,8 +1,11 @@
 import configparser
 from abc import ABCMeta, abstractproperty
-from pathlib import PosixPath
+from pathlib import Path
+import logging
 
-DEFAULT_CONFIGFILE = PosixPath("~/.config/virt-lightning/config.ini")
+logger = logging.getLogger("virt_lightning")
+
+DEFAULT_CONFIGFILE = Path("~/.config/virt-lightning/config.ini")
 
 
 DEFAULT_CONFIGURATION = {
@@ -13,7 +16,7 @@ DEFAULT_CONFIGURATION = {
         "network_name": "virt-lightning",
         "network_cidr": "192.168.123.0/24",
         "network_auto_clean_up": True,
-        "ssh_key_file": "~/.ssh/id_rsa.pub",
+        "ssh_key_file": "",
         "private_hub": "",
     }
 }
@@ -86,7 +89,14 @@ class Configuration(AbstractConfiguration):
 
     @property
     def ssh_key_file(self):
-        return self.__get("ssh_key_file")
+        print()
+        if self.__get("ssh_key_file"):
+            return self.__get("ssh_key_file")
+
+        found = next((Path.home() / ".ssh").glob("id_*.pub"), None)
+        logger.debug(f"No SSH key defined in configuration, failing back on {found}")
+
+        return found
 
     @property
     def storage_pool(self):
