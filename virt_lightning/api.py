@@ -486,18 +486,19 @@ def fetch_from_url(progress_callback=None, url=None, **kwargs):
     logger.info(f"Image {kwargs['distro']} is ready!")
 
 
-def get_image_index():
+def get_image_index(configuration):
     f = urllib.request.urlopen(
+        configuration.custom_image_list or
         "https://raw.githubusercontent.com/virt-lightning/virt-lightning/refs/heads/main/virt-lightning.org/images.json"
     )
     return json.loads(f.read())
 
 
-def fetch_distro(progress_callback=None, url=None, **kwargs):
+def fetch_distro(configuration, progress_callback=None, url=None, **kwargs):
     """Retrieve a VM image from a given url
     - when url is set to None, this means we are trying to fetch from the default url.
     """
-    image_index = get_image_index()
+    image_index = get_image_index(configuration)
     try:
         image_info = [i for i in image_index if i["name"] == kwargs["distro"]][0]
     except (IndexError, KeyError):
@@ -569,6 +570,7 @@ def fetch(configuration=None, progress_callback=None, hv=None, **kwargs):
             )
 
     fetch_distro(
+        configuration=configuration,
         progress_callback=progress_callback,
         storage_dir=hv.get_storage_dir(),
         **kwargs,
