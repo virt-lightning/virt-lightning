@@ -150,8 +150,20 @@
     "yaml_url": ""
   },
   {
-    "name": "opensuse-leap-15.2",
-    "qcow2_url": "https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.2/images/openSUSE-Leap-15.2-OpenStack.x86_64.qcow2",
+    "name": "opensuse-leap-15.6",
+    "qcow2_url": "https://download.opensuse.org/distribution/leap/15.6/appliances/openSUSE-Leap-15.6-Minimal-VM.x86_64-Cloud.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "opensuse-tumbleweed",
+    "qcow2_url": "https://download.opensuse.org/tumbleweed/appliances/openSUSE-Tumbleweed-Minimal-VM.x86_64-Cloud.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "opensuse-microos",
+    "qcow2_url": "https://download.opensuse.org/tumbleweed/appliances/openSUSE-MicroOS.x86_64-OpenStack-Cloud.qcow2",
     "meta": {},
     "yaml_url": ""
   },
