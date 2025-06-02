@@ -202,6 +202,13 @@ ssh_key_file = ~/.ssh/id_rsa.pub
 private_hub=url1,url2
 ```
 
+**custom_image_list**: if you wish to use a custom image list, update the configuration file `~/.config/virt-lightning/config.ini` adding the following
+```
+[main]
+custom_image_url=<url>/images.json
+```
+take a look at [images.json](virt-lightning.org/images.json) for a reference
+
 ## VM configuration keys
 
 A VM can be tuned at two different places with the following keys:

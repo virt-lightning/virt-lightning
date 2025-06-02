@@ -15,6 +15,7 @@ DEFAULT_CONFIGURATION = {
         "network_auto_clean_up": True,
         "ssh_key_file": "~/.ssh/id_rsa.pub",
         "private_hub": "",
+        "custom_image_list": "",
     }
 }
 
@@ -46,6 +47,10 @@ class AbstractConfiguration(metaclass=ABCMeta):
 
     @abstractproperty
     def storage_pool(self):
+        pass
+
+    @abstractproperty
+    def custom_image_list(self):
         pass
 
     def __repr__(self):
@@ -95,6 +100,10 @@ class Configuration(AbstractConfiguration):
     @property
     def private_hub(self):
         return [x for x in self.__get("private_hub").split(",") if x != ""]
+
+    @property
+    def custom_image_list(self):
+        return self.__get("custom_image_list")
 
     def load_file(self, config_file):
         self.data.read_string(config_file.read_text())
