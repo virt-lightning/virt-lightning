@@ -370,7 +370,7 @@ Commands:
         except virt_lightning.api.ImageNotFoundUpstreamError:
             print(  # noqa: T001
                 f"Distro {args.distro} cannot be downloaded.\n"
-                f"  Visit {virt_lightning.api.BASE_URL}/images/ or private image hub "
+                f"  Visit {virt_lightning.api.BASE_URL}/images/ or add a custom image list / private image hub "
                 "to get an up to date list."
             )
             exit(1)
