@@ -487,10 +487,14 @@ def fetch_from_url(progress_callback=None, url=None, **kwargs):
 
 
 def get_image_index(configuration):
-    f = urllib.request.urlopen(
-        configuration.custom_image_list or
-        "https://raw.githubusercontent.com/virt-lightning/virt-lightning/refs/heads/main/virt-lightning.org/images.json"
-    )
+
+    image_list = configuration.custom_image_list
+    if not image_list:
+        image_list = (
+            "https://raw.githubusercontent.com/virt-lightning/virt-lightning"
+            "/refs/heads/main/virt-lightning.org/images.json"
+        )
+    f = urllib.request.urlopen(image_list)
     return json.loads(f.read())
 
 
