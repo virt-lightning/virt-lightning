@@ -88,7 +88,7 @@ class Image:
 
 def get_fedora_images() -> list[Image]:
     def get(version) -> Image | None:
-        base_url = f"https://download.fedoraproject.org/pub/fedora/linux/releases/{version}/Cloud/x86_64/images/"
+        base_url = f"https://download.fedoraproject.org/pub/fedora/linux/releases/{version}/Cloud/x86_64/images"
         resp = urllib3.request("GET", base_url, redirect=True)
         m = re.search(">(Fedora-Cloud.*?qcow2)<", resp.data.decode())
         if m:
