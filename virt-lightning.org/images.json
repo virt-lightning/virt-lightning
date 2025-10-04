@@ -138,32 +138,14 @@
     "yaml_url": ""
   },
   {
-    "name": "ubuntu-24.10",
-    "qcow2_url": "https://cloud-images.ubuntu.com/oracular/current/oracular-server-cloudimg-amd64.img",
-    "meta": {},
-    "yaml_url": ""
-  },
-  {
     "name": "cirros-0.4.0",
     "qcow2_url": "http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img",
     "meta": {},
     "yaml_url": ""
   },
   {
-    "name": "opensuse-leap-15.6",
-    "qcow2_url": "https://download.opensuse.org/distribution/leap/15.6/appliances/openSUSE-Leap-15.6-Minimal-VM.x86_64-Cloud.qcow2",
-    "meta": {},
-    "yaml_url": ""
-  },
-  {
-    "name": "opensuse-tumbleweed",
-    "qcow2_url": "https://download.opensuse.org/tumbleweed/appliances/openSUSE-Tumbleweed-Minimal-VM.x86_64-Cloud.qcow2",
-    "meta": {},
-    "yaml_url": ""
-  },
-  {
-    "name": "opensuse-microos",
-    "qcow2_url": "https://download.opensuse.org/tumbleweed/appliances/openSUSE-MicroOS.x86_64-OpenStack-Cloud.qcow2",
+    "name": "opensuse-leap-15.2",
+    "qcow2_url": "https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.2/images/openSUSE-Leap-15.2-OpenStack.x86_64.qcow2",
     "meta": {},
     "yaml_url": ""
   },
@@ -192,20 +174,14 @@
     "yaml_url": ""
   },
   {
-    "name": "fedora-39",
-    "qcow2_url": "https://download.fedoraproject.org/pub/fedora/linux/releases/39/Cloud/x86_64/images//Fedora-Cloud-Base-39-1.5.x86_64.qcow2",
-    "meta": {},
-    "yaml_url": ""
-  },
-  {
-    "name": "fedora-40",
-    "qcow2_url": "https://download.fedoraproject.org/pub/fedora/linux/releases/40/Cloud/x86_64/images//Fedora-Cloud-Base-Generic.x86_64-40-1.14.qcow2",
-    "meta": {},
-    "yaml_url": ""
-  },
-  {
     "name": "fedora-41",
-    "qcow2_url": "https://download.fedoraproject.org/pub/fedora/linux/releases/41/Cloud/x86_64/images//Fedora-Cloud-Base-Generic-41-1.4.x86_64.qcow2",
+    "qcow2_url": "https://download.fedoraproject.org/pub/fedora/linux/releases/41/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-41-1.4.x86_64.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "fedora-42",
+    "qcow2_url": "https://download.fedoraproject.org/pub/fedora/linux/releases/42/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-42-1.1.x86_64.qcow2",
     "meta": {},
     "yaml_url": ""
   },
@@ -298,6 +274,14 @@
     "yaml_url": ""
   },
   {
+    "name": "openbsd-7.7-ufs",
+    "qcow2_url": "https://github.com/hcartiaux/openbsd-cloud-image/releases/download/v7.7_2025-04-28-11-38/openbsd-min.qcow2",
+    "meta": {
+      "python_interpreter": "/usr/local/bin/python3"
+    },
+    "yaml_url": ""
+  },
+  {
     "name": "dragonflybsd-6.2.2-ufs",
     "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/dragonflybsd/6.2.2/2022-09-06/ufs/dragonflybsd-6.2.2-ufs-2022-09-06.qcow2",
     "meta": {
@@ -328,5 +312,29 @@
       "python_interpreter": "/usr/local/bin/python3.9"
     },
     "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/dragonflybsd/6.4.0/2023-04-23/hammer2/dragonflybsd-6.4.0-hammer2-2023-04-23.yaml"
+  },
+  {
+    "name": "alpine-3.20",
+    "qcow2_url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/cloud/generic_alpine-3.20.7-x86_64-bios-cloudinit-r0.qcow2",
+    "meta": {
+      "username": "alpine"
+    },
+    "yaml_url": ""
+  },
+  {
+    "name": "alpine-3.21",
+    "qcow2_url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/cloud/generic_alpine-3.21.4-x86_64-bios-cloudinit-r0.qcow2",
+    "meta": {
+      "username": "alpine"
+    },
+    "yaml_url": ""
+  },
+  {
+    "name": "alpine-3.22",
+    "qcow2_url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/cloud/generic_alpine-3.22.1-x86_64-bios-cloudinit-r0.qcow2",
+    "meta": {
+      "username": "alpine"
+    },
+    "yaml_url": ""
   }
 ]

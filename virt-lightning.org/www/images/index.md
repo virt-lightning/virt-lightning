@@ -1,5 +1,8 @@
 - almalinux-8
 - almalinux-9
+- alpine-3.20
+- alpine-3.21
+- alpine-3.22
 - amazon2-20210126.0
 - amazon2-20230320.0
 - centos-6
@@ -20,9 +23,8 @@
 - dragonflybsd-6.2.2-ufs
 - dragonflybsd-6.4.0-hammer2
 - dragonflybsd-6.4.0-ufs
-- fedora-39
-- fedora-40
 - fedora-41
+- fedora-42
 - freebsd-13.4-ufs
 - freebsd-13.4-zfs
 - freebsd-14.1-ufs
@@ -36,6 +38,7 @@
 - netbsd-9.4-ufs
 - openbsd-7.5-ufs
 - openbsd-7.6-ufs
+- openbsd-7.7-ufs
 - opensuse-leap-15.2
 - rockylinux-8
 - rockylinux-9
@@ -45,4 +48,3 @@
 - ubuntu-20.04
 - ubuntu-22.04
 - ubuntu-24.04
-- ubuntu-24.10
