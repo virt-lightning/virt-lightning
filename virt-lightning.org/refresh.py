@@ -97,6 +97,19 @@ def get_fedora_images() -> list[Image]:
     return filter(lambda x: x, [get(v) for v in range(39, 60)])
 
 
+def get_alpine_images() -> list[Image]:
+    def get(version) -> Image | None:
+        base_url = f"https://dl-cdn.alpinelinux.org/alpine/v{version}/releases/cloud"
+        resp = urllib3.request("GET", base_url, redirect=True)
+        m = re.findall(r"generic_alpine.*x86_64\-bios\-cloudinit-r0\.qcow2", resp.data.decode())
+        if m:
+            image = Image(f"alpine-{version}", f"{base_url}/{m[-1]}")
+            image.meta["username"] = "alpine"
+            return image
+
+    return filter(lambda x: x, [get(f"3.{v}") for v in range(20, 30)])
+
+
 def get_bsd_images() -> list[Image]:
     resp = urllib3.request(
         "GET",
@@ -131,6 +144,7 @@ for name, qcow2_url in configuration.items():
 
 images += get_fedora_images()
 images += get_bsd_images()
+images += get_alpine_images()
 
 index_md = ""
 images_redir = ""
