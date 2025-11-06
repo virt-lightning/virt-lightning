@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from __future__ import annotations
+
 import asyncio
 import getpass
 import ipaddress
@@ -19,7 +21,9 @@ import xml.etree.ElementTree as ET  # noqa: N817
 import libvirt
 import yaml
 
+from virt_lightning.metadata import DomainConfig
 from virt_lightning.symbols import get_symbols
+
 
 from .templates import (
     BRIDGE_XML,
@@ -96,7 +100,7 @@ class LibvirtHypervisor:
         # Sorted to get kvm before qemu, assume there is no other type
         return sorted(available)[0]
 
-    def create_domain(self, name=None, distro=None):
+    def create_domain(self, name=None, distro=None) -> LibvirtDomain:
         if not name:
             name = uuid.uuid4().hex[0:10]
         root = ET.fromstring(DOMAIN_XML)
@@ -110,51 +114,35 @@ class LibvirtHypervisor:
         domain.distro = distro
         return domain
 
-    def configure_domain(self, domain, user_config):
-        config = {
-            "groups": [],
-            "memory": 1024,
-            "python_interpreter": "/usr/bin/python3",
-            "root_password": "root",
-            "username": getpass.getuser(),
-            "vcpus": 1,
-            "default_nic_model": "virtio",
-            "bootcmd": [],
-            "runcmd": [],
-            "meta_data_media_type": "cdrom",
-            "default_bus_type": "virtio",
-        }
-        for k, v in self.get_distro_configuration(domain.distro).items():
-            if v:
-                config[k] = v
-        for k, v in user_config.items():
-            if v:
-                config[k] = v
-        domain.groups = config["groups"]
-        domain.load_ssh_key_file(pathlib.Path(config["ssh_key_file"]))
-        domain.memory = config["memory"]
-        domain.python_interpreter = config["python_interpreter"]
-        domain.root_password = config["root_password"]
-        domain.username = config["username"]
-        domain.vcpus = config["vcpus"]
-        domain.default_nic_model = config["default_nic_model"]
-        domain.bootcmd = config["bootcmd"]
-        domain.runcmd = config["runcmd"]
-        domain.meta_data_media_type = config["meta_data_media_type"]
-        domain.default_bus_type = config["default_bus_type"]
-        if "fqdn" in config:
-            domain.fqdn = config["fqdn"]
+    def configure_domain(self, domain: LibvirtDomain, user_config: DomainConfig):
+        config = self.get_distro_configuration(domain.distro)
 
-    def get_distro_configuration(self, distro) -> dict:
+
+        # TODO: move all of these to nested object
+        domain.groups = config.groups
+        domain.load_ssh_key_file(pathlib.Path(config.ssh_key_file))
+        domain.memory = config.memory
+        domain.python_interpreter = config.python_interpreter
+        domain.root_password = config.root_password
+        domain.username = config.username
+        domain.vcpus = config.vcpus
+        domain.default_nic_model = config.default_nic_model
+        domain.bootcmd = config.bootcmd
+        domain.runcmd = config.runcmd
+        domain.meta_data_media_type = config.meta_data_media_type
+        domain.default_bus_type = config.default_bus_type
+        domain.fqdn = config.fqdn
+
+    def get_distro_configuration(self, distro: str) -> DomainConfig:
         distro_configuration_file = pathlib.PosixPath(
             f"{self.get_storage_dir()}/upstream/{distro}.yaml"
         )
         if not distro_configuration_file.exists():
-            return {}
+            return DomainConfig()
         config: dict = (
             yaml.load(distro_configuration_file.open("r"), Loader=yaml.SafeLoader) or {}
         )
-        return config
+        return DomainConfig(**config)
 
     def list_domains(self):
         for i in self.conn.listAllDomains():
