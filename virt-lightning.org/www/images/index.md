@@ -23,8 +23,10 @@
 - dragonflybsd-6.2.2-ufs
 - dragonflybsd-6.4.0-hammer2
 - dragonflybsd-6.4.0-ufs
-- fedora-41
+- fedora-39
+- fedora-40
 - fedora-42
+- fedora-43
 - freebsd-13.4-ufs
 - freebsd-13.4-zfs
 - freebsd-14.1-ufs
@@ -39,6 +41,7 @@
 - openbsd-7.5-ufs
 - openbsd-7.6-ufs
 - openbsd-7.7-ufs
+- openbsd-7.8-ufs
 - opensuse-leap-15.2
 - rockylinux-8
 - rockylinux-9

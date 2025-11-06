@@ -174,14 +174,26 @@
     "yaml_url": ""
   },
   {
-    "name": "fedora-41",
-    "qcow2_url": "https://download.fedoraproject.org/pub/fedora/linux/releases/41/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-41-1.4.x86_64.qcow2",
+    "name": "fedora-39",
+    "qcow2_url": "https://download.fedoraproject.org/pub/fedora/linux/releases/39/Cloud/x86_64/images/Fedora-Cloud-Base-39-1.5.x86_64.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "fedora-40",
+    "qcow2_url": "https://download.fedoraproject.org/pub/fedora/linux/releases/40/Cloud/x86_64/images/Fedora-Cloud-Base-Generic.x86_64-40-1.14.qcow2",
     "meta": {},
     "yaml_url": ""
   },
   {
     "name": "fedora-42",
     "qcow2_url": "https://download.fedoraproject.org/pub/fedora/linux/releases/42/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-42-1.1.x86_64.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "fedora-43",
+    "qcow2_url": "https://download.fedoraproject.org/pub/fedora/linux/releases/43/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-43-1.6.x86_64.qcow2",
     "meta": {},
     "yaml_url": ""
   },
@@ -282,6 +294,14 @@
     "yaml_url": ""
   },
   {
+    "name": "openbsd-7.8-ufs",
+    "qcow2_url": "https://github.com/hcartiaux/openbsd-cloud-image/releases/download/v7.8_2025-10-22-09-25/openbsd-min.qcow2",
+    "meta": {
+      "python_interpreter": "/usr/local/bin/python3"
+    },
+    "yaml_url": ""
+  },
+  {
     "name": "dragonflybsd-6.2.2-ufs",
     "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/dragonflybsd/6.2.2/2022-09-06/ufs/dragonflybsd-6.2.2-ufs-2022-09-06.qcow2",
     "meta": {
@@ -315,7 +335,7 @@
   },
   {
     "name": "alpine-3.20",
-    "qcow2_url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/cloud/generic_alpine-3.20.7-x86_64-bios-cloudinit-r0.qcow2",
+    "qcow2_url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/cloud/generic_alpine-3.20.8-x86_64-bios-cloudinit-r0.qcow2",
     "meta": {
       "username": "alpine"
     },
@@ -323,7 +343,7 @@
   },
   {
     "name": "alpine-3.21",
-    "qcow2_url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/cloud/generic_alpine-3.21.4-x86_64-bios-cloudinit-r0.qcow2",
+    "qcow2_url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/cloud/generic_alpine-3.21.5-x86_64-bios-cloudinit-r0.qcow2",
     "meta": {
       "username": "alpine"
     },
@@ -331,7 +351,7 @@
   },
   {
     "name": "alpine-3.22",
-    "qcow2_url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/cloud/generic_alpine-3.22.1-x86_64-bios-cloudinit-r0.qcow2",
+    "qcow2_url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/cloud/generic_alpine-3.22.2-x86_64-bios-cloudinit-r0.qcow2",
     "meta": {
       "username": "alpine"
     },
