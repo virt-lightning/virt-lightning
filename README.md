@@ -41,7 +41,7 @@ During this recording, we:
 
 ## Requirements
 - Python 3.8 or greater
-- The Python3 binding for libvirt, the package is probably called `python3-libvirt` or 'libvirt-python' according to pip.
+- The Python3 binding for libvirt, the package is probably called `python3-libvirt` or `libvirt-python` according to pip.
 - Libvirt must be running, most of the time you just need to run: `sudo systemctl start --now libvirtd`
 - Finally, be sure your user can access the system libvirt daemon, e.g with: `virsh -c qemu:///system`
 
@@ -52,9 +52,8 @@ During this recording, we:
 ## Installation (Fedora/RHEL)
 
 ```shell
-sudo dnf install libvirt-devel gcc python3-devel pipx
-pipx ensurepath
-pipx install virt-lightning
+sudo dnf install uv python3-libvirt libvirt-devel gcc python3-devel
+uvx virt-lightning
 ```
 
 ## Installation (Fedora Atomic, e.g Silverblue)
@@ -80,9 +79,8 @@ python3 -m venv venv --system-site-packages
 ## Installation (Debian/Ubuntu)
 
 ```shell
-sudo apt install python3-venv pkg-config gcc libvirt-dev python3-dev pipx
-pipx ensurepath
-pipx install virt-lightning
+sudo apt install uv python3-venv pkg-config gcc libvirt-dev python3-dev
+uvx install virt-lightning
 ```
 
 ## Post Installation
@@ -358,17 +356,7 @@ dnf install python3-devel gcc libvirt-devel
 
 You can run a development copy in a virtual env:
 ```shell
-python3 -m venv /tmp/vl-dev-venv
-. /tmp/vl-dev-venv/bin/activate
-pip3 install -r requirements.txt
-pip3 install -e /path/to/my-virt-lightning-copy
-vl
-```
-
-The changes that are introduce in /path/to/my-virt-lightning-copy should be visible when you run vl from within the virtual env.
-running test will require:
-```shell
-pip3 install -r test-requirements.txt
+uv run virt-lightning
 ```
 
 ### Add a new image or refresh the list
