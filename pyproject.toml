@@ -64,3 +64,8 @@ lint.select = [
     "YTT", # flake8-2020
 ]
 lint.ignore = ["N806"]
+
+[dependency-groups]
+dev = [
+    "urllib3>=2.2.3",
+]

@@ -343,6 +343,7 @@ virsh snapshot-revert vm_name --snapshotname snapshot_1
 ```
 
 ### Development
+
 install libvirt-dev package:
 
 Debian/Ubuntu:
@@ -368,4 +369,12 @@ The changes that are introduce in /path/to/my-virt-lightning-copy should be visi
 running test will require:
 ```shell
 pip3 install -r test-requirements.txt
+```
+
+### Add a new image or refresh the list
+
+You just need to adjust the `virt-lightning.org/refresh.py` script and call it with:
+
+```shell
+uv run virt-lightning.org/refresh.py
 ```
