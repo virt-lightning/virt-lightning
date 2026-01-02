@@ -1,11 +1,10 @@
 # 🗲 spawn Cloud instances on libvirt!🗲
 
 
-[![Build Status](https://travis-ci.org/virt-lightning/virt-lightning.svg?branch=master)](https://travis-ci.org/virt-lightning/virt-lightning)
 [![PyPI version](https://badge.fury.io/py/virt-lightning.svg)](https://badge.fury.io/py/virt-lightning)
 [![Documentation](https://shields.io/static/v1?message=Documentation&color=blue)](https://virt-lightning.org/)
 
-![Logo](https://github.com/virt-lightning/virt-lightning/raw/master/logo/logo_no_text.png)
+![Logo](./logo/logo_no_text.png)
 
 You want to spawn local VM quickly.. Like... really quickly. You want them to be as generic as possible. Actually you would like to reuse some existing cloud images!
 
