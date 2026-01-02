@@ -5,6 +5,7 @@ import logging
 import os
 import pathlib
 import sys
+from importlib.metadata import version as get_version
 
 import libvirt
 import yaml
@@ -183,6 +184,13 @@ Commands:
         help="path to configuration file",
         required=False,
         type=pathlib.PosixPath,
+    )
+    package_version = get_version("virt-lightning")
+
+    main_parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {package_version}",
     )
 
     action_subparsers = main_parser.add_subparsers(title="action", dest="action")
