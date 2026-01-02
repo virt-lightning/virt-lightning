@@ -174,14 +174,8 @@
     "yaml_url": ""
   },
   {
-    "name": "fedora-39",
-    "qcow2_url": "https://download.fedoraproject.org/pub/fedora/linux/releases/39/Cloud/x86_64/images/Fedora-Cloud-Base-39-1.5.x86_64.qcow2",
-    "meta": {},
-    "yaml_url": ""
-  },
-  {
-    "name": "fedora-40",
-    "qcow2_url": "https://download.fedoraproject.org/pub/fedora/linux/releases/40/Cloud/x86_64/images/Fedora-Cloud-Base-Generic.x86_64-40-1.14.qcow2",
+    "name": "fedora-41",
+    "qcow2_url": "https://download.fedoraproject.org/pub/fedora/linux/releases/41/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-41-1.4.x86_64.qcow2",
     "meta": {},
     "yaml_url": ""
   },
@@ -352,6 +346,14 @@
   {
     "name": "alpine-3.22",
     "qcow2_url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/cloud/generic_alpine-3.22.2-x86_64-bios-cloudinit-r0.qcow2",
+    "meta": {
+      "username": "alpine"
+    },
+    "yaml_url": ""
+  },
+  {
+    "name": "alpine-3.23",
+    "qcow2_url": "https://dl-cdn.alpinelinux.org/alpine/v3.23/releases/cloud/generic_alpine-3.23.2-x86_64-bios-cloudinit-r0.qcow2",
     "meta": {
       "username": "alpine"
     },

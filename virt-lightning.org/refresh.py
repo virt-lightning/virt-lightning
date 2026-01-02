@@ -1,24 +1,10 @@
 #!/usr/bin/env python3
 
-
 import json
 import re
 from pathlib import Path
 
 import urllib3
-
-VIRT_LIGHTNING_ORG_CONF = """virt-lightning.org {{
-    root /var/www/virt-lightning.org
-    templates / .md
-    markdown / {{
-        template template.html
-    }}
-    log stdout
-
-
-{images_redir}
-}}
-"""
 
 configuration = {
     "debian-9": "https://cdimage.debian.org/cdimage/openstack/current-9/debian-9-openstack-amd64.qcow2",
@@ -101,7 +87,9 @@ def get_alpine_images() -> list[Image]:
     def get(version) -> Image | None:
         base_url = f"https://dl-cdn.alpinelinux.org/alpine/v{version}/releases/cloud"
         resp = urllib3.request("GET", base_url, redirect=True)
-        m = re.findall(r"generic_alpine.*x86_64\-bios\-cloudinit-r0\.qcow2", resp.data.decode())
+        m = re.findall(
+            r"generic_alpine.*x86_64\-bios\-cloudinit-r0\.qcow2", resp.data.decode()
+        )
         if m:
             image = Image(f"alpine-{version}", f"{base_url}/{m[-1]}")
             image.meta["username"] = "alpine"
@@ -159,15 +147,9 @@ for image in sorted(images, key=lambda i: i.name):
     index_md += f"- {image.name}\n"
 
 
-virt_lightning_org_conf_file = Path("./etc/caddy/conf.d/virt-lightning.org.conf")
-virt_lightning_org_conf_file.parent.mkdir(parents=True, exist_ok=True)
-virt_lightning_org_conf_file.write_text(
-    VIRT_LIGHTNING_ORG_CONF.format(images_redir=images_redir)
-)
-
-index_md_file = Path("./www/images/index.md")
+index_md_file = Path("./images/index.md")
 index_md_file.parent.mkdir(parents=True, exist_ok=True)
 index_md_file.write_text(index_md)
 
-images_json_file = Path("./images.json")
+images_json_file = Path("./virt-lightning.org/images.json")
 images_json_file.write_text(json.dumps([i.as_dict() for i in images], indent=2))

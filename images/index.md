@@ -3,6 +3,7 @@
 - alpine-3.20
 - alpine-3.21
 - alpine-3.22
+- alpine-3.23
 - amazon2-20210126.0
 - amazon2-20230320.0
 - centos-6
@@ -23,8 +24,7 @@
 - dragonflybsd-6.2.2-ufs
 - dragonflybsd-6.4.0-hammer2
 - dragonflybsd-6.4.0-ufs
-- fedora-39
-- fedora-40
+- fedora-41
 - fedora-42
 - fedora-43
 - freebsd-13.4-ufs
