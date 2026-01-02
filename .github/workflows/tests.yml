@@ -1,40 +1,30 @@
-name: Run tests
-on: [push]
+name: Python package
+
+on:
+  - push
+  - pull_request
+
 jobs:
-  tests:
+  build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ '3.8', '3.9', '3.10' ]
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
+
     steps:
-      - name: Check out
-        uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install libvirt-dev
-        run: sudo apt update; sudo apt install -y libvirt-dev
-      - name: install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install tox tox-gh-actions
-      - name: Run tox
-        run: tox
-  linters:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out
-        uses: actions/checkout@v2
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.9
-      - name: Install libvirt-dev
-        run: sudo apt update; sudo apt install -y libvirt-dev
-      - name: install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install tox tox-gh-actions
-      - name: Run tox
-        run: tox -eblack,flake8
+    - uses: actions/checkout@v5
+    - name: Install uv
+      uses: astral-sh/setup-uv@v7
+    - name: Install libvirt-dev
+      run: sudo apt update; sudo apt install -y libvirt-dev
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Test with Pytest
+      run: uv run --python ${{ matrix.python-version }} pytest
+    - name: Test with Black
+      run: uv run --python ${{ matrix.python-version }} black .
+    - name: Test with Flake8
+      run: uv run --python ${{ matrix.python-version }} flake8 virt_lightning
