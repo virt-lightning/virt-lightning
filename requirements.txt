@@ -1,3 +1,0 @@
-libvirt-python
-pyyaml
-urwid
