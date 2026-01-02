@@ -1,3 +1,52 @@
+# 2.4.1
+
+- remove tox and flake8
+- (origin/main) migrate to uv
+- (github/main, github/HEAD) update the image list
+- shell: put back "fetch" in the action list
+- Create CNAME
+- Update images
+- Rerun refresh.py
+- refresh.py: fix base_url of for fedora images
+- refresh.py: add AlpineLinux images
+- GHA: add a release pipeline
+
+# 2.4.0
+
+- SSH key: dynamic file lookup
+- black: fix virt_lightning.api
+- update image list
+- add support for a user defined image list
+- tox: refresh the py versions
+- fetch: don't use virt-lightning.org anymore
+- config: bump the default memory from 768MB to 1024MB
+- add NetBSD 10.1
+- Add FreeBSD 14.2
+- refresh.py: Support overriding python_interpreter via images_data.json
+- README: add a note to explain how to adjust the ansible_python_interpreter
+- Inventory update in Readme
+- pyproject: update ruff configuration key names
+- add images.json and refresh the image lists
+- Fix for inventory template
+- Add more documentation about interface configuration variable
+- Add additional network addresses to Ansible inventory
+- netbsd-9.3: fix the URL (#314)
+- distro: add FreeBSD 13.2 and FreeBSD 14.0 (#313)
+- virt-lightning.org: also update the README.md (#308)
+- README: explain how to install on Silverblue (#307)
+- README: explain how to use a different loc for the SSH key
+- centos-n-stream renamed to centos-stream-n (#305)
+- update docs and cli help response
+- update centos stream images
+- Update README.md
+- Update README.md
+- CI: enable py312
+- distro: add Fedora-40
+- distro: add Debian 13 (Trixie)
+- distro: add Ubuntu 23.10 and 24.04
+- flake8: Address a series of warnings
+- Update flake8 for Python 3.12 support
+
 # 2.3.2
 
 - Fixed error message for missing genisoimage
