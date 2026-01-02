@@ -150,6 +150,7 @@ Commands:
     distro_list         Dump list of supported distros
     storage_dir         Dump the VM image storage directory
     ansible_inventory   Dump an inventory file for ansible
+    fetch               Retrieve an image, See https://virt-lightning.org/images/
     ssh                 SSH into VM
     ssh_config          Dump an SSH config
     console             Open console on a VM
