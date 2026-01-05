@@ -33,6 +33,10 @@
 - freebsd-14.1-zfs
 - freebsd-14.2-ufs
 - freebsd-14.2-zfs
+- freebsd-14.3-ufs
+- freebsd-14.3-zfs
+- freebsd-15.0-ufs
+- freebsd-15.0-zfs
 - gentoo-latest
 - gentoo-systemd-latest
 - netbsd-10.0-ufs

@@ -358,5 +358,93 @@
       "username": "alpine"
     },
     "yaml_url": ""
+  },
+  {
+    "name": "freebsd-14.3-ufs",
+    "qcow2_url": "https://download.freebsd.org/releases/VM-IMAGES/14.3-RELEASE/amd64/Latest/FreeBSD-14.3-RELEASE-amd64-BASIC-CLOUDINIT-ufs.qcow2.xz",
+    "meta": {
+      "write_files": [
+        {
+          "content": "# Workaround for https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=292137\nnameserver 8.8.8.8\n",
+          "owner": "root:root",
+          "path": "/etc/resolv.conf",
+          "permissions": "0644",
+          "append": true
+        }
+      ],
+      "packages": [
+        "sudo"
+      ],
+      "groups": [
+        "wheel"
+      ]
+    },
+    "yaml_url": ""
+  },
+  {
+    "name": "freebsd-14.3-zfs",
+    "qcow2_url": "https://download.freebsd.org/releases/VM-IMAGES/14.3-RELEASE/amd64/Latest/FreeBSD-14.3-RELEASE-amd64-BASIC-CLOUDINIT-zfs.qcow2.xz",
+    "meta": {
+      "write_files": [
+        {
+          "content": "# Workaround for https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=292137\nnameserver 8.8.8.8\n",
+          "owner": "root:root",
+          "path": "/etc/resolv.conf",
+          "permissions": "0644",
+          "append": true
+        }
+      ],
+      "packages": [
+        "sudo"
+      ],
+      "groups": [
+        "wheel"
+      ]
+    },
+    "yaml_url": ""
+  },
+  {
+    "name": "freebsd-15.0-ufs",
+    "qcow2_url": "https://download.freebsd.org/releases/VM-IMAGES/15.0-RELEASE/amd64/Latest/FreeBSD-15.0-RELEASE-amd64-BASIC-CLOUDINIT-ufs.qcow2.xz",
+    "meta": {
+      "write_files": [
+        {
+          "content": "# Workaround for https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=292137\nnameserver 8.8.8.8\n",
+          "owner": "root:root",
+          "path": "/etc/resolv.conf",
+          "permissions": "0644",
+          "append": true
+        }
+      ],
+      "packages": [
+        "sudo"
+      ],
+      "groups": [
+        "wheel"
+      ]
+    },
+    "yaml_url": ""
+  },
+  {
+    "name": "freebsd-15.0-zfs",
+    "qcow2_url": "https://download.freebsd.org/releases/VM-IMAGES/15.0-RELEASE/amd64/Latest/FreeBSD-15.0-RELEASE-amd64-BASIC-CLOUDINIT-zfs.qcow2.xz",
+    "meta": {
+      "write_files": [
+        {
+          "content": "# Workaround for https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=292137\nnameserver 8.8.8.8\n",
+          "owner": "root:root",
+          "path": "/etc/resolv.conf",
+          "permissions": "0644",
+          "append": true
+        }
+      ],
+      "packages": [
+        "sudo"
+      ],
+      "groups": [
+        "wheel"
+      ]
+    },
+    "yaml_url": ""
   }
 ]
