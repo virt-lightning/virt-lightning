@@ -123,6 +123,8 @@ class LibvirtHypervisor:
             "runcmd": [],
             "meta_data_media_type": "cdrom",
             "default_bus_type": "virtio",
+            "packages": [],
+            "write_files": [],
         }
         for k, v in self.get_distro_configuration(domain.distro).items():
             if v:
@@ -144,6 +146,10 @@ class LibvirtHypervisor:
         domain.default_bus_type = config["default_bus_type"]
         if "fqdn" in config:
             domain.fqdn = config["fqdn"]
+        if "packages" in config:
+            domain.user_data["packages"] = config["packages"]
+        if "write_files" in config:
+            domain.user_data["write_files"] = config["write_files"]
 
     def get_distro_configuration(self, distro) -> dict:
         distro_configuration_file = pathlib.PosixPath(
@@ -684,6 +690,8 @@ class LibvirtDomain:
             "disable_root": 0,
             "bootcmd": [],
             "runcmd": [],
+            "packages": [],
+            "write_files": [],
         }
         self._ssh_key = None
         self.default_nic_model = None
