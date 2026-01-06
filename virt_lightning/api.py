@@ -433,6 +433,24 @@ def distro_list(configuration, **kwargs):
     return hv.distro_available()
 
 
+def list_remote_images(configuration, **kwargs):
+    """Fetch images.json from the configured URL and return a list of available images."""
+    try:
+        # Get the URL being used
+        image_list_url = configuration.custom_image_list
+        if not image_list_url:
+            image_list_url = (
+                "https://raw.githubusercontent.com/virt-lightning/virt-lightning"
+                "/refs/heads/main/virt-lightning.org/images.json"
+            )
+        logger.info(f"Fetching images.json from: {image_list_url}")
+        image_index = get_image_index(configuration)
+        return [image["name"] for image in image_index]
+    except Exception as e:
+        logger.error(f"Failed to fetch images.json: {e}")
+        raise
+
+
 def storage_dir(configuration, **kwargs):
     """Return the location of the VM image storage directory."""
     conn = _connect_libvirt(configuration.libvirt_uri)
