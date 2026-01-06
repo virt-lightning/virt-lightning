@@ -15,6 +15,7 @@ import libvirt
 
 import virt_lightning.virt_lightning as vl
 from virt_lightning.configuration import Configuration
+from virt_lightning.metadata import DomainConfig
 from virt_lightning.symbols import get_symbols
 from virt_lightning.util import strtobool
 
@@ -104,21 +105,7 @@ def _start_domain(hv, host, context, configuration):
 
     logger.info(f"{symbols.LIGHTNING.value} {host['name']} ")
 
-    user_config = {
-        "groups": host.get("groups"),
-        "memory": host.get("memory"),
-        "python_interpreter": host.get("python_interpreter"),
-        "root_password": host.get("root_password", configuration.root_password),
-        "ssh_key_file": host.get("ssh_key_file", configuration.ssh_key_file),
-        "username": host.get("username"),
-        "vcpus": host.get("vcpus"),
-        "fqdn": host.get("fqdn"),
-        "default_nic_mode": host.get("default_nic_model"),
-        "bootcmd": host.get("bootcmd"),
-        "runcmd": host.get("runcmd"),
-        "meta_data_media_type": host.get("meta_data_media_type"),
-        "default_bus_type": host.get("default_bus_type"),
-    }
+    user_config = DomainConfig.from_host(host, configuration)
     domain = hv.create_domain(name=host["name"], distro=distro)
     hv.configure_domain(domain, user_config)
     domain.context = context
@@ -241,6 +228,7 @@ def start(
 
     if enable_console:
         import time
+
 
         if console_fd is None:
             console_fd = sys.stdout
