@@ -440,14 +440,6 @@ def images(configuration, **kwargs):
 def list_remote_images(configuration, **kwargs):
     """Fetch images.json from the configured URL and return a list of available images."""
     try:
-        # Get the URL being used
-        remote_images_url = configuration.custom_image_list
-        if not remote_images_url:
-            remote_images_url = (
-                "https://raw.githubusercontent.com/virt-lightning/virt-lightning"
-                "/refs/heads/main/virt-lightning.org/images.json"
-            )
-        logger.info(f"Fetching images.json from: {remote_images_url}")
         image_index = get_image_index(configuration)
         return [image["name"] for image in image_index]
     except Exception as e:
@@ -510,26 +502,23 @@ def fetch_distro(
             except (IndexError, KeyError):
                 raise ImageNotFoundUpstreamError(kwargs["distro"]) from None
 
-    image_info = get_image_info()
+    image_info = {} if custom_url else get_image_info()
     download_url = custom_url or image_info["qcow2_url"]
 
 
     # Open the URL if not already opened
-    if not custom_url or "r" not in locals():
-        try:
-            r = urllib.request.urlopen(download_url)
-        except urllib.error.HTTPError as e:
-            if e.code == 404:
-                raise ImageNotFoundUpstreamError(kwargs["distro"]) from None
-            raise
+    try:
+        r = urllib.request.urlopen(download_url)
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            raise ImageNotFoundUpstreamError(kwargs["distro"]) from None
+        raise
 
     last_modified = r.headers.get("Last-Modified", "unknown")
     logger.debug("Date: %s", last_modified)
 
     # Check if content is xz-compressed
     content_type = r.headers.get("Content-Type", "")
-    content_encoding = r.headers.get("Content-Encoding", "")
-    print(content_type)
     is_xz_compressed = (
         content_type.lower() == "application/x-xz" or download_url.endswith(".xz")
     )
@@ -576,6 +565,7 @@ def get_image_index(configuration):
             "https://raw.githubusercontent.com/virt-lightning/virt-lightning"
             "/refs/heads/main/virt-lightning.org/images.json"
         )
+    logger.info(f"Fetching images.json from: {image_list}")
     f = urllib.request.urlopen(image_list)
     return json.loads(f.read())
 

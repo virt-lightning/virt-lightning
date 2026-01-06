@@ -342,13 +342,6 @@ Commands:
     elif args.action == "remote_images":
         try:
             # Get the URL being used for display
-            remote_images_url = configuration.custom_image_list
-            if not remote_images_url:
-                remote_images_url = (
-                    "https://raw.githubusercontent.com/virt-lightning/virt-lightning"
-                    "/refs/heads/main/virt-lightning.org/images.json"
-                )
-            print(f"Fetching images from: {remote_images_url}")  # noqa: T001
             remote_images = virt_lightning.api.list_remote_images(
                 configuration=configuration, **vars(args)
             )
