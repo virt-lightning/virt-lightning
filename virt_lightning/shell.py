@@ -102,10 +102,13 @@ def viewer(configuration, name=None, **kwargs):
 
 
 def progress_callback(cur, length):
-    percent = (cur * 100) / length
     done = int(cur / virt_lightning.api.MB)
-    full = int(length / virt_lightning.api.MB)
-    line = f"🌍 ➡️  💻 [{percent:06.2f}%]  {done:6}MB/{full}MB\r"
+    if length:
+        percent = (cur * 100) / length
+        full = int(length / virt_lightning.api.MB)
+        line = f"🌍 ➡️  💻 [{percent:06.2f}%]  {done:6}MB/{full}MB\r"
+    else:
+        line = f"🌍 ➡️  💻 {done:6}MB\r"
     print(line, end="")  # noqa: T001
 
 
@@ -294,6 +297,11 @@ Commands:
         "fetch", help="Fetch a VM image", parents=[parent_parser]
     )
     fetch_parser.add_argument("distro", help="Name of the VM image", type=str)
+    fetch_parser.add_argument(
+        "--url",
+        help="URL of the VM image to download (distro name is used as filename)",
+        type=str,
+    )
 
     args = main_parser.parse_args()
     if not args.action:
@@ -377,12 +385,15 @@ Commands:
         except virt_lightning.api.CannotConnectToLibvirtError:
             how_to_fix_auth_error()
         except virt_lightning.api.ImageNotFoundUpstreamError:
-            print(  # noqa: T001
-                f"Distro {args.distro} cannot be downloaded.\n"
-                f"  Visit {virt_lightning.api.BASE_URL}/images/ "
-                "or add a custom image list / private image hub "
-                "to get an up to date list."
-            )
+            if args.url:
+                print(f"Image cannot be downloaded from URL: {args.url}")  # noqa: T001
+            else:
+                print(  # noqa: T001
+                    f"Distro {args.distro} cannot be downloaded.\n"
+                    f"  Visit {virt_lightning.api.BASE_URL}/images/ "
+                    "or add a custom image list / private image hub "
+                    "to get an up to date list."
+                )
             exit(1)
     elif args.action in ["up", "start"]:
         action_func = getattr(virt_lightning.api, args.action)
