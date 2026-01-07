@@ -135,7 +135,7 @@ Run vl without a command to see list of accepted commands.
 Example:
 
  We export the list of the distro in the virt-lightning.yaml file.
-   $ vl distro_list > virt-lightning.yaml
+   $ vl images > virt-lightning.yaml
 
  For each line of the virt-lightning.yaml, start a VM with the associated distro.
    $ vl up
@@ -151,7 +151,7 @@ Commands:
     down                Delete all VMs created by virt-lightning
     start               Start a new VM
     stop                Delete a VM
-    distro_list         Dump list of supported distros
+    images              Dump list of supported distros
     remote_images       List all images available for download
     storage_dir         Dump the VM image storage directory
     ansible_inventory   Dump an inventory file for ansible
@@ -334,7 +334,7 @@ Commands:
             virt_lightning.api.ssh_config(configuration=configuration, **vars(args))
         )
     elif args.action in ["images", "distro_list"]:
-        for distro_name in virt_lightning.api.distro_list(
+        for distro_name in virt_lightning.api.images(
             configuration=configuration, **vars(args)
         ):
             print(f"- distro: {distro_name}")  # noqa: T001
