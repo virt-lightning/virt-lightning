@@ -149,6 +149,7 @@ Commands:
     start               Start a new VM
     stop                Delete a VM
     distro_list         Dump list of supported distros
+    remote_images       List all images from remote images.json
     storage_dir         Dump the VM image storage directory
     ansible_inventory   Dump an inventory file for ansible
     fetch               Retrieve an image, See https://virt-lightning.org/images/
@@ -256,6 +257,11 @@ Commands:
         parents=[parent_parser],
     )
     action_subparsers.add_parser(
+        "remote_images",
+        help="List all the images available from the remote images.json",
+        parents=[parent_parser],
+    )
+    action_subparsers.add_parser(
         "storage_dir", help="Print the storage directory", parents=[parent_parser]
     )
 
@@ -324,6 +330,25 @@ Commands:
             configuration=configuration, **vars(args)
         ):
             print(f"- distro: {distro_name}")  # noqa: T001
+    elif args.action == "remote_images":
+        try:
+            # Get the URL being used for display
+            remote_images_url = configuration.custom_image_list
+            if not remote_images_url:
+                remote_images_url = (
+                    "https://raw.githubusercontent.com/virt-lightning/virt-lightning"
+                    "/refs/heads/main/virt-lightning.org/images.json"
+                )
+            print(f"Fetching images from: {remote_images_url}")  # noqa: T001
+            remote_images = virt_lightning.api.list_remote_images(
+                configuration=configuration, **vars(args)
+            )
+            print(f"\nAvailable images ({len(remote_images)} total):")  # noqa: T001
+            for image_name in sorted(remote_images):
+                print(f"  - {image_name}")  # noqa: T001
+        except Exception as e:
+            print(f"Error fetching images: {e}")  # noqa: T001
+            exit(1)
     elif args.action == "storage_dir":
         print(  # noqa: T001
             virt_lightning.api.storage_dir(configuration=configuration, **vars(args))
