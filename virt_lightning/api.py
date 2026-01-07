@@ -59,10 +59,22 @@ class CannotConnectToLibvirtError(Exception):
     pass
 
 
+def _get_or_create_event_loop(loop=None):
+    """Return an event loop; create and set one if none exists for the thread."""
+    if loop:
+        return loop
+    try:
+        return asyncio.get_event_loop()
+    except RuntimeError:
+        new_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(new_loop)
+        return new_loop
+
+
 def _register_aio_virt_impl(loop):
     # Ensure we may call shell.up() multiple times
     # from the same asyncio program.
-    loop = loop or asyncio.get_event_loop()
+    loop = _get_or_create_event_loop(loop)
     if loop not in _register_aio_virt_impl.aio_virt_bindinds:
         try:
             import libvirtaio
@@ -177,7 +189,7 @@ def up(virt_lightning_yaml, configuration, context="default", **kwargs):
         if state == 1:
             logger.info("%s %s QEMU agent found", symbols.CUSTOMS.value, dom.name())
 
-    loop = kwargs.get("loop") or asyncio.get_event_loop()
+    loop = _get_or_create_event_loop(kwargs.get("loop"))
     _register_aio_virt_impl(loop)
 
     conn = _connect_libvirt(configuration.libvirt_uri)
@@ -239,7 +251,7 @@ def start(
     if not domain:
         return
 
-    loop = kwargs.get("loop") or asyncio.get_event_loop()
+    loop = _get_or_create_event_loop(kwargs.get("loop"))
 
     if enable_console:
         import time
