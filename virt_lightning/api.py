@@ -5,6 +5,7 @@ import collections
 import ipaddress
 import json
 import logging
+import lzma
 import pathlib
 import re
 import sys
@@ -12,6 +13,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 import libvirt
+import yaml
 
 import virt_lightning.virt_lightning as vl
 from virt_lightning.configuration import Configuration
@@ -467,13 +469,11 @@ class RedirectFilter(urllib.request.HTTPRedirectHandler):
         )
 
 
-def fetch_from_url(progress_callback=None, url=None, **kwargs):
-    """Retrieve a VM image from a given url
-    - when url is set to None, this means we are trying to fetch from the default url.
-    """
-    target_file = pathlib.PosixPath(
-        "{storage_dir}/upstream/{distro}.qcow2".format(**kwargs)
-    )
+def fetch_distro(
+    configuration, progress_callback=None, storage_dir=None, custom_url=None, **kwargs
+):
+    """Unified function to retrieve a VM image from custom URL or distro index."""
+    target_file = pathlib.PosixPath(f"{storage_dir}/upstream/{kwargs['distro']}.qcow2")
     temp_file = target_file.with_suffix(".temp")
     if target_file.exists():
         logger.info("File already exists: %s", target_file)
@@ -482,25 +482,87 @@ def fetch_from_url(progress_callback=None, url=None, **kwargs):
     opener = urllib.request.build_opener(RedirectFilter)
     urllib.request.install_opener(opener)
 
-    try:
-        r = urllib.request.urlopen("{url}/{distro}.qcow2".format(url=url, **kwargs))
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            raise ImageNotFoundUpstreamError(kwargs["distro"]) from None
-        raise
-    last_modified = r.headers["Last-Modified"]
+
+    def get_image_info():
+        # Try private hub first, then distro index
+        for images_url in configuration.private_hub:
+            try:
+                download_url = f"{images_url}/{kwargs['distro']}.qcow2"
+                urllib.request.urlopen(download_url)
+                return {"qcow2_url": download_url}
+            except urllib.error.HTTPError as e:
+                if e.code == 404:
+                    logger.info(
+                        "Image: %s not found from url: %s", kwargs["distro"], images_url
+                    )
+                    continue
+                raise
+        else:
+            # Try from distro index
+            image_index = get_image_index(configuration)
+            try:
+                image_info = [i for i in image_index if i["name"] == kwargs["distro"]][
+                    0
+                ]
+                return image_info
+            except (IndexError, KeyError):
+                raise ImageNotFoundUpstreamError(kwargs["distro"]) from None
+
+    image_info = get_image_info()
+    download_url = custom_url or image_info["qcow2_url"]
+
+
+    # Open the URL if not already opened
+    if not custom_url or "r" not in locals():
+        try:
+            r = urllib.request.urlopen(download_url)
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                raise ImageNotFoundUpstreamError(kwargs["distro"]) from None
+            raise
+
+    last_modified = r.headers.get("Last-Modified", "unknown")
     logger.debug("Date: %s", last_modified)
-    size = r.headers["Content-Length"]
-    logger.debug("Size: %s", size)
-    length = int(size)
+
+    # Check if content is xz-compressed
+    content_type = r.headers.get("Content-Type", "")
+    content_encoding = r.headers.get("Content-Encoding", "")
+    print(content_type)
+    is_xz_compressed = (
+        content_type.lower() == "application/x-xz" or download_url.endswith(".xz")
+    )
+
+    if is_xz_compressed:
+        logger.info("Detected xz-compressed content, decompressing during download...")
+        # Wrap the response in an LZMA decompressor
+        response_stream = lzma.LZMAFile(r, "rb")  # noqa: SIM115
+        length = None
+    else:
+        response_stream = r
+        length = int(r.headers.get("Content-Length", 0))
+        logger.debug("Size: %s", length)
+
     chunk_size = MB * 1
+    bytes_downloaded = 0
     with temp_file.open("wb") as fd:
-        while fd.tell() < length:
-            chunk = r.read(chunk_size)
+        while chunk := response_stream.read(chunk_size):
             fd.write(chunk)
+            bytes_downloaded += len(chunk)
             if progress_callback:
-                progress_callback(fd.tell(), length)
+                progress_callback(bytes_downloaded, length)
+
     temp_file.rename(target_file)
+
+    # Handle YAML file for distro index downloads (if not custom URL)
+    if image_info.get("meta"):
+        try:
+            with target_file.with_suffix(".yaml").open("wb") as fd:
+                meta = yaml.dump(image_info.get("meta"))
+                fd.write(meta.encode())
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                pass
+
     logger.info(f"Image {kwargs['distro']} is ready!")
 
 
@@ -516,58 +578,6 @@ def get_image_index(configuration):
     return json.loads(f.read())
 
 
-def fetch_distro(configuration, progress_callback=None, url=None, **kwargs):
-    """Retrieve a VM image from a given url
-    - when url is set to None, this means we are trying to fetch from the default url.
-    """
-    image_index = get_image_index(configuration)
-    try:
-        image_info = [i for i in image_index if i["name"] == kwargs["distro"]][0]
-    except (IndexError, KeyError):
-        raise ImageNotFoundUpstreamError(kwargs["distro"]) from None
-
-    target_file = pathlib.PosixPath(
-        "{storage_dir}/upstream/{distro}.qcow2".format(**kwargs)
-    )
-    temp_file = target_file.with_suffix(".temp")
-    if target_file.exists():
-        logger.info("File already exists: %s", target_file)
-        return
-
-    opener = urllib.request.build_opener(RedirectFilter)
-    urllib.request.install_opener(opener)
-
-    try:
-        r = urllib.request.urlopen(image_info["qcow2_url"])
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            raise ImageNotFoundUpstreamError(kwargs["distro"]) from None
-        raise
-    last_modified = r.headers["Last-Modified"]
-    logger.debug("Date: %s", last_modified)
-    size = r.headers["Content-Length"]
-    logger.debug("Size: %s", size)
-    length = int(size)
-    chunk_size = MB * 1
-    with temp_file.open("wb") as fd:
-        while fd.tell() < length:
-            chunk = r.read(chunk_size)
-            fd.write(chunk)
-            if progress_callback:
-                progress_callback(fd.tell(), length)
-    temp_file.rename(target_file)
-
-    if image_info["yaml_url"]:
-        try:
-            r = urllib.request.urlopen(image_info["yaml_url"])
-            with target_file.with_suffix(".yaml").open("wb") as fd:
-                fd.write(r.read())
-        except urllib.error.HTTPError as e:
-            if e.code == 404:
-                pass
-    logger.info(f"Image {kwargs['distro']} is ready!")
-
-
 def fetch(configuration=None, progress_callback=None, hv=None, **kwargs):
     """Retrieve a VM image from Internet."""
     if hv is None:
@@ -577,23 +587,17 @@ def fetch(configuration=None, progress_callback=None, hv=None, **kwargs):
 
     configuration = configuration if configuration is not None else Configuration()
 
-    for images_url in configuration.private_hub:
-        try:
-            fetch_from_url(
-                progress_callback=progress_callback,
-                storage_dir=hv.get_storage_dir(),
-                url=images_url,
-                **kwargs,
-            )
-            return
-        except ImageNotFoundUpstreamError:
-            logger.info(
-                "Image: %s not found from url: %s", kwargs["distro"], images_url
-            )
+    distro = kwargs.get("distro")
+    custom_url = kwargs.get("url")
+
+    # Ensure distro is always provided
+    if not distro:
+        raise ValueError("Distro name is required")
 
     fetch_distro(
         configuration=configuration,
         progress_callback=progress_callback,
         storage_dir=hv.get_storage_dir(),
+        custom_url=custom_url,
         **kwargs,
     )
