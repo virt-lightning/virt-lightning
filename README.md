@@ -94,8 +94,8 @@ source ~/.bashrc
 
 # List Remote Images
 
-Before you start your first VM, you need to fetch the images. To do so,
-you just use the `vl fetch` command:
+Before you start your first VM, you need to list the images. To do so,
+you just use the `vl remote_images` command:
 
 ```shell
 $ vl remote_images
