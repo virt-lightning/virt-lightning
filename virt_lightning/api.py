@@ -437,13 +437,13 @@ def list_remote_images(configuration, **kwargs):
     """Fetch images.json from the configured URL and return a list of available images."""
     try:
         # Get the URL being used
-        image_list_url = configuration.custom_image_list
-        if not image_list_url:
-            image_list_url = (
+        remote_images_url = configuration.custom_image_list
+        if not remote_images_url:
+            remote_images_url = (
                 "https://raw.githubusercontent.com/virt-lightning/virt-lightning"
                 "/refs/heads/main/virt-lightning.org/images.json"
             )
-        logger.info(f"Fetching images.json from: {image_list_url}")
+        logger.info(f"Fetching images.json from: {remote_images_url}")
         image_index = get_image_index(configuration)
         return [image["name"] for image in image_index]
     except Exception as e:

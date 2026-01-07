@@ -92,6 +92,15 @@ echo "export PATH=$PATH:~/.local/bin/" >> ~/.bashrc
 source ~/.bashrc
 ```
 
+# List Remote Images
+
+Before you start your first VM, you need to fetch the images. To do so,
+you just use the `vl fetch` command:
+
+```shell
+$ vl remote_images
+```
+
 # Fetch some images
 
 Before you start your first VM, you need to fetch the images. To do so,
