@@ -149,10 +149,10 @@ Commands:
     start               Start a new VM
     stop                Delete a VM
     distro_list         Dump list of supported distros
-    remote_images       List all images from remote images.json
+    remote_images       List all images available for download
     storage_dir         Dump the VM image storage directory
     ansible_inventory   Dump an inventory file for ansible
-    fetch               Retrieve an image, See https://virt-lightning.org/images/
+    fetch               Retrieve an image, use "remote_images" to list tem all
     ssh                 SSH into VM
     ssh_config          Dump an SSH config
     console             Open console on a VM
@@ -252,7 +252,7 @@ Commands:
     status_parser.add_argument("--context", **context_args)
 
     action_subparsers.add_parser(
-        "distro_list",
+        "images",
         help="List all the images available locally",
         parents=[parent_parser],
     )
@@ -325,7 +325,7 @@ Commands:
         print(  # noqa: T001
             virt_lightning.api.ssh_config(configuration=configuration, **vars(args))
         )
-    elif args.action == "distro_list":
+    elif args.action in ["images", "distro_list"]:
         for distro_name in virt_lightning.api.distro_list(
             configuration=configuration, **vars(args)
         ):

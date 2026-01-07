@@ -115,9 +115,9 @@ $ vl fetch fedora-32
 `vl` is an alias for `virt-lightning`, you can use both. In the rest of the document
 we use the shortest version.
 
-## **vl distro_list**
+## **vl images**
 
-List the distro images that can be used. Its output is compatible with `vl up`. You can initialize a new configuration with: `vl distro_list > virt-lightning.yaml`.
+List the distro images that can be used. Its output is compatible with `vl up`. You can initialize a new configuration with: `vl images > virt-lightning.yaml`.
 
 ## **vl up**
 
