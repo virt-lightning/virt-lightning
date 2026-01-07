@@ -155,7 +155,7 @@ Commands:
     remote_images       List all images available for download
     storage_dir         Dump the VM image storage directory
     ansible_inventory   Dump an inventory file for ansible
-    fetch               Retrieve an image, use "remote_images" to list tem all
+    pull                Retrieve an image, use "remote_images" to list tem all
     ssh                 SSH into VM
     ssh_config          Dump an SSH config
     console             Open console on a VM
@@ -258,6 +258,7 @@ Commands:
         "images",
         help="List all the images available locally",
         parents=[parent_parser],
+        aliases=["distro_list"]
     )
     action_subparsers.add_parser(
         "remote_images",
@@ -299,11 +300,11 @@ Commands:
     )
     viewer_parser.add_argument("name", help="Name of the host", type=str, nargs="?")
 
-    fetch_parser = action_subparsers.add_parser(
-        "fetch", help="Fetch a VM image", parents=[parent_parser]
+    pull_parser = action_subparsers.add_parser(
+        "pull", help="Download a VM image", parents=[parent_parser], aliases=["fetch"]
     )
-    fetch_parser.add_argument("distro", help="Name of the VM image", type=str)
-    fetch_parser.add_argument(
+    pull_parser.add_argument("distro", help="Name of the VM image", type=str)
+    pull_parser.add_argument(
         "--url",
         help="URL of the VM image to download (distro name is used as filename)",
         type=str,
@@ -355,7 +356,7 @@ Commands:
             for image_name in sorted(remote_images):
                 print(f"  - {image_name}")  # noqa: T001
         except Exception as e:
-            print(f"Error fetching images: {e}")  # noqa: T001
+            print(f"Error during the image download: {e}")  # noqa: T001
             exit(1)
     elif args.action == "storage_dir":
         print(  # noqa: T001
@@ -400,7 +401,7 @@ Commands:
             virt_lightning.api.list_domains(configuration=configuration, **vars(args)),
             go_ssh,
         )
-    elif args.action == "fetch":
+    elif args.action in ["pull", "fetch"]:
         try:
             virt_lightning.api.fetch(
                 configuration=configuration,
@@ -440,6 +441,6 @@ Commands:
             logger.error(f"VM {e.name} not found")
         except virt_lightning.api.ImageNotFoundLocallyError as e:
             logger.error(
-                f"ℹ️ You may be able to download the image with the `vl fetch {e.name}` command."
+                f"ℹ️ You may be able to download the image with the `vl pull {e.name}` command."
             )
             exit(1)
