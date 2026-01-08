@@ -62,7 +62,11 @@ class CannotConnectToLibvirtError(Exception):
 def _register_aio_virt_impl(loop):
     # Ensure we may call shell.up() multiple times
     # from the same asyncio program.
-    loop = loop or asyncio.get_event_loop()
+    try:
+        loop = loop or asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
     if loop not in _register_aio_virt_impl.aio_virt_bindinds:
         try:
             import libvirtaio
@@ -71,6 +75,7 @@ def _register_aio_virt_impl(loop):
         except ImportError:
             libvirt.virEventRegisterDefaultImpl()
         _register_aio_virt_impl.aio_virt_bindinds[loop] = True
+    return loop
 
 
 _register_aio_virt_impl.__dict__["aio_virt_bindinds"] = {}
@@ -177,8 +182,7 @@ def up(virt_lightning_yaml, configuration, context="default", **kwargs):
         if state == 1:
             logger.info("%s %s QEMU agent found", symbols.CUSTOMS.value, dom.name())
 
-    loop = kwargs.get("loop") or asyncio.get_event_loop()
-    _register_aio_virt_impl(loop)
+    loop = _register_aio_virt_impl(kwargs.get("loop"))
 
     conn = _connect_libvirt(configuration.libvirt_uri)
     hv = vl.LibvirtHypervisor(conn)
@@ -239,7 +243,7 @@ def start(
     if not domain:
         return
 
-    loop = kwargs.get("loop") or asyncio.get_event_loop()
+    loop = _register_aio_virt_impl(loop=kwargs.get("loop"))
 
     if enable_console:
         import time
@@ -250,8 +254,6 @@ def start(
         time.sleep(4)
         stream = conn.newStream(libvirt.VIR_STREAM_NONBLOCK)
         console = domain.dom.openConsole(None, stream, 0)
-
-        _register_aio_virt_impl(loop=kwargs.get("loop"))
 
         def stream_callback(stream, events, _):
             content = stream.recv(1024 * 1024).decode("utf-8", errors="ignore")
