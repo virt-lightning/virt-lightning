@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "virt-lightning"
-version = "2.4.1"
+version = "2.5.0"
 description = "Deploy your testing VM in a couple of seconds"
 readme = "README.md"
 authors = [{ name = "Gonéri Le Bouder", email="goneri@lebouder.net" }]
