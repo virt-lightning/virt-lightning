@@ -1,8 +1,24 @@
+# 2.5.0
+
+- use uv to release 2.5.0 (#358)
+- pull: ability to create new distro --url (#357)
+- images: import the upstream FreeBSD images (#347)
+- add the user in the "wheel" group (#356)
+- rename the "fetch" action as "pull" (#355)
+- user_data: expose packages and write_files (#354)
+- rename distro_list to just images (continue) (#353)
+- fix: get_event_loop RuntimeError with Python 3.14 (#352)
+- fetch improvements (#349)
+- rename distro_list to just images (#350)
+- adding feature to show images you can fetch via the cli (#348)
+- README.md: remove Travis and update the logo image path
+- refresh the changelog
+
 # 2.4.1
 
 - remove tox and flake8
-- (origin/main) migrate to uv
-- (github/main, github/HEAD) update the image list
+- migrate to uv
+- update the image list
 - shell: put back "fetch" in the action list
 - Create CNAME
 - Update images
