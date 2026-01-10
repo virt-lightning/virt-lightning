@@ -104,10 +104,10 @@ $ vl remote_images
 # Fetch some images
 
 Before you start your first VM, you need to fetch the images. To do so,
-you just use the `vl fetch` command:
+you just use the `vl pull` command:
 
 ```shell
-$ vl fetch fedora-32
+$ vl pull fedora-32
 ```
 
 # Actions
@@ -143,7 +143,7 @@ List the VMs, their IP and if they are reachable.
 
 Export an inventory in the Ansible format.
 
-**Note:** Created VMs use various Python versions, which can cause compatibility issues with the Ansible version on the control node (host). In case of errors related to Python version compatibility, please consult the Ansible [changelog](https://docs.ansible.com/ansible/latest/reference_appendices/release_and_maintenance.html) for details on supported Python versions.
+**Note:** Created VMs use various Python versions, which can cause compatibility issues with the Ansible version on the control node (host). In case of errors related to Python version compatibility, please consult the Ansible n[changelog](https://docs.ansible.com/ansible/latest/reference_appendices/release_and_maintenance.html) for details on supported Python versions.
 
 In can you need a different Python version for a given image (`ansible_python_interpreter`), you can define it in a YAML file aside of the qcow2 image. E.g:
 
@@ -172,9 +172,9 @@ Like `vl ssh` but with the serial console of the VM.
 
 Like `vl console` but with the SPICE console of the VM. Requires `virt-viewer`.
 
-## **vl fetch**
+## **vl pull**
 
-Fetch a VM image. [You can find here a list of the available images](https://virt-lightning.org/images/). You can also update the custom configuration to add a private image hub.
+Download a VM image. Use the `vl remote_images` to get a list of available images. You can also update the custom configuration to add a private image hub.
 
 # Configuration
 
