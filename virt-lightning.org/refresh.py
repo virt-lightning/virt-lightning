@@ -3,6 +3,7 @@
 import json
 import re
 from pathlib import Path
+from textwrap import dedent
 
 import urllib3
 
@@ -71,6 +72,15 @@ class Image:
             "yaml_url": self.yaml_url,
         }
 
+    def __repr__(self):
+        return dedent(
+            f"""
+        Image={self.name}
+          url={self.qcow2_url}
+          meta={self.meta}
+        """
+        )
+
 
 def get_fedora_images() -> list[Image]:
     def get(version) -> Image | None:
@@ -98,6 +108,55 @@ def get_alpine_images() -> list[Image]:
     return filter(lambda x: x, [get(f"3.{v}") for v in range(20, 30)])
 
 
+def get_freebsd_images() -> list[Image]:
+    def releases():
+        resp = urllib3.request(
+            "GET",
+            "https://download.freebsd.org/releases/VM-IMAGES/",
+            redirect=True,
+        )
+        return re.findall(r'"(\d+\.\d-RELEASE)"', resp.data.decode())
+
+    def base_url(release):
+        return f"https://download.freebsd.org/releases/VM-IMAGES/{r}/amd64/Latest/"
+
+    def file_names(release):
+        resp = urllib3.request(
+            "GET",
+            base_url(release),
+            redirect=True,
+        )
+        return re.findall(
+            r">(FreeBSD-\d+\.\d-RELEASE-amd64-BASIC-CLOUDINIT-[uz]fs.qcow2.xz)<",
+            resp.data.decode(),
+        )
+
+    for r in releases():
+        for u in file_names(r):
+            m = re.match(
+                r"FreeBSD-(\d+\.\d)-RELEASE-amd64-BASIC-CLOUDINIT-(ufs|zfs).qcow2.xz", u
+            )
+            if m:
+                name = f"freebsd-{m.group(1)}-{m.group(2)}"
+                url = base_url(r) + u
+                image = Image(name, url)
+                image.meta["write_files"] = [
+                    {
+                        "content": (
+                            "# Workaround for https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=292137\n"
+                            "nameserver 8.8.8.8\n"
+                        ),
+                        "owner": "root:root",
+                        "path": "/etc/resolv.conf",
+                        "permissions": "0644",
+                        "append": True,
+                    }
+                ]
+                image.meta["packages"] = ["sudo"]
+                image.meta["groups"] = ["wheel"]
+                yield image
+
+
 def get_bsd_images() -> list[Image]:
     resp = urllib3.request(
         "GET",
@@ -123,7 +182,6 @@ def get_bsd_images() -> list[Image]:
 
 images: list[Image] = []
 
-
 for name, qcow2_url in configuration.items():
     yaml_url = re.sub(r".qcow2", ".yaml", qcow2_url)
     if urllib3.request("HEAD", qcow2_url).status == 200:
@@ -133,6 +191,7 @@ for name, qcow2_url in configuration.items():
 images += get_fedora_images()
 images += get_bsd_images()
 images += get_alpine_images()
+images += get_freebsd_images()
 
 index_md = ""
 images_redir = ""
