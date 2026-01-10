@@ -110,6 +110,12 @@ you just use the `vl pull` command:
 $ vl pull fedora-32
 ```
 
+You can also pull an image from Internet, as soon as it's a `.qcow2` or a `.qcow2.xz` (compress with `xz`):
+
+```shell
+$ vl pull freebsd-16-current --url https://download.freebsd.org/snapshots/VM-IMAGES/16.0-CURRENT/amd64/Latest/FreeBSD-16.0-CURRENT-amd64-BASIC-CLOUDINIT-ufs.qcow2.xz
+```
+
 # Actions
 
 `vl` is an alias for `virt-lightning`, you can use both. In the rest of the document
