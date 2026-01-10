@@ -774,6 +774,7 @@ class LibvirtDomain:
                 "gecos": "virt-bootstrap user",
                 "sudo": "ALL=(ALL) NOPASSWD:ALL",
                 "ssh_authorized_keys": [self.ssh_key],
+                "groups": ["wheel"]
             }
         ]
 
