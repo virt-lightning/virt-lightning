@@ -9,7 +9,7 @@ description = "Deploy your testing VM in a couple of seconds"
 readme = "README.md"
 authors = [{ name = "Gonéri Le Bouder", email="goneri@lebouder.net" }]
 requires-python = ">=3.9"
-license = "Apache-2.0"
+license = {text = "Apache-2.0"}
 classifiers = [
     "Environment :: Console",
     "Programming Language :: Python :: 3",
