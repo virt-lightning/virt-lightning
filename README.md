@@ -78,8 +78,9 @@ python3 -m venv venv --system-site-packages
 ## Installation (Debian/Ubuntu)
 
 ```shell
-sudo apt install uv python3-venv pkg-config gcc libvirt-dev python3-dev
-uvx install virt-lightning
+sudo apt install python3-venv pkg-config gcc libvirt-dev python3-dev pipx
+pipx ensurepath
+pipx install virt-lightning
 ```
 
 ## Post Installation
