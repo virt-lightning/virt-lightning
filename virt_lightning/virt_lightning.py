@@ -115,8 +115,18 @@ class LibvirtHypervisor:
         return domain
 
     def configure_domain(self, domain: LibvirtDomain, user_config: DomainConfig):
-        config = self.get_distro_configuration(domain.distro)
-
+        """
+        Apply configuration to a domain.
+        
+        Merges user_config with distro-specific defaults. User-supplied values
+        (non-None/non-empty) override distro defaults.
+        
+        Args:
+            domain: The LibvirtDomain to configure
+            user_config: User-provided configuration that overrides distro defaults
+        """
+        distro_config = self.get_distro_configuration(domain.distro)
+        config = user_config.merge_with(distro_config)
 
         # TODO: move all of these to nested object
         domain.groups = config.groups

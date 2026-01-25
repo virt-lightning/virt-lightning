@@ -50,10 +50,19 @@ class DomainConfig:
     default_bus_type: str = "virtio"
 
     def __init__(self, **kwargs):
-
+        # Initialize all fields with their default values first
         cls = self.__class__
-        field_names = {f.name for f in fields(cls)}
+        for f in fields(cls):
+            if f.default is not MISSING:
+                setattr(self, f.name, f.default)
+            elif f.default_factory is not MISSING:
+                setattr(self, f.name, f.default_factory())
+            else:
+                # Field has no default, will be set from kwargs or remain unset
+                pass
 
+        # Now override with provided kwargs
+        field_names = {f.name for f in fields(cls)}
         for name, value in kwargs.items():
             if name in field_names:
                 setattr(self, name, value)
@@ -82,3 +91,36 @@ class DomainConfig:
             meta_data_media_type=host.get("meta_data_media_type"),
             default_bus_type=host.get("default_bus_type"),
         )
+
+    def merge_with(self, base_config: "DomainConfig") -> "DomainConfig":
+        """
+        Merge this config with a base config.
+        
+        Merge strategy:
+        - For list fields: use user's list if non-empty, else base list
+        - For other fields: use user's value if not None, else base value
+        
+        This means None is the sentinel for "not set by user, use base value".
+        
+        Args:
+            base_config: The base configuration to merge with
+            
+        Returns:
+            A new DomainConfig with merged values
+        """
+        merged_kwargs = {}
+        
+        for f in fields(self.__class__):
+            user_value = getattr(self, f.name)
+            base_value = getattr(base_config, f.name)
+            
+            # For list fields: use user value if non-empty, else base value
+            if isinstance(user_value, list):
+                merged_kwargs[f.name] = user_value if user_value else base_value
+            # For other fields: use user value if not None, else base value
+            elif user_value is not None:
+                merged_kwargs[f.name] = user_value
+            else:
+                merged_kwargs[f.name] = base_value
+        
+        return DomainConfig(**merged_kwargs)
