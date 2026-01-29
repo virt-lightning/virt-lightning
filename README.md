@@ -206,7 +206,7 @@ ssh_key_file = ~/.ssh/id_rsa.pub
 
 **network_auto_clean_up**: if you want to automatically remove a network when running `virt-lightning down`
 
-**ssh_key_file**: if you want to use an alternative public key
+**ssh_key_file**: the path of the default public key for connecting to VMs. If unset, Virt-Lightning will pick the first key matching `~/.ssh/id_*.pub` or (if none found) all keys from `ssh-add -L`.
 
 **private_hub**: if you need to set additional url from where images should be retrieved, update the configuration file `~/.config/virt-lightning/config.ini` adding the following
 ```
@@ -230,7 +230,7 @@ A VM can be tuned at two different places with the following keys:
 - `memory`: the amount of memory to dedicate to the VM
 - `vcpus`: the number of vcpu to dedicate to the VM
 - `root_password`: the root password in clear text
-- `ssh_key_file`: the path of the public key for connecting to the VM. If the value, Virt-Lightning will pick the first key matching `~/.ssh/id_*.pub`.
+- `ssh_key_file`: the path of the public key for connecting to the VM. If unset, and no global default present, Virt-Lightning will pick the first key matching `~/.ssh/id_*.pub` or (if none found) all keys from `ssh-add -L`.
 - `groups`: this list of groups will be used if you generate an Ansible inventory.
 - `disks`: a list of disks to create and attach to the VM. The first one is used as the root disk. Default to `[{"size": 15}]`
     - `size` the size of the disk in GB. Default is `1`.
