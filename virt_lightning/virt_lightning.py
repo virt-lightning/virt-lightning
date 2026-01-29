@@ -612,11 +612,11 @@ class LibvirtHypervisor:
             if e.get_error_code() != libvirt.VIR_ERR_NO_STORAGE_POOL:
                 raise (e)
 
-        storage_dir = pathlib.PosixPath(DEFAULT_STORAGE_DIR)
         if not self.storage_pool_obj:
             self.storage_pool_obj = self.create_storage_pool(
-                name=storage_pool, directory=storage_dir
+                name=storage_pool, directory=DEFAULT_STORAGE_DIR
             )
+        storage_dir = self.get_storage_dir()
 
         try:
             full_dir = storage_dir / "upstream"
