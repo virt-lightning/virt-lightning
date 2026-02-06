@@ -437,3 +437,6 @@ Commands:
                 f"ℹ️ You may be able to download the image with the `vl pull {e.name}` command."
             )
             exit(1)
+
+if __name__ == "__main__":
+    main()
