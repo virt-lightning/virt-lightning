@@ -536,6 +536,8 @@ class LibvirtHypervisor:
 
     @property
     def iso_binary(self):
+        # TODO: Make this more testable - consider making it an injectable dependency
+        # or extracting to a separate utility class to avoid PropertyMock in tests
         paths = [pathlib.PosixPath(i) for i in os.environ["PATH"].split(os.pathsep)]
         for i in paths:
             for binary in ISO_BINARIES:
