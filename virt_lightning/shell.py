@@ -155,7 +155,7 @@ Commands:
     remote_images       List all images available for download
     storage_dir         Dump the VM image storage directory
     ansible_inventory   Dump an inventory file for ansible
-    pull                Retrieve an image, use "remote_images" to list tem all
+    pull                Retrieve an image, use "remote_images" to list them all
     ssh                 SSH into VM
     ssh_config          Dump an SSH config
     console             Open console on a VM
