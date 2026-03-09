@@ -1,35 +1,341 @@
 from dataclasses import dataclass, field, asdict
-from typing import Optional, List, Any
+from typing import Optional, List, Any, TYPE_CHECKING
 from dataclasses import fields, MISSING
+from abc import ABC, abstractmethod
+from pathlib import Path
+from ipaddress import IPv4Interface
+import json
 import logging
+import subprocess
+import yaml
+
+if TYPE_CHECKING:
+    from virt_lightning.virt_lightning import LibvirtDomain, LibvirtHypervisor
 
 logger = logging.getLogger(__name__)
 
-class Userdata:
-    """
-    Class to represent user data for a virtual machine.
-    This class is used to store and manage user data that can be passed to the VM.
-    """
 
-    def __init__(self, **kwargs):
-        """
-        Initialize the Userdata instance with the provided userdata string.
+@dataclass
+class NetworkInterface:
+    """One NIC's configuration, format-agnostic."""
+    name: str  # e.g. "eth0"
+    mac: str
+    ipv4: Optional[IPv4Interface]  # None → DHCP
+    gateway: Optional[IPv4Interface]
+    dns_nameservers: List[str]
 
-        :param userdata: The user data string to be stored.
-        """
-        self.resize_rootfs = True
-        self.disable_root = 0
-        self.bootcmd = []
-        self.runcmd = []
 
-    def __str__(self):
-        """
-        Return the string representation of the Userdata instance.
+class UserData(ABC):
+    """Universal internal representation of all data injected into a VM."""
 
-        :return: The user data string.
-        """
-        attrs = vars(self)
-        return "\n".join(f"{k}: {v}" for k, v in attrs.items())
+    def __init__(
+        self,
+        hostname: str,
+        fqdn: Optional[str],
+        instance_id: str,
+        ssh_public_key: str,
+        root_password: Optional[str],
+        username: str,
+        interfaces: List[NetworkInterface],
+        global_dns: List[str],
+        cloud_config: dict,
+    ):
+        self.hostname = hostname
+        self.fqdn = fqdn
+        self.instance_id = instance_id
+        self.ssh_public_key = ssh_public_key
+        self.root_password = root_password
+        self.username = username
+        self.interfaces = interfaces
+        self.global_dns = global_dns
+        self.cloud_config = cloud_config  # the user_data dict
+
+    @classmethod
+    def from_domain(
+        cls, domain: "LibvirtDomain", hv: "LibvirtHypervisor"
+    ) -> "UserData":
+        """Construct from existing domain state — factory to be called by subclasses."""
+        interfaces = []
+        for i, nic in enumerate(domain.nics):
+            gateway = hv.get_network_gateway(nic["network"])
+            interfaces.append(
+                NetworkInterface(
+                    name=f"eth{i}",
+                    mac=nic["mac"],
+                    ipv4=nic["ipv4"],
+                    gateway=gateway,
+                    dns_nameservers=[str(hv.dns.ip)],
+                )
+            )
+        return cls(
+            hostname=domain.name,
+            fqdn=domain.fqdn,
+            instance_id=domain.dom.UUIDString(),
+            ssh_public_key=domain.ssh_key,
+            root_password=domain.root_password,
+            username=domain.username,
+            interfaces=interfaces,
+            global_dns=[str(hv.dns.ip)],
+            cloud_config=domain.user_data,
+        )
+
+    @abstractmethod
+    def render(self, output_dir: Path) -> None:
+        """Write format-specific files into output_dir."""
+        ...
+
+    @abstractmethod
+    def iso_label(self) -> str:
+        """Return the ISO volume label."""
+        ...
+
+    @abstractmethod
+    def iso_args(self) -> List[str]:
+        """Return extra genisoimage flags."""
+        ...
+
+    def build_iso(
+        self, domain_name: str, iso_binary: Path, temp_dir: Path
+    ) -> Path:
+        """Shared: render files, call genisoimage, return ISO path."""
+        cd_dir = temp_dir / "cd_dir"
+        cd_dir.mkdir()
+        self.render(cd_dir)
+        cidata_file = temp_dir / f"{domain_name}-cidata.iso"
+
+        cmd = [
+            str(iso_binary),
+            "-output",
+            cidata_file.name,
+            "-volid",
+            self.iso_label(),
+        ] + self.iso_args() + [str(cd_dir)]
+
+        subprocess.run(
+            cmd,
+            cwd=str(temp_dir),
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        return cidata_file
+
+
+class OpenStackUserData(UserData):
+    """OpenStack config-drive format (openstack/latest/)."""
+
+    def iso_label(self) -> str:
+        return "config-2"
+
+    def iso_args(self) -> List[str]:
+        return [
+            "-ldots",
+            "-allow-lowercase",
+            "-allow-multidot",
+            "-l",
+            "-publisher",
+            "virt-lighting",
+            "-quiet",
+            "-J",
+            "-r",
+        ]
+
+    def render(self, output_dir: Path) -> None:
+        openstack_dir = output_dir / "openstack" / "latest"
+        openstack_dir.mkdir(parents=True)
+
+        # meta_data.json
+        meta_data = {
+            "availability_zone": "nova",
+            "files": [],
+            "hostname": self.fqdn or self.hostname,
+            "launch_index": 0,
+            "local-hostname": self.hostname,
+            "name": self.hostname,
+            "meta": {},
+            "public_keys": {"default": self.ssh_public_key},
+            "uuid": self.instance_id,
+            "admin_pass": self.root_password,
+        }
+        (openstack_dir / "meta_data.json").write_text(json.dumps(meta_data))
+
+        # network_data.json
+        (openstack_dir / "network_data.json").write_text(
+            json.dumps(self._build_network_data())
+        )
+
+        # user_data
+        (openstack_dir / "user_data").write_text(
+            "#cloud-config\n" + yaml.dump(self.cloud_config, Dumper=yaml.Dumper)
+        )
+
+    def _build_network_data(self) -> dict:
+        """Build OpenStack network_data.json structure."""
+        network_data = {
+            "links": [],
+            "networks": [],
+            "services": [{"type": "dns", "address": addr} for addr in self.global_dns],
+        }
+
+        for i, iface in enumerate(self.interfaces):
+            network_data["links"].append(
+                {
+                    "id": f"interface{i}",
+                    "type": "phy",
+                    "ethernet_mac_address": iface.mac,
+                }
+            )
+
+            if iface.ipv4:
+                # Determine if DNS is in the same subnet
+                net_dns_nameservers = [
+                    dns
+                    for dns in iface.dns_nameservers
+                    if IPv4Interface(dns) in iface.ipv4.network
+                ]
+                network_data["networks"].append(
+                    {
+                        "id": f"private-ipv4-{i}",
+                        "type": "ipv4",
+                        "link": f"interface{i}",
+                        "ip_address": str(iface.ipv4.ip),
+                        "netmask": str(iface.ipv4.netmask),
+                        "routes": [
+                            {
+                                "network": "0.0.0.0",
+                                "netmask": "0.0.0.0",
+                                "gateway": str(iface.gateway.ip),
+                            }
+                        ],
+                        "network_id": self.instance_id,
+                        # Workaround for CloudInit: sources.helpers.openstack reads
+                        # subnet DNS from dns_nameservers, ignoring the services key
+                        "dns_nameservers": net_dns_nameservers,
+                        "services": [
+                            {"type": "dns", "address": ns}
+                            for ns in net_dns_nameservers
+                        ],
+                    }
+                )
+            else:
+                network_data["networks"].append(
+                    {
+                        "id": f"private-ipv4-{i}",
+                        "type": "ipv4_dhcp",
+                        "link": f"interface{i}",
+                        "network_id": self.instance_id,
+                    }
+                )
+
+        return network_data
+
+
+class CloudInitUserData(UserData, ABC):
+    """NoCloud base — shared meta-data + user-data rendering."""
+
+    def iso_label(self) -> str:
+        return "cidata"
+
+    def iso_args(self) -> List[str]:
+        return ["-joliet", "-R"]
+
+    @abstractmethod
+    def _build_network_config(self) -> dict:
+        """Version-specific network config schema."""
+        ...
+
+    @abstractmethod
+    def _build_meta_data(self) -> str:
+        """Version-specific meta-data content."""
+        ...
+
+    def render(self, output_dir: Path) -> None:
+        # user-data (same for all versions)
+        (output_dir / "user-data").write_text(
+            "#cloud-config\n" + yaml.dump(self.cloud_config, Dumper=yaml.Dumper)
+        )
+
+        # meta-data (version-specific)
+        (output_dir / "meta-data").write_text(self._build_meta_data())
+
+        # network-config (version-specific)
+        (output_dir / "network-config").write_text(
+            yaml.dump(self._build_network_config(), Dumper=yaml.Dumper)
+        )
+
+
+class CloudInit22UserData(CloudInitUserData):
+    """cloud-init ≤ 22.x — network config v1, legacy ENI meta-data."""
+
+    def _build_network_config(self) -> dict:
+        config = []
+        for iface in self.interfaces:
+            if iface.ipv4:
+                subnets = [
+                    {
+                        "type": "static",
+                        "address": str(iface.ipv4),
+                        "gateway": str(iface.gateway.ip),
+                        "dns_nameservers": iface.dns_nameservers,
+                    }
+                ]
+            else:
+                subnets = [{"type": "dhcp"}]
+            config.append(
+                {
+                    "type": "physical",
+                    "name": iface.name,
+                    "mac_address": iface.mac,
+                    "subnets": subnets,
+                }
+            )
+        return {"version": 1, "config": config}
+
+    def _build_meta_data(self) -> str:
+        # Legacy ENI-style (replaces META_DATA_ENI template)
+        lines = [
+            "dsmode: local",
+            f"instance-id: iid-{self.hostname}",
+            f"local-hostname: {self.hostname}",
+        ]
+        
+        # Add network-interfaces in ENI format if we have a static IP
+        if self.interfaces and self.interfaces[0].ipv4:
+            iface = self.interfaces[0]
+            lines.append("network-interfaces: |")
+            lines.append("   iface eth0 inet static")
+            lines.append(f"   address {iface.ipv4.ip}")
+            lines.append(f"   network {iface.ipv4.network.network_address}")
+            lines.append(f"   netmask {iface.ipv4.netmask}")
+            lines.append(f"   gateway {iface.gateway.ip}")
+        
+        return "\n".join(lines) + "\n"
+
+
+class CloudInit23UserData(CloudInitUserData):
+    """cloud-init 23.x+ — network config v2, YAML instance meta-data."""
+
+    def _build_network_config(self) -> dict:
+        ethernets = {}
+        for iface in self.interfaces:
+            eth = {"match": {"macaddress": iface.mac}}
+            if iface.ipv4:
+                eth["addresses"] = [str(iface.ipv4)]
+                eth["routes"] = [
+                    {"to": "default", "via": str(iface.gateway.ip)}
+                ]
+                eth["nameservers"] = {"addresses": iface.dns_nameservers}
+            else:
+                eth["dhcp4"] = True
+            ethernets[iface.name] = eth
+        return {"version": 2, "ethernets": ethernets}
+
+    def _build_meta_data(self) -> str:
+        meta = {
+            "instance-id": self.instance_id,
+            "local-hostname": self.hostname,
+        }
+        return yaml.dump(meta, Dumper=yaml.Dumper)
     
 @dataclass
 class DomainConfig:

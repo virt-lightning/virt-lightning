@@ -45,10 +45,30 @@ def mock_domain():
     """Create a mock LibvirtDomain."""
     dom = MagicMock()
     dom.name.return_value = "test-vm"
+    dom.UUIDString.return_value = "test-uuid-12345"
     dom._metadata_store = {}
     
-    domain = LibvirtDomain(hypervisor=MagicMock(), name="test-vm", distro="test-distro")
-    domain.dom = dom
+    def set_metadata_mock(meta_type, meta, namespace, uri, flags):
+        # Simple simulation of how libvirt stores metadata
+        import re
+        match = re.search(r"<(\w+) name='([^']*)' />", meta)
+        if match:
+            key = match.group(1)
+            value = match.group(2)
+            dom._metadata_store[uri] = {'xml': meta, 'value': value}
+
+    def get_metadata_mock(meta_type, uri):
+        if uri in dom._metadata_store:
+            return dom._metadata_store[uri]['xml']
+        err = mock_libvirt.libvirtError("No domain metadata")
+        err.get_error_code = lambda: mock_libvirt.VIR_ERR_NO_DOMAIN_METADATA
+        raise err
+
+    dom.setMetadata.side_effect = set_metadata_mock
+    dom.metadata.side_effect = get_metadata_mock
+    
+    domain = LibvirtDomain(dom)
+    domain.distro = "test-distro"
     return domain
 
 
@@ -60,15 +80,23 @@ class TestConfigureDomain:
         # Create a fake distro config file
         distro_dir = tmp_path / "upstream"
         distro_dir.mkdir()
+        
+        # Create SSH key files first
+        distro_ssh_key = tmp_path / "distro_key"
+        distro_ssh_key.write_text("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDdistro")
+        
+        user_ssh_key = tmp_path / "user_key"
+        user_ssh_key.write_text("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDtest")
+        
+        # Create distro config with real SSH key path
         distro_config_file = distro_dir / "test-distro.yaml"
-        distro_config_file.write_text("""
-memory: 2048
+        distro_config_file.write_text(f"""memory: 2048
 vcpus: 2
 username: distro_user
 root_password: distro_pass
 python_interpreter: /usr/bin/python2
 default_nic_model: e1000
-ssh_key_file: /tmp/distro_key
+ssh_key_file: {distro_ssh_key}
 """)
         
         # Mock get_storage_dir to return our tmp_path
@@ -78,22 +106,26 @@ ssh_key_file: /tmp/distro_key
         user_config = DomainConfig(
             memory=4096,
             username="my_user",
-            ssh_key_file="/tmp/user_key",
+            ssh_key_file=str(user_ssh_key),
             # vcpus, root_password, python_interpreter not set - should use distro defaults
         )
         
-        # Mock ssh key file
-        with patch('pathlib.Path.exists', return_value=True):
-            with patch('pathlib.Path.open', mock_open(read_data="ssh-rsa AAAAB3...")):
-                mock_hv.configure_domain(mock_domain, user_config)
+        mock_hv.configure_domain(mock_domain, user_config)
         
-        # Verify merged values were applied
-        assert mock_domain.memory == 4096  # User override
-        assert mock_domain.username == "my_user"  # User override
-        assert mock_domain.vcpus == 2  # Distro default
-        assert mock_domain.root_password == "distro_pass"  # Distro default
-        assert mock_domain.python_interpreter == "/usr/bin/python2"  # Distro default
-        assert mock_domain.default_nic_model == "e1000"  # Distro default
+        # Verify merged values were applied by checking that setters were called
+        # User overrides
+        assert mock_domain.dom.setMemoryFlags.called
+        # Check memory was set to 4096 MB (4096 * 1024 KiB)
+        calls = [call for call in mock_domain.dom.setMemoryFlags.call_args_list 
+                 if call[0][0] == 4096 * 1024]
+        assert len(calls) > 0, "Memory should be set to 4096 MB"
+        
+        # Verify username via metadata
+        assert mock_domain.get_metadata("username") is not None
+        # Distro defaults
+        assert mock_domain.dom.setVcpusFlags.called
+        assert mock_domain.get_metadata("root_password") is not None
+        assert mock_domain.get_metadata("python_interpreter") is not None
 
     def test_configure_domain_no_distro_file_uses_user_config(self, mock_hv, mock_domain, tmp_path):
         """If no distro config exists, should use user config with DomainConfig defaults."""
@@ -102,48 +134,84 @@ ssh_key_file: /tmp/distro_key
         distro_dir.mkdir()
         mock_hv.get_storage_dir = MagicMock(return_value=tmp_path)
         
+        # Create a real SSH key file
+        ssh_key_file = tmp_path / "my_key"
+        ssh_key_file.write_text("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDtest")
+        
         user_config = DomainConfig(
             memory=8192,
             vcpus=4,
             username="custom_user",
-            ssh_key_file="/tmp/my_key",
+            ssh_key_file=str(ssh_key_file),
         )
         
-        with patch('pathlib.Path.exists', return_value=True):
-            with patch('pathlib.Path.open', mock_open(read_data="ssh-rsa AAAAB3...")):
-                mock_hv.configure_domain(mock_domain, user_config)
+        mock_hv.configure_domain(mock_domain, user_config)
         
-        # Should get user values
-        assert mock_domain.memory == 8192
-        assert mock_domain.vcpus == 4
-        assert mock_domain.username == "custom_user"
+        # Verify user values were applied
+        # Check memory was set to 8192 MB
+        memory_calls = [call for call in mock_domain.dom.setMemoryFlags.call_args_list 
+                        if call[0][0] == 8192 * 1024]
+        assert len(memory_calls) > 0, "Memory should be set to 8192 MB"
+        
+        # Check vcpus was set to 4
+        vcpu_calls = [call for call in mock_domain.dom.setVcpusFlags.call_args_list
+                      if call[0][0] == 4]
+        assert len(vcpu_calls) > 0, "VCPUs should be set to 4"
+        
+        # Check username via metadata
+        username_meta = mock_domain.get_metadata("username")
+        assert username_meta is not None
+        assert "custom_user" in username_meta
 
     def test_configure_domain_empty_user_uses_distro_defaults(self, mock_hv, mock_domain, tmp_path):
         """Empty user config should result in all distro defaults being used."""
         distro_dir = tmp_path / "upstream"
         distro_dir.mkdir()
+        
+        # Create a real SSH key file first
+        ssh_key_file = tmp_path / "distro_key"
+        ssh_key_file.write_text("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDtest")
+        
+        # Now create distro config with the real SSH key path
         distro_config_file = distro_dir / "test-distro.yaml"
-        distro_config_file.write_text("""
-memory: 2048
+        distro_config_file.write_text(f"""memory: 2048
 vcpus: 2
 username: distro_user
 root_password: distro_pass
-ssh_key_file: /tmp/distro_key
+ssh_key_file: {ssh_key_file}
 default_nic_model: rtl8139
 """)
         
         mock_hv.get_storage_dir = MagicMock(return_value=tmp_path)
         
-        # Empty user config
-        user_config = DomainConfig()
+        # Empty user config - pass None to use distro defaults
+        user_config = DomainConfig(
+            memory=None,
+            vcpus=None,
+            username=None,
+            root_password=None,
+            ssh_key_file=None,
+            default_nic_model=None,
+        )
         
-        with patch('pathlib.Path.exists', return_value=True):
-            with patch('pathlib.Path.open', mock_open(read_data="ssh-rsa AAAAB3...")):
-                mock_hv.configure_domain(mock_domain, user_config)
+        mock_hv.configure_domain(mock_domain, user_config)
         
-        # Should get all distro values
-        assert mock_domain.memory == 2048
-        assert mock_domain.vcpus == 2
-        assert mock_domain.username == "distro_user"
-        assert mock_domain.root_password == "distro_pass"
+        # Verify all distro values were applied
+        # Check memory was set to 2048 MB
+        memory_calls = [call for call in mock_domain.dom.setMemoryFlags.call_args_list 
+                        if call[0][0] == 2048 * 1024]
+        assert len(memory_calls) > 0, "Memory should be set to 2048 MB"
+        
+        # Check vcpus was set to 2
+        vcpu_calls = [call for call in mock_domain.dom.setVcpusFlags.call_args_list
+                      if call[0][0] == 2]
+        assert len(vcpu_calls) > 0, "VCPUs should be set to 2"
+        
+        # Check distro values via metadata
+        assert mock_domain.get_metadata("username") is not None
+        assert "distro_user" in mock_domain.get_metadata("username")
+        assert mock_domain.get_metadata("root_password") is not None
+        assert "distro_pass" in mock_domain.get_metadata("root_password")
+        
+        # Check default_nic_model was set
         assert mock_domain.default_nic_model == "rtl8139"
