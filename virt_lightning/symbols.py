@@ -28,8 +28,8 @@ class SymbolsDefault(Enum):
 
 
 def get_symbols():
-    lang, encoding = locale.getdefaultlocale()
+    _, encoding = locale.getlocale()
 
-    if encoding and encoding == "UTF-8":
+    if encoding and encoding.upper() == "UTF-8":
         return SymbolsUTF
     return SymbolsDefault
