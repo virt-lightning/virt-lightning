@@ -1,4 +1,4 @@
-import locale
+import sys
 from enum import Enum, unique
 
 
@@ -28,8 +28,10 @@ class SymbolsDefault(Enum):
 
 
 def get_symbols():
-    lang, encoding = locale.getdefaultlocale()
-
-    if encoding and encoding == "UTF-8":
-        return SymbolsUTF
+    try:
+        if sys.stdout.encoding and sys.stdout.encoding.lower() == "utf-8":
+            return SymbolsUTF
+    except AttributeError:
+        # To handle cases where sys.stdout.encoding is None, like > /dev/null
+        pass
     return SymbolsDefault
