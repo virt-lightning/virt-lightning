@@ -117,18 +117,15 @@ class TestDomainConfigMerge:
         """None values in user config should use distro values."""
         distro_config = DomainConfig(
             fqdn="distro.example.com",
-            ssh_key_file="/distro/key",
         )
         
         user_config = DomainConfig(
             fqdn=None,
-            ssh_key_file=None,
         )
         
         merged = user_config.merge_with(distro_config)
         
         assert merged.fqdn == "distro.example.com"
-        assert merged.ssh_key_file == "/distro/key"
 
     def test_merge_all_fields_coverage(self):
         """Verify merge works for all DomainConfig fields."""
@@ -137,7 +134,6 @@ class TestDomainConfigMerge:
             memory=2048,
             python_interpreter="/usr/bin/python2",
             root_password="distro_root",
-            ssh_key_file="/distro/key",
             username="distro_user",
             vcpus=2,
             fqdn="distro.example.com",
@@ -153,7 +149,6 @@ class TestDomainConfigMerge:
             memory=4096,
             python_interpreter=None,  # use distro
             root_password="user_root",
-            ssh_key_file=None,  # use distro
             username="user_name",
             vcpus=8,
             fqdn="user.example.com",
@@ -178,7 +173,6 @@ class TestDomainConfigMerge:
         
         # Distro defaults
         assert merged.python_interpreter == "/usr/bin/python2"
-        assert merged.ssh_key_file == "/distro/key"
         assert merged.default_nic_model == "e1000"
         assert merged.runcmd == ["ls distro"]
         assert merged.default_bus_type == "ide"

@@ -343,7 +343,6 @@ class DomainConfig:
     memory: int = 1024
     python_interpreter: str = "/usr/bin/python3"
     root_password: str = "root"
-    ssh_key_file: Optional[str] = None
     # use a lazy default to avoid requiring an explicit import at top-level
     username: Optional[str] = field(default_factory=lambda: __import__("getpass").getuser())
     vcpus: int = 1
@@ -354,6 +353,8 @@ class DomainConfig:
     runcmd: List[Any] = field(default_factory=list)
     meta_data_media_type: str = "cdrom"
     default_bus_type: str = "virtio"
+    datasource: str = "openstack"
+    cloudinit_version: str = "22"
 
     def __init__(self, **kwargs):
         # Initialize all fields with their default values first
@@ -386,7 +387,6 @@ class DomainConfig:
             memory=host.get("memory"),
             python_interpreter=host.get("python_interpreter"),
             root_password=host.get("root_password", getattr(configuration, "root_password", None)),
-            ssh_key_file=host.get("ssh_key_file", getattr(configuration, "ssh_key_file", None)),
             username=host.get("username"),
             vcpus=host.get("vcpus"),
             fqdn=host.get("fqdn"),
@@ -396,6 +396,8 @@ class DomainConfig:
             runcmd=host.get("runcmd") or [],
             meta_data_media_type=host.get("meta_data_media_type"),
             default_bus_type=host.get("default_bus_type"),
+            datasource=host.get("datasource"),
+            cloudinit_version=host.get("cloudinit_version"),
         )
 
     def merge_with(self, base_config: "DomainConfig") -> "DomainConfig":

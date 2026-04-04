@@ -81,22 +81,14 @@ class TestConfigureDomain:
         distro_dir = tmp_path / "upstream"
         distro_dir.mkdir()
         
-        # Create SSH key files first
-        distro_ssh_key = tmp_path / "distro_key"
-        distro_ssh_key.write_text("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDdistro")
-        
-        user_ssh_key = tmp_path / "user_key"
-        user_ssh_key.write_text("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDtest")
-        
-        # Create distro config with real SSH key path
+        # Create distro config
         distro_config_file = distro_dir / "test-distro.yaml"
-        distro_config_file.write_text(f"""memory: 2048
+        distro_config_file.write_text("""memory: 2048
 vcpus: 2
 username: distro_user
 root_password: distro_pass
 python_interpreter: /usr/bin/python2
 default_nic_model: e1000
-ssh_key_file: {distro_ssh_key}
 """)
         
         # Mock get_storage_dir to return our tmp_path
@@ -106,7 +98,6 @@ ssh_key_file: {distro_ssh_key}
         user_config = DomainConfig(
             memory=4096,
             username="my_user",
-            ssh_key_file=str(user_ssh_key),
             # vcpus, root_password, python_interpreter not set - should use distro defaults
         )
         
@@ -134,15 +125,10 @@ ssh_key_file: {distro_ssh_key}
         distro_dir.mkdir()
         mock_hv.get_storage_dir = MagicMock(return_value=tmp_path)
         
-        # Create a real SSH key file
-        ssh_key_file = tmp_path / "my_key"
-        ssh_key_file.write_text("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDtest")
-        
         user_config = DomainConfig(
             memory=8192,
             vcpus=4,
             username="custom_user",
-            ssh_key_file=str(ssh_key_file),
         )
         
         mock_hv.configure_domain(mock_domain, user_config)
@@ -168,17 +154,12 @@ ssh_key_file: {distro_ssh_key}
         distro_dir = tmp_path / "upstream"
         distro_dir.mkdir()
         
-        # Create a real SSH key file first
-        ssh_key_file = tmp_path / "distro_key"
-        ssh_key_file.write_text("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDtest")
-        
-        # Now create distro config with the real SSH key path
+        # Now create distro config
         distro_config_file = distro_dir / "test-distro.yaml"
-        distro_config_file.write_text(f"""memory: 2048
+        distro_config_file.write_text("""memory: 2048
 vcpus: 2
 username: distro_user
 root_password: distro_pass
-ssh_key_file: {ssh_key_file}
 default_nic_model: rtl8139
 """)
         
@@ -190,7 +171,6 @@ default_nic_model: rtl8139
             vcpus=None,
             username=None,
             root_password=None,
-            ssh_key_file=None,
             default_nic_model=None,
         )
         

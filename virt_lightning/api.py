@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 
 import asyncio
 import collections
@@ -84,7 +85,12 @@ def _connect_libvirt(uri):
         raise
 
 
-def _start_domain(hv, host, context, configuration):
+def _start_domain(
+    hv: vl.LibvirtHypervisor,
+    host: dict,
+    context: str,
+    configuration: Configuration,
+) -> vl.LibvirtDomain | None:
     distro = host["distro"]
     if "name" not in host:
         host["name"] = re.sub(r"[^a-zA-Z0-9-]+", "", distro)
@@ -107,7 +113,7 @@ def _start_domain(hv, host, context, configuration):
 
     user_config = DomainConfig.from_host(host, configuration)
     domain = hv.create_domain(name=host["name"], distro=distro)
-    hv.configure_domain(domain, user_config)
+    config = hv.configure_domain(domain, user_config)
     domain.context = context
     networks = host.get("networks", [{}])
     for i, network in enumerate(networks):
@@ -140,7 +146,7 @@ def _start_domain(hv, host, context, configuration):
         )
         domain.attach_disk(volume=volume)
 
-    hv.start(domain, metadata_format=host.get("metadata_format", {}))
+    hv.start(domain, config=config)
     return domain
 
 

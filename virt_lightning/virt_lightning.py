@@ -21,7 +21,13 @@ import xml.etree.ElementTree as ET  # noqa: N817
 import libvirt
 import yaml
 
-from virt_lightning.metadata import DomainConfig
+from virt_lightning.metadata import (
+    CloudInit22UserData,
+    CloudInit23UserData,
+    DomainConfig,
+    OpenStackUserData,
+    UserData,
+)
 from virt_lightning.symbols import get_symbols
 
 
@@ -29,7 +35,6 @@ from .templates import (
     BRIDGE_XML,
     DISK_XML,
     DOMAIN_XML,
-    META_DATA_ENI,
     NETWORK_DHCP_ENTRY,
     NETWORK_HOST_ENTRY,
     NETWORK_XML,
@@ -114,7 +119,7 @@ class LibvirtHypervisor:
         domain.distro = distro
         return domain
 
-    def configure_domain(self, domain: LibvirtDomain, user_config: DomainConfig):
+    def configure_domain(self, domain: LibvirtDomain, user_config: DomainConfig) -> DomainConfig:
         """
         Apply configuration to a domain.
         
@@ -124,13 +129,15 @@ class LibvirtHypervisor:
         Args:
             domain: The LibvirtDomain to configure
             user_config: User-provided configuration that overrides distro defaults
+            
+        Returns:
+            The merged DomainConfig
         """
         distro_config = self.get_distro_configuration(domain.distro)
         config = user_config.merge_with(distro_config)
 
         # TODO: move all of these to nested object
         domain.groups = config.groups
-        domain.load_ssh_key_file(pathlib.Path(config.ssh_key_file))
         domain.memory = config.memory
         domain.python_interpreter = config.python_interpreter
         domain.root_password = config.root_password
@@ -142,6 +149,7 @@ class LibvirtHypervisor:
         domain.meta_data_media_type = config.meta_data_media_type
         domain.default_bus_type = config.default_bus_type
         domain.fqdn = config.fqdn
+        return config
 
     def get_distro_configuration(self, distro: str) -> DomainConfig:
         distro_configuration_file = pathlib.PosixPath(
@@ -246,216 +254,29 @@ class LibvirtHypervisor:
                 sys.exit(1)
             raise
 
-    def get_openstack_network_data(self, domain):
-        openstack_network_data = {
-            "links": [],
-            "networks": [],
-            "services": [{"type": "dns", "address": str(self.dns.ip)}],
-        }
-
-        for i, nic in enumerate(domain.nics):
-            openstack_network_data["links"].append(
-                {
-                    "id": f"interface{i}",
-                    "type": "phy",
-                    "ethernet_mac_address": nic["mac"],
-                }
-            )
-
-            gateway = self.get_network_gateway(nic["network"])
-            if nic["ipv4"]:
-                net_dns_nameservers = (
-                    [str(self.dns.ip)] if self.dns.ip in nic["ipv4"].network else []
-                )
-                openstack_network_data["networks"].append(
-                    {
-                        "id": f"private-ipv4-{i}",
-                        "type": "ipv4",
-                        "link": f"interface{i}",
-                        "ip_address": str(nic["ipv4"].ip),
-                        "netmask": str(nic["ipv4"].netmask.exploded),
-                        "routes": [
-                            {
-                                "network": "0.0.0.0",
-                                "netmask": "0.0.0.0",
-                                "gateway": str(gateway.ip),
-                            }
-                        ],
-                        "network_id": domain.dom.UUIDString(),
-                        # Workaround for CloudInit, sources.helpers.openstack read the
-                        # subnet DNS from ths dns_nameservers and ignore the
-                        # services key.
-                        # https://opendev.org/openstack/nova/commit/4b333b989dfc778a8b61db4a1b8552e988a10471
-                        "dns_nameservers": net_dns_nameservers,
-                        "services": [
-                            {"type": "dns", "address": ns} for ns in net_dns_nameservers
-                        ],
-                    }
-                )
-            else:
-                openstack_network_data["networks"].append(
-                    {
-                        "id": f"private-ipv4-{i}",
-                        "type": "ipv4_dhcp",
-                        "link": f"interface{i}",
-                        "network_id": domain.dom.UUIDString(),
-                    }
-                )
-
-        return openstack_network_data
-
-    def prepare_cloud_init_openstack_iso(self, domain):
-        with tempfile.TemporaryDirectory() as base_temp_dir:
-            temp_dir = pathlib.Path(base_temp_dir)
-            cd_dir = temp_dir / "cd_dir"
-            cd_dir.mkdir()
-
-            openstack_meta_data = {
-                "availability_zone": "nova",
-                "files": [],
-                "hostname": domain.fqdn or domain.name,
-                "launch_index": 0,
-                "local-hostname": domain.name,
-                "name": domain.name,
-                "meta": {},
-                "public_keys": {"default": domain.ssh_key},
-                "uuid": domain.dom.UUIDString(),
-                "admin_pass": domain.root_password,
-            }
-
-            openstack_dir = cd_dir / "openstack" / "latest"
-            openstack_dir.mkdir(parents=True)
-            openstack_metadata_file = openstack_dir / "meta_data.json"
-            with openstack_metadata_file.open("w") as fd:
-                fd.write(json.dumps(openstack_meta_data))
-            openstack_networkdata_file = openstack_dir / "network_data.json"
-            with openstack_networkdata_file.open("w") as fd:
-                fd.write(json.dumps(self.get_openstack_network_data(domain)))
-            openstack_userdata_file = openstack_dir / "user_data"
-            with openstack_userdata_file.open("w") as fd:
-                fd.write("#cloud-config\n")
-                fd.write(yaml.dump(domain.user_data, Dumper=yaml.Dumper))
-
-            cidata_file = temp_dir / f"{domain.name}-cidata.iso"
-            run_cmd(
-                [
-                    str(self.iso_binary),
-                    "-output",
-                    cidata_file.name,
-                    "-ldots",
-                    "-allow-lowercase",
-                    "-allow-multidot",
-                    "-l",
-                    "-publisher",
-                    "virt-lighting",
-                    "-quiet",
-                    "-J",
-                    "-r",
-                    "-V",
-                    "config-2",
-                    str(cd_dir),
-                ],
-                cwd=str(temp_dir),
-            )
-
-            cdrom = self.create_disk(name=cidata_file.stem, size=1)
-            with cidata_file.open("br") as fd:
+    def start(self, domain: LibvirtDomain, config: DomainConfig) -> None:
+        userdata = self._create_userdata(domain, config)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            iso_path = userdata.build_iso(domain.name, self.iso_binary, pathlib.Path(temp_dir))
+            cloud_init_iso = self.create_disk(name=iso_path.stem, size=1)
+            with iso_path.open("br") as fd:
                 st = self.conn.newStream(0)
-                cdrom.upload(st, 0, 1024 * 1024)
+                cloud_init_iso.upload(st, 0, 1024 * 1024)
                 st.send(fd.read())
                 st.finish()
-            return cdrom
-
-    def prepare_cloud_init_nocloud_iso(self, domain):
-        self._network_meta = {"config": "disabled"}
-        network_config = []
-        for i, nic in enumerate(domain.nics):
-            gateway = self.get_network_gateway(nic["network"])
-            if nic["ipv4"]:
-                network_config.append(
-                    {
-                        "type": "physical",
-                        "name": f"eth{i}",
-                        "mac_address": nic["mac"],
-                        "subnets": [
-                            {
-                                "type": "static",
-                                "address": str(nic["ipv4"]),
-                                "gateway": str(gateway.ip),
-                                "dns_nameservers": [str(gateway.ip)],
-                            }
-                        ],
-                    }
-                )
-            else:
-                network_config.append(
-                    {
-                        "type": "physical",
-                        "name": f"eth{i}",
-                        "mac_address": nic["mac"],
-                        "subnets": [{"type": "dhcp"}],
-                    }
-                )
-        domain._network_meta = {"version": 1, "config": network_config}
-
-        with tempfile.TemporaryDirectory() as base_temp_dir:
-            temp_dir = pathlib.Path(base_temp_dir)
-            cd_dir = temp_dir / "cd_dir"
-            cd_dir.mkdir()
-            user_data_file = cd_dir / "user-data"
-            with user_data_file.open("w") as fd:
-                fd.write("#cloud-config\n")
-                fd.write(yaml.dump(domain.user_data, Dumper=yaml.Dumper))
-            meta_data_file = cd_dir / "meta-data"
-            with meta_data_file.open("w") as fd:
-                fd.write(
-                    META_DATA_ENI.format(
-                        name=domain.name,
-                        ipv4=str(domain.ipv4.ip),
-                        gateway=str(self.gateway.ip),
-                        network=str(self.network),
-                    )
-                )
-            network_config_file = cd_dir / "network-config"
-            with network_config_file.open("w") as fd:
-                fd.write(yaml.dump(domain._network_meta, Dumper=yaml.Dumper))
-
-            cidata_file = temp_dir / f"{domain.name}-cidata.iso"
-            run_cmd(
-                [
-                    str(self.iso_binary),
-                    "-output",
-                    cidata_file.name,
-                    "-volid",
-                    "cidata",
-                    "-joliet",
-                    "-R",
-                    str(cd_dir),
-                ],
-                cwd=str(temp_dir),
-            )
-
-            cdrom = self.create_disk(name=cidata_file.stem, size=1)
-            with cidata_file.open("br") as fd:
-                st = self.conn.newStream(0)
-                cdrom.upload(st, 0, 1024 * 1024)
-                st.send(fd.read())
-                st.finish()
-            return cdrom
-
-    def start(self, domain, metadata_format):
-        if metadata_format.get("provider", "") == "nocloud":  # noqa: SIM114
-            cloud_init_iso = self.prepare_cloud_init_nocloud_iso(domain)
-        elif domain.distro.startswith("rhel-6") or domain.distro.startswith("centos-6"):
-            cloud_init_iso = self.prepare_cloud_init_nocloud_iso(domain)
-        else:  # OpenStack format is the default
-            cloud_init_iso = self.prepare_cloud_init_openstack_iso(domain)
 
         media_type = domain.meta_data_media_type
         domain.attach_disk(cloud_init_iso, device=media_type, disk_type="raw")
         domain.dom.create()
         self.remove_domain_from_network(domain)
         self.add_domain_to_network(domain)
+
+    def _create_userdata(self, domain: LibvirtDomain, config: DomainConfig) -> UserData:
+        if config.datasource == "nocloud":
+            if int(config.cloudinit_version.split(".")[0]) >= 23:
+                return CloudInit23UserData.from_domain(domain, self)
+            return CloudInit22UserData.from_domain(domain, self)
+        return OpenStackUserData.from_domain(domain, self)
 
     def add_domain_to_network(self, domain):
         self.set_dns_entry(domain.ipv4, [domain.name, domain.fqdn])

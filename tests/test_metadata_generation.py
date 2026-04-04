@@ -1,6 +1,7 @@
 """
 Tests for cloud-init metadata generation methods.
-These tests validate the data structures created for OpenStack and NoCloud formats.
+These tests validate the new UserData-based lifecycle: _create_userdata() dispatch,
+start() with DomainConfig, and distro configuration loading.
 """
 import json
 import pytest
@@ -12,7 +13,12 @@ from ipaddress import IPv4Interface, IPv4Network
 
 import libvirt
 import virt_lightning.virt_lightning as vl
-from virt_lightning.metadata import DomainConfig
+from virt_lightning.metadata import (
+    DomainConfig,
+    OpenStackUserData,
+    CloudInit22UserData,
+    CloudInit23UserData,
+)
 
 
 @pytest.fixture
@@ -108,328 +114,125 @@ def mock_domain():
     return domain
 
 
-class TestGetOpenStackNetworkData:
-    """Test get_openstack_network_data method."""
-    
-    def test_builds_network_data_with_static_ip(self, mock_hv, mock_domain):
-        """Test network_data structure with static IP configuration."""
-        network_data = mock_hv.get_openstack_network_data(mock_domain)
-        
-        # Validate structure
-        assert "links" in network_data
-        assert "networks" in network_data
-        assert "services" in network_data
-        
-        # Validate links
-        assert len(network_data["links"]) == 1
-        link = network_data["links"][0]
-        assert link["id"] == "interface0"
-        assert link["type"] == "phy"
-        assert link["ethernet_mac_address"] == "52:54:00:12:34:56"
-        
-        # Validate networks
-        assert len(network_data["networks"]) == 1
-        network = network_data["networks"][0]
-        assert network["id"] == "private-ipv4-0"
-        assert network["type"] == "ipv4"
-        assert network["link"] == "interface0"
-        assert network["ip_address"] == "192.168.122.10"
-        assert network["netmask"] == "255.255.255.0"
-        assert "routes" in network
-        assert network["routes"][0]["gateway"] == "192.168.122.1"
-        
-        # Validate DNS services
-        assert len(network_data["services"]) == 1
-        assert network_data["services"][0]["type"] == "dns"
-        assert network_data["services"][0]["address"] == "192.168.122.1"
-    
-    def test_builds_network_data_with_dhcp(self, mock_hv, mock_domain):
-        """Test network_data structure with DHCP configuration."""
-        # Setup domain with DHCP NIC
-        mock_domain.nics = [
-            {
-                "network": "default",
-                "mac": "52:54:00:12:34:56",
-                "ipv4": None,  # DHCP
-            }
-        ]
-        
-        network_data = mock_hv.get_openstack_network_data(mock_domain)
-        
-        # Should have link but network uses dhcp
-        assert len(network_data["links"]) == 1
-        assert len(network_data["networks"]) == 1
-        
-        network = network_data["networks"][0]
-        assert network["id"] == "private-ipv4-0"
-        assert network["type"] == "ipv4_dhcp"
-    
-    def test_builds_network_data_with_multiple_nics(self, mock_hv, mock_domain):
-        """Test network_data with multiple network interfaces."""
-        mock_domain.nics = [
-            {
-                "network": "default",
-                "mac": "52:54:00:12:34:56",
-                "ipv4": IPv4Interface("192.168.122.10/24"),
-            },
-            {
-                "network": "private",
-                "mac": "52:54:00:12:34:57",
-                "ipv4": IPv4Interface("10.0.0.10/24"),
-            },
-        ]
-        
-        # Mock get_network_gateway for both networks
-        mock_hv.get_network_gateway = Mock(side_effect=[
-            IPv4Interface("192.168.122.1/24"),
-            IPv4Interface("10.0.0.1/24"),
-        ])
-        
-        network_data = mock_hv.get_openstack_network_data(mock_domain)
-        
-        assert len(network_data["links"]) == 2
-        assert len(network_data["networks"]) == 2
-        
-        # Verify both interfaces are configured
-        assert network_data["links"][0]["id"] == "interface0"
-        assert network_data["links"][1]["id"] == "interface1"
-        assert network_data["networks"][0]["ip_address"] == "192.168.122.10"
-        assert network_data["networks"][1]["ip_address"] == "10.0.0.10"
+class TestCreateUserData:
+    """Test _create_userdata() returns correct class for each config."""
+
+    def test_default_config_returns_openstack(self, mock_hv, mock_domain):
+        config = DomainConfig()
+        userdata = mock_hv._create_userdata(mock_domain, config)
+        assert isinstance(userdata, OpenStackUserData)
+
+    def test_openstack_datasource_returns_openstack(self, mock_hv, mock_domain):
+        config = DomainConfig(datasource="openstack")
+        userdata = mock_hv._create_userdata(mock_domain, config)
+        assert isinstance(userdata, OpenStackUserData)
+
+    def test_nocloud_returns_cloudinit22_by_default(self, mock_hv, mock_domain):
+        config = DomainConfig(datasource="nocloud")
+        userdata = mock_hv._create_userdata(mock_domain, config)
+        assert isinstance(userdata, CloudInit22UserData)
+
+    def test_nocloud_version_22_returns_cloudinit22(self, mock_hv, mock_domain):
+        config = DomainConfig(datasource="nocloud", cloudinit_version="22")
+        userdata = mock_hv._create_userdata(mock_domain, config)
+        assert isinstance(userdata, CloudInit22UserData)
+
+    def test_nocloud_version_23_returns_cloudinit23(self, mock_hv, mock_domain):
+        config = DomainConfig(datasource="nocloud", cloudinit_version="23")
+        userdata = mock_hv._create_userdata(mock_domain, config)
+        assert isinstance(userdata, CloudInit23UserData)
+
+    def test_nocloud_version_24_returns_cloudinit23(self, mock_hv, mock_domain):
+        config = DomainConfig(datasource="nocloud", cloudinit_version="24")
+        userdata = mock_hv._create_userdata(mock_domain, config)
+        assert isinstance(userdata, CloudInit23UserData)
 
 
-class TestPrepareCloudInitOpenStack:
-    """Test prepare_cloud_init_openstack_iso method."""
-    
-    @patch('virt_lightning.virt_lightning.run_cmd')
-    def test_creates_openstack_metadata_structure(self, mock_run_cmd, mock_hv, mock_domain):
-        """Test that OpenStack metadata has correct structure."""
-        # We'll intercept file writes to validate the data
-        written_files = {}
-        
-        original_open = pathlib.Path.open
-        
-        def mock_path_open(self, mode='r', *args, **kwargs):
-            if mode == 'w':
-                # Create a mock file that captures writes
-                mock_file = MagicMock()
-                content = []
-                
-                def write_side_effect(data):
-                    content.append(data)
-                
-                mock_file.write.side_effect = write_side_effect
-                mock_file.__enter__ = Mock(return_value=mock_file)
-                mock_file.__exit__ = Mock(return_value=False)
-                
-                # Store for later validation
-                written_files[str(self)] = content
-                return mock_file
-            elif mode == 'br':
-                # Mock binary read for the ISO file
-                mock_file = MagicMock()
-                mock_file.read.return_value = b'fake iso data'
-                mock_file.__enter__ = Mock(return_value=mock_file)
-                mock_file.__exit__ = Mock(return_value=False)
-                return mock_file
-            return original_open(self, mode, *args, **kwargs)
-        
-        with patch.object(pathlib.Path, 'open', mock_path_open):
-            with patch.object(mock_hv, 'create_disk', return_value=Mock()):
-                with patch.object(mock_hv.conn, 'newStream', return_value=Mock()):
-                    # Mock the directory creation to avoid actual filesystem operations
-                    with patch.object(pathlib.Path, 'mkdir'):
-                        mock_hv.prepare_cloud_init_openstack_iso(mock_domain)
-        
-        # Find and validate meta_data.json
-        meta_data_files = [k for k in written_files.keys() if 'meta_data.json' in k]
-        assert len(meta_data_files) == 1, "Should create meta_data.json"
-        
-        meta_data_content = ''.join(written_files[meta_data_files[0]])
-        meta_data = json.loads(meta_data_content)
-        
-        # Validate meta_data structure
-        assert meta_data["hostname"] == "testvm.example.com"
-        assert meta_data["name"] == "testvm"
-        assert meta_data["local-hostname"] == "testvm"
-        assert meta_data["uuid"] == "12345678-1234-1234-1234-123456789abc"
-        assert meta_data["admin_pass"] == "testpass"
-        assert meta_data["availability_zone"] == "nova"
-        assert "public_keys" in meta_data
-        assert meta_data["public_keys"]["default"] == "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDtest"
-    
-    @patch('virt_lightning.virt_lightning.run_cmd')
-    def test_creates_user_data_file(self, mock_run_cmd, mock_hv, mock_domain):
-        """Test that user_data file is created with correct cloud-config."""
-        written_files = {}
-        original_open = pathlib.Path.open
-        
-        def capture_writes(path_obj, mode='r', *args, **kwargs):
-            if mode == 'w':
-                mock_file = MagicMock()
-                content = []
-                mock_file.write.side_effect = lambda data: content.append(data)
-                mock_file.__enter__ = Mock(return_value=mock_file)
-                mock_file.__exit__ = Mock(return_value=False)
-                written_files[str(path_obj)] = content
-                return mock_file
-            elif mode == 'br':
-                # Mock binary read for the ISO file
-                mock_file = MagicMock()
-                mock_file.read.return_value = b'fake iso data'
-                mock_file.__enter__ = Mock(return_value=mock_file)
-                mock_file.__exit__ = Mock(return_value=False)
-                return mock_file
-            return original_open(path_obj, mode, *args, **kwargs)
-        
-        with patch.object(pathlib.Path, 'open', capture_writes):
-            with patch.object(mock_hv, 'create_disk', return_value=Mock()):
-                with patch.object(mock_hv.conn, 'newStream', return_value=Mock()):
-                    with patch.object(pathlib.Path, 'mkdir'):
-                        mock_hv.prepare_cloud_init_openstack_iso(mock_domain)
-        
-        # Find user_data file
-        user_data_files = [k for k in written_files.keys() if 'user_data' in k and 'meta_data' not in k]
-        assert len(user_data_files) == 1
-        
-        user_data_content = ''.join(written_files[user_data_files[0]])
-        
-        # Should start with cloud-config header
-        assert user_data_content.startswith("#cloud-config\n")
-        
-        # Parse YAML content
-        yaml_content = user_data_content[len("#cloud-config\n"):]
-        user_data = yaml.safe_load(yaml_content)
-        
-        # Validate user_data contains expected fields
-        assert user_data["resize_rootfs"] is True
-        assert user_data["disable_root"] is False
-        assert user_data["password"] == "testpass"
-        assert "bootcmd" in user_data
-        assert "runcmd" in user_data
+class TestStart:
+    """Test start() uses new UserData-based flow."""
+
+    @patch('subprocess.run')
+    def test_start_calls_build_iso_and_uploads(self, mock_subprocess_run, mock_hv, mock_domain):
+        config = DomainConfig()
+
+        def fake_genisoimage(cmd, **kwargs):
+            cwd = kwargs.get('cwd', '.')
+            idx = cmd.index('-output')
+            (pathlib.Path(cwd) / cmd[idx + 1]).write_bytes(b'fake iso')
+        mock_subprocess_run.side_effect = fake_genisoimage
+
+        mock_volume = Mock()
+        mock_volume.path.return_value = "/fake/testvm-cidata.iso"
+        mock_hv.create_disk = Mock(return_value=mock_volume)
+        mock_stream = Mock()
+        mock_hv.conn.newStream = Mock(return_value=mock_stream)
+        mock_domain.meta_data_media_type = "cdrom"
+        mock_domain.dom.create = Mock()
+        mock_hv.remove_domain_from_network = Mock()
+        mock_hv.add_domain_to_network = Mock()
+
+        mock_hv.start(mock_domain, config)
+
+        mock_hv.create_disk.assert_called_once()
+        mock_volume.upload.assert_called_once()
+        mock_stream.send.assert_called_once()
+        mock_stream.finish.assert_called_once()
+        mock_domain.dom.create.assert_called_once()
+        mock_hv.remove_domain_from_network.assert_called_once_with(mock_domain)
+        mock_hv.add_domain_to_network.assert_called_once_with(mock_domain)
+
+    @patch('subprocess.run')
+    def test_start_nocloud_uses_cloudinit22(self, mock_subprocess_run, mock_hv, mock_domain):
+        config = DomainConfig(datasource="nocloud", cloudinit_version="22")
+
+        def fake_genisoimage(cmd, **kwargs):
+            cwd = kwargs.get('cwd', '.')
+            idx = cmd.index('-output')
+            (pathlib.Path(cwd) / cmd[idx + 1]).write_bytes(b'fake iso')
+        mock_subprocess_run.side_effect = fake_genisoimage
+
+        mock_volume = Mock()
+        mock_volume.path.return_value = "/fake/testvm-cidata.iso"
+        mock_hv.create_disk = Mock(return_value=mock_volume)
+        mock_hv.conn.newStream = Mock(return_value=Mock())
+        mock_domain.meta_data_media_type = "cdrom"
+        mock_domain.dom.create = Mock()
+        mock_hv.remove_domain_from_network = Mock()
+        mock_hv.add_domain_to_network = Mock()
+
+        mock_hv.start(mock_domain, config)
+
+        # Verify genisoimage was called with cidata label (nocloud)
+        call_args = mock_subprocess_run.call_args[0][0]
+        assert "-volid" in call_args
+        volid_idx = call_args.index("-volid")
+        assert call_args[volid_idx + 1] == "cidata"
 
 
-class TestPrepareCloudInitNoCloud:
-    """Test prepare_cloud_init_nocloud_iso method."""
-    
-    @patch('virt_lightning.virt_lightning.run_cmd')
-    def test_creates_nocloud_files(self, mock_run_cmd, mock_hv, mock_domain):
-        """Test that NoCloud format creates user-data, meta-data, and network-config."""
-        written_files = {}
-        
-        def capture_writes(path_obj, mode='r', *args, **kwargs):
-            if mode == 'w':
-                mock_file = MagicMock()
-                content = []
-                mock_file.write.side_effect = lambda data: content.append(data)
-                mock_file.__enter__ = Mock(return_value=mock_file)
-                mock_file.__exit__ = Mock(return_value=False)
-                written_files[str(path_obj)] = content
-                return mock_file
-            # Default behavior for read mode
-            return MagicMock()
-        
-        with patch.object(pathlib.Path, 'open', capture_writes):
-            with patch.object(mock_hv, 'create_disk', return_value=Mock()):
-                with patch.object(mock_hv.conn, 'newStream', return_value=Mock()):
-                    with patch.object(pathlib.Path, 'mkdir'):
-                        with patch.object(mock_hv, 'get_network_gateway', return_value=IPv4Interface("192.168.122.1/24")):
-                            mock_hv.prepare_cloud_init_nocloud_iso(mock_domain)
-        
-        # Verify all three required files are created
-        file_names = [pathlib.Path(k).name for k in written_files.keys()]
-        assert "user-data" in file_names
-        assert "meta-data" in file_names
-        assert "network-config" in file_names
-    
-    @patch('virt_lightning.virt_lightning.run_cmd')
-    def test_network_config_structure(self, mock_run_cmd, mock_hv, mock_domain):
-        """Test NoCloud network-config has correct structure."""
-        written_files = {}
-        
-        def capture_writes(path_obj, mode='r', *args, **kwargs):
-            if mode == 'w':
-                mock_file = MagicMock()
-                content = []
-                mock_file.write.side_effect = lambda data: content.append(data)
-                mock_file.__enter__ = Mock(return_value=mock_file)
-                mock_file.__exit__ = Mock(return_value=False)
-                written_files[str(path_obj)] = content
-                return mock_file
-            return MagicMock()
-        
-        with patch.object(pathlib.Path, 'open', capture_writes):
-            with patch.object(mock_hv, 'create_disk', return_value=Mock()):
-                with patch.object(mock_hv.conn, 'newStream', return_value=Mock()):
-                    with patch.object(pathlib.Path, 'mkdir'):
-                        with patch.object(mock_hv, 'get_network_gateway', return_value=IPv4Interface("192.168.122.1/24")):
-                            mock_hv.prepare_cloud_init_nocloud_iso(mock_domain)
-        
-        # Find network-config file
-        network_config_files = [k for k in written_files.keys() if 'network-config' in k]
-        assert len(network_config_files) == 1
-        
-        network_config_content = ''.join(written_files[network_config_files[0]])
-        network_config = yaml.safe_load(network_config_content)
-        
-        # Validate structure
-        assert network_config["version"] == 1
-        assert "config" in network_config
-        assert len(network_config["config"]) == 1
-        
-        # Validate NIC configuration
-        nic_config = network_config["config"][0]
-        assert nic_config["type"] == "physical"
-        assert nic_config["name"] == "eth0"
-        assert nic_config["mac_address"] == "52:54:00:12:34:56"
-        
-        # Validate subnet configuration
-        assert "subnets" in nic_config
-        subnet = nic_config["subnets"][0]
-        assert subnet["type"] == "static"
-        assert subnet["address"] == "192.168.122.10/24"
-        assert subnet["gateway"] == "192.168.122.1"
-    
-    @patch('virt_lightning.virt_lightning.run_cmd')
-    def test_dhcp_network_config(self, mock_run_cmd, mock_hv, mock_domain):
-        """Test NoCloud network-config with DHCP."""
-        # Setup DHCP NIC
-        mock_domain.nics = [
-            {
-                "network": "default",
-                "mac": "52:54:00:12:34:56",
-                "ipv4": None,  # DHCP
-            }
-        ]
-        
-        written_files = {}
-        
-        def capture_writes(path_obj, mode='r', *args, **kwargs):
-            if mode == 'w':
-                mock_file = MagicMock()
-                content = []
-                mock_file.write.side_effect = lambda data: content.append(data)
-                mock_file.__enter__ = Mock(return_value=mock_file)
-                mock_file.__exit__ = Mock(return_value=False)
-                written_files[str(path_obj)] = content
-                return mock_file
-            return MagicMock()
-        
-        with patch.object(pathlib.Path, 'open', capture_writes):
-            with patch.object(mock_hv, 'create_disk', return_value=Mock()):
-                with patch.object(mock_hv.conn, 'newStream', return_value=Mock()):
-                    with patch.object(pathlib.Path, 'mkdir'):
-                        with patch.object(mock_hv, 'get_network_gateway', return_value=IPv4Interface("192.168.122.1/24")):
-                            mock_hv.prepare_cloud_init_nocloud_iso(mock_domain)
-        
-        # Find and parse network-config
-        network_config_files = [k for k in written_files.keys() if 'network-config' in k]
-        network_config_content = ''.join(written_files[network_config_files[0]])
-        network_config = yaml.safe_load(network_config_content)
-        
-        # Verify DHCP configuration
-        nic_config = network_config["config"][0]
-        subnet = nic_config["subnets"][0]
-        assert subnet["type"] == "dhcp"
+class TestConfigureDomainReturnsConfig:
+    """Test configure_domain returns the merged config."""
+
+    def test_returns_merged_config(self, pool_dirs):
+        pool_dir, upstream_dir = pool_dirs
+
+        distro_config_file = upstream_dir / "test-distro.yaml"
+        distro_config_file.write_text("memory: 2048\ndatasource: nocloud\n")
+
+        conn = Mock()
+        hv = vl.LibvirtHypervisor(conn)
+
+        domain = Mock()
+        domain.distro = "test-distro"
+
+        user_config = DomainConfig(vcpus=4, memory=None, datasource=None)
+
+        with patch.object(vl.LibvirtHypervisor, 'get_storage_dir', return_value=pool_dir):
+            config = hv.configure_domain(domain, user_config)
+
+        assert isinstance(config, DomainConfig)
+        assert config.memory == 2048
+        assert config.vcpus == 4
+        assert config.datasource == "nocloud"
 
 
 class TestGetDistroConfiguration:

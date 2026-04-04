@@ -87,19 +87,6 @@ NETWORK_DHCP_ENTRY = """
 <host />
 """
 
-# TODO
-META_DATA_ENI = """
-dsmode: local
-instance-id: iid-{name}
-local-hostname: {name}
-network-interfaces: |
-   iface eth0 inet static
-   address {ipv4}
-   network {network}
-   netmask 255.255.255.0
-   gateway {gateway}
-"""
-
 STORAGE_POOL_XML = """
 <pool type='dir'>
   <name></name>
