@@ -1,12 +1,12 @@
-from dataclasses import dataclass, field, asdict
-from typing import Optional, List, Any, TYPE_CHECKING
-from dataclasses import fields, MISSING
-from abc import ABC, abstractmethod
-from pathlib import Path
-from ipaddress import IPv4Interface
 import json
 import logging
 import subprocess
+from abc import ABC, abstractmethod
+from dataclasses import MISSING, dataclass, field, fields
+from ipaddress import IPv4Interface
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, List, Optional
+
 import yaml
 
 if TYPE_CHECKING:
@@ -115,8 +115,7 @@ class UserData(ABC):
             cmd,
             cwd=str(temp_dir),
             check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
         )
         return cidata_file
 
@@ -298,7 +297,7 @@ class CloudInit22UserData(CloudInitUserData):
             f"instance-id: iid-{self.hostname}",
             f"local-hostname: {self.hostname}",
         ]
-        
+
         # Add network-interfaces in ENI format if we have a static IP
         if self.interfaces and self.interfaces[0].ipv4:
             iface = self.interfaces[0]
@@ -308,7 +307,7 @@ class CloudInit22UserData(CloudInitUserData):
             lines.append(f"   network {iface.ipv4.network.network_address}")
             lines.append(f"   netmask {iface.ipv4.netmask}")
             lines.append(f"   gateway {iface.gateway.ip}")
-        
+
         return "\n".join(lines) + "\n"
 
 
@@ -336,7 +335,7 @@ class CloudInit23UserData(CloudInitUserData):
             "local-hostname": self.hostname,
         }
         return yaml.dump(meta, Dumper=yaml.Dumper)
-    
+
 @dataclass
 class DomainConfig:
     groups: List[str] = field(default_factory=list)
@@ -403,25 +402,25 @@ class DomainConfig:
     def merge_with(self, base_config: "DomainConfig") -> "DomainConfig":
         """
         Merge this config with a base config.
-        
+
         Merge strategy:
         - For list fields: use user's list if non-empty, else base list
         - For other fields: use user's value if not None, else base value
-        
+
         This means None is the sentinel for "not set by user, use base value".
-        
+
         Args:
             base_config: The base configuration to merge with
-            
+
         Returns:
             A new DomainConfig with merged values
         """
         merged_kwargs = {}
-        
+
         for f in fields(self.__class__):
             user_value = getattr(self, f.name)
             base_value = getattr(base_config, f.name)
-            
+
             # For list fields: use user value if non-empty, else base value
             if isinstance(user_value, list):
                 merged_kwargs[f.name] = user_value if user_value else base_value
@@ -430,5 +429,5 @@ class DomainConfig:
                 merged_kwargs[f.name] = user_value
             else:
                 merged_kwargs[f.name] = base_value
-        
+
         return DomainConfig(**merged_kwargs)

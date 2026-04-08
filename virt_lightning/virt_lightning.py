@@ -30,7 +30,6 @@ from virt_lightning.metadata import (
 )
 from virt_lightning.symbols import get_symbols
 
-
 from .templates import (
     BRIDGE_XML,
     DISK_XML,
@@ -122,14 +121,14 @@ class LibvirtHypervisor:
     def configure_domain(self, domain: LibvirtDomain, user_config: DomainConfig) -> DomainConfig:
         """
         Apply configuration to a domain.
-        
+
         Merges user_config with distro-specific defaults. User-supplied values
         (non-None/non-empty) override distro defaults.
-        
+
         Args:
             domain: The LibvirtDomain to configure
             user_config: User-provided configuration that overrides distro defaults
-            
+
         Returns:
             The merged DomainConfig
         """
@@ -579,7 +578,7 @@ class LibvirtDomain:
     @username.setter
     def username(self, username):
         if not re.match("[a-z_][a-z0-9_-]{1,32}$", username):
-            raise Exception("Invalid username: ", username)
+            raise ValueError("Invalid username: ", username)
 
         self.user_data["users"] = [
             {

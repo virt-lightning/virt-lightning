@@ -1,6 +1,10 @@
-import pytest
 import re
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import MagicMock
+
+import pytest
+
+from virt_lightning.virt_lightning import LibvirtDomain
+
 
 class LibvirtError(Exception):
     def __init__(self, msg=""):
@@ -16,13 +20,12 @@ mock_libvirt.VIR_DOMAIN_AFFECT_CONFIG = 2
 
 @pytest.fixture(autouse=True)
 def mock_imports(monkeypatch):
-    monkeypatch.setitem(__import__('sys').modules, 'libvirt', mock_libvirt)
-    monkeypatch.setitem(__import__('sys').modules, 'ipaddress', MagicMock())
+    monkeypatch.setitem(__import__("sys").modules, "libvirt", mock_libvirt)
+    monkeypatch.setitem(__import__("sys").modules, "ipaddress", MagicMock())
     # Mock the logger to prevent errors if it's not configured
-    monkeypatch.setitem(__import__('sys').modules, 'logger', MagicMock())
+    monkeypatch.setitem(__import__("sys").modules, "logger", MagicMock())
 
 
-from virt_lightning.virt_lightning import LibvirtDomain
 
 @pytest.fixture
 def mock_dom():
@@ -36,13 +39,12 @@ def mock_dom():
         # A simple simulation of how libvirt stores metadata
         match = re.search(r"<(\w+) name='([^']*)' />", meta)
         if match:
-            key = match.group(1)
             value = match.group(2)
-            domain._metadata_store[uri] = {'xml': meta, 'value': value}
+            domain._metadata_store[uri] = {"xml": meta, "value": value}
 
     def get_metadata_mock(meta_type, uri):
         if uri in domain._metadata_store:
-            return domain._metadata_store[uri]['xml']
+            return domain._metadata_store[uri]["xml"]
         err = mock_libvirt.libvirtError("No domain metadata")
         err.get_error_code = lambda: mock_libvirt.VIR_ERR_NO_DOMAIN_METADATA
         raise err
@@ -100,7 +102,7 @@ def test_root_password_getter(libvirt_domain, mock_dom):
         "root_password",
         mock_libvirt.VIR_DOMAIN_AFFECT_CONFIG,
     )
-    
+
     assert libvirt_domain.root_password == password
     mock_dom.metadata.assert_called_with(mock_libvirt.VIR_DOMAIN_METADATA_ELEMENT, "root_password")
 
@@ -122,13 +124,13 @@ def test_load_ssh_key_file_with_user(libvirt_domain):
     # Setup initial user
     libvirt_domain.user_data["users"] = [{"name": "testuser"}]
     fake_key = "ssh-rsa BBBB..."
-    
+
     mock_path = MagicMock()
     mock_path.expanduser.return_value = mock_path
     mock_path.read_text.return_value = fake_key
 
     libvirt_domain.load_ssh_key_file(mock_path)
-        
+
     assert libvirt_domain.user_data["users"][0]["ssh_authorized_keys"] == [fake_key]
 
 def test_load_ssh_key_file_failure(libvirt_domain):
@@ -162,8 +164,8 @@ def test_username_setter(libvirt_domain, mock_dom):
 
 @pytest.mark.parametrize("invalid_name", ["InvalidUser", "1-start", "user-with-!", ""])
 def test_username_setter_invalid(libvirt_domain, invalid_name):
-    """Test that setting an invalid username raises an Exception."""
-    with pytest.raises(Exception):
+    """Test that setting an invalid username raises a ValueError."""
+    with pytest.raises(ValueError):
         libvirt_domain.username = invalid_name
 
 def test_fqdn_setter_valid(libvirt_domain, mock_dom):
@@ -206,10 +208,10 @@ def test_simple_metadata_properties(libvirt_domain, mock_dom, prop_name, value):
         prop_name,
         mock_libvirt.VIR_DOMAIN_AFFECT_CONFIG,
     )
-    
+
     # Mock the return for the getter
     mock_dom.metadata.return_value = f"<{prop_name} name='{value}' />"
-    
+
     # Verify the getter works
     assert getattr(libvirt_domain, prop_name) == value
 
@@ -218,7 +220,7 @@ def test_groups_property(libvirt_domain, mock_dom):
     # Test setter
     groups_list = ["sudo", "docker"]
     libvirt_domain.groups = groups_list
-    
+
     # Verify metadata was recorded with a comma-separated string
     mock_dom.setMetadata.assert_called_with(
         mock_libvirt.VIR_DOMAIN_METADATA_ELEMENT,
@@ -237,7 +239,7 @@ def test_groups_property(libvirt_domain, mock_dom):
 def test_cmd_properties(libvirt_domain, cmd_type):
     """Test bootcmd and runcmd properties."""
     commands = ["echo 'hello'", "touch /tmp/file"]
-    
+
     # Test setter with a valid list
     setattr(libvirt_domain, cmd_type, commands)
     assert libvirt_domain.user_data[cmd_type] == commands

@@ -1,7 +1,6 @@
 """
 Tests for metadata module, including DomainConfig merge functionality.
 """
-import pytest
 from virt_lightning.metadata import DomainConfig
 
 
@@ -17,7 +16,7 @@ class TestDomainConfigMerge:
             root_password="distro_pass",
             python_interpreter="/usr/bin/python2",
         )
-        
+
         user_config = DomainConfig(
             memory=4096,
             username="my_user",
@@ -25,13 +24,13 @@ class TestDomainConfigMerge:
             root_password=None,  # Should use distro default
             python_interpreter=None,  # Should use distro default
         )
-        
+
         merged = user_config.merge_with(distro_config)
-        
+
         # User values override
         assert merged.memory == 4096
         assert merged.username == "my_user"
-        
+
         # Distro defaults used where user passed None
         assert merged.vcpus == 2
         assert merged.root_password == "distro_pass"
@@ -46,7 +45,7 @@ class TestDomainConfigMerge:
             root_password="distro_pass",
             default_nic_model="e1000",
         )
-        
+
         # Pass None for all fields explicitly
         user_config = DomainConfig(
             memory=None,
@@ -55,9 +54,9 @@ class TestDomainConfigMerge:
             root_password=None,
             default_nic_model=None,
         )
-        
+
         merged = user_config.merge_with(distro_config)
-        
+
         assert merged.memory == 2048
         assert merged.vcpus == 4
         assert merged.username == "distro_user"
@@ -71,19 +70,19 @@ class TestDomainConfigMerge:
             bootcmd=["echo distro"],
             runcmd=["ls /distro"],
         )
-        
+
         user_config = DomainConfig(
             groups=["user_group"],
             bootcmd=["echo user"],
             # runcmd not set
         )
-        
+
         merged = user_config.merge_with(distro_config)
-        
+
         # User lists override
         assert merged.groups == ["user_group"]
         assert merged.bootcmd == ["echo user"]
-        
+
         # Empty user list means use distro list
         assert merged.runcmd == ["ls /distro"]
 
@@ -93,14 +92,14 @@ class TestDomainConfigMerge:
             groups=["distro_group"],
             bootcmd=["echo distro"],
         )
-        
+
         user_config = DomainConfig(
             groups=[],  # Explicitly empty
             bootcmd=[],  # Explicitly empty
         )
-        
+
         merged = user_config.merge_with(distro_config)
-        
+
         assert merged.groups == ["distro_group"]
         assert merged.bootcmd == ["echo distro"]
 
@@ -108,9 +107,9 @@ class TestDomainConfigMerge:
         """User-specified FQDN should override distro FQDN."""
         distro_config = DomainConfig(fqdn="distro.example.com")
         user_config = DomainConfig(fqdn="user.example.com")
-        
+
         merged = user_config.merge_with(distro_config)
-        
+
         assert merged.fqdn == "user.example.com"
 
     def test_merge_none_values_use_distro_defaults(self):
@@ -118,13 +117,13 @@ class TestDomainConfigMerge:
         distro_config = DomainConfig(
             fqdn="distro.example.com",
         )
-        
+
         user_config = DomainConfig(
             fqdn=None,
         )
-        
+
         merged = user_config.merge_with(distro_config)
-        
+
         assert merged.fqdn == "distro.example.com"
 
     def test_merge_all_fields_coverage(self):
@@ -143,7 +142,7 @@ class TestDomainConfigMerge:
             meta_data_media_type="floppy",
             default_bus_type="ide",
         )
-        
+
         user_config = DomainConfig(
             groups=["user_group"],
             memory=4096,
@@ -158,9 +157,9 @@ class TestDomainConfigMerge:
             meta_data_media_type="cdrom",
             default_bus_type=None,  # use distro
         )
-        
+
         merged = user_config.merge_with(distro_config)
-        
+
         # User overrides
         assert merged.groups == ["user_group"]
         assert merged.memory == 4096
@@ -170,7 +169,7 @@ class TestDomainConfigMerge:
         assert merged.fqdn == "user.example.com"
         assert merged.bootcmd == ["echo user"]
         assert merged.meta_data_media_type == "cdrom"
-        
+
         # Distro defaults
         assert merged.python_interpreter == "/usr/bin/python2"
         assert merged.default_nic_model == "e1000"
