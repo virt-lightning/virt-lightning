@@ -352,8 +352,9 @@ class DomainConfig:
     runcmd: List[Any] = field(default_factory=list)
     meta_data_media_type: str = "cdrom"
     default_bus_type: str = "virtio"
-    datasource: str = "openstack"
-    cloudinit_version: str = "22"
+    ssh_key_file: Optional[str] = None
+    datasource: str = "nocloud"
+    cloudinit_version: str = "23"
 
     def __init__(self, **kwargs):
         # Initialize all fields with their default values first
@@ -395,6 +396,7 @@ class DomainConfig:
             runcmd=host.get("runcmd") or [],
             meta_data_media_type=host.get("meta_data_media_type"),
             default_bus_type=host.get("default_bus_type"),
+            ssh_key_file=host.get("ssh_key_file", getattr(configuration, "ssh_key_file", None)),
             datasource=host.get("datasource"),
             cloudinit_version=host.get("cloudinit_version"),
         )

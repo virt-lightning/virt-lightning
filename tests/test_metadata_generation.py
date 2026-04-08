@@ -115,20 +115,20 @@ def mock_domain():
 class TestCreateUserData:
     """Test _create_userdata() returns correct class for each config."""
 
-    def test_default_config_returns_openstack(self, mock_hv, mock_domain):
+    def test_default_config_returns_cloudinit23(self, mock_hv, mock_domain):
         config = DomainConfig()
         userdata = mock_hv._create_userdata(mock_domain, config)
-        assert isinstance(userdata, OpenStackUserData)
+        assert isinstance(userdata, CloudInit23UserData)
 
     def test_openstack_datasource_returns_openstack(self, mock_hv, mock_domain):
         config = DomainConfig(datasource="openstack")
         userdata = mock_hv._create_userdata(mock_domain, config)
         assert isinstance(userdata, OpenStackUserData)
 
-    def test_nocloud_returns_cloudinit22_by_default(self, mock_hv, mock_domain):
+    def test_nocloud_returns_cloudinit23_by_default(self, mock_hv, mock_domain):
         config = DomainConfig(datasource="nocloud")
         userdata = mock_hv._create_userdata(mock_domain, config)
-        assert isinstance(userdata, CloudInit22UserData)
+        assert isinstance(userdata, CloudInit23UserData)
 
     def test_nocloud_version_22_returns_cloudinit22(self, mock_hv, mock_domain):
         config = DomainConfig(datasource="nocloud", cloudinit_version="22")

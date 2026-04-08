@@ -148,6 +148,8 @@ class LibvirtHypervisor:
         domain.meta_data_media_type = config.meta_data_media_type
         domain.default_bus_type = config.default_bus_type
         domain.fqdn = config.fqdn
+        if config.ssh_key_file:
+            domain.load_ssh_key_file(config.ssh_key_file)
         return config
 
     def get_distro_configuration(self, distro: str) -> DomainConfig:
@@ -536,8 +538,9 @@ class LibvirtDomain:
 
     def load_ssh_key_file(self, ssh_key_file):
         doc_url = "https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/#generating-a-new-ssh-key"
+        path = pathlib.Path(ssh_key_file) if isinstance(ssh_key_file, str) else ssh_key_file
         try:
-            self.ssh_key = ssh_key_file.expanduser().read_text()
+            self.ssh_key = path.expanduser().read_text()
         except OSError:
             logger.error(
                 f"Can not read {ssh_key_file}. If you don't have any SSH key, "
