@@ -192,6 +192,12 @@
     "yaml_url": ""
   },
   {
+    "name": "fedora-44",
+    "qcow2_url": "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
     "name": "freebsd-13.4-ufs",
     "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/freebsd/13.4/2024-10-28/ufs/freebsd-13.4-ufs-2024-10-28.qcow2",
     "meta": {
