@@ -27,6 +27,7 @@
 - fedora-41
 - fedora-42
 - fedora-43
+- fedora-44
 - freebsd-13.4-ufs
 - freebsd-13.4-zfs
 - freebsd-14.1-ufs
