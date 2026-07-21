@@ -603,7 +603,16 @@ class LibvirtHypervisor:
             "netmask": network.netmask.exploded,
         }
         xml = ET.tostring(root).decode()
-        return self.conn.networkCreateXML(xml)
+        try:
+            return self.conn.networkCreateXML(xml)
+        except libvirt.libvirtError as e:
+            logger.error(
+                "Failed to create network '%s' (CIDR: %s): %s",
+                network_name,
+                network_cidr,
+                e,
+            )
+            exit(1)
 
     def init_storage_pool(self, storage_pool):
         try:
