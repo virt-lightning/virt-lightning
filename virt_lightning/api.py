@@ -121,6 +121,7 @@ def _start_domain(hv, host, context, configuration):
         "vcpus": host.get("vcpus"),
         "fqdn": host.get("fqdn"),
         "default_nic_mode": host.get("default_nic_model"),
+        "video_model": host.get("video_model"),
         "bootcmd": host.get("bootcmd"),
         "runcmd": host.get("runcmd"),
         "meta_data_media_type": host.get("meta_data_media_type"),
