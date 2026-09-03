@@ -6,6 +6,12 @@ DISK_XML = """
     </disk>
 """
 
+VIDEO_XML = """
+<video>
+  <model type='virtio' vram='16384' heads='1' primary='yes'/>
+</video>
+"""
+
 DOMAIN_XML = """
 <domain type='kvm'>
   <name></name>
