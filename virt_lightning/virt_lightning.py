@@ -32,6 +32,7 @@ from .templates import (
     STORAGE_POOL_XML,
     STORAGE_VOLUME_XML,
     USER_CREATE_STORAGE_POOL_DIR,
+    VIDEO_XML,
 )
 
 DEFAULT_STORAGE_DIR = "/var/lib/virt-lightning/pool"
@@ -105,6 +106,12 @@ class LibvirtHypervisor:
         root.find("./vcpu").text = str(self.conn.getInfo()[2])
         root.find("./devices/emulator").text = str(self.kvm_binary)
         root.find("./os/type").attrib["arch"] = self.arch
+
+        # Add default video device (virtio)
+        devices = root.find("./devices")
+        video_elem = ET.fromstring(VIDEO_XML)
+        devices.append(video_elem)
+
         dom = self.conn.defineXML(ET.tostring(root).decode())
         domain = LibvirtDomain(dom)
         domain.distro = distro
@@ -119,6 +126,7 @@ class LibvirtHypervisor:
             "username": getpass.getuser(),
             "vcpus": 1,
             "default_nic_model": "virtio",
+            "video_model": "virtio",
             "bootcmd": [],
             "runcmd": [],
             "meta_data_media_type": "cdrom",
@@ -140,6 +148,7 @@ class LibvirtHypervisor:
         domain.username = config["username"]
         domain.vcpus = config["vcpus"]
         domain.default_nic_model = config["default_nic_model"]
+        domain.video_model = config["video_model"]
         domain.bootcmd = config["bootcmd"]
         domain.runcmd = config["runcmd"]
         domain.meta_data_media_type = config["meta_data_media_type"]
@@ -914,6 +923,58 @@ class LibvirtDomain:
         xml = ET.tostring(disk_root).decode()
         self.dom.attachDeviceFlags(xml, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
         return device_name
+
+    @property
+    def video_model(self):
+        """Get the current video model from domain XML."""
+        xml = self.dom.XMLDesc(0)
+        root = ET.fromstring(xml)
+        video_model_elem = root.find("./devices/video/model")
+        if video_model_elem is not None:
+            return video_model_elem.attrib.get("type")
+        return None
+
+    @video_model.setter
+    def video_model(self, model):
+        """Set video model and update the domain XML.
+
+        Args:
+            model: Video model type (virtio, cirrus, qxl, vga, etc.)
+        """
+        # Only update if specified and different from current model
+        current_model = self.video_model
+        if model and model != current_model:
+            self.update_video(model)
+
+    def update_video(self, model):
+        """Update the video device model in domain XML.
+
+        Args:
+            model: Video model type (virtio, cirrus, qxl, vga, etc.)
+        """
+        # Get the current domain XML
+        xml = self.dom.XMLDesc(0)
+        root = ET.fromstring(xml)
+
+        # Find the video model element and replace it
+        video_model_elem = root.find("./devices/video/model")
+        if video_model_elem is not None:
+            # Clear all attributes to remove model-specific ones (e.g., ram for qxl)
+            video_model_elem.clear()
+            # Set basic attributes that work across all video models
+            video_model_elem.attrib["type"] = model
+            video_model_elem.attrib["vram"] = "16384"
+            video_model_elem.attrib["heads"] = "1"
+            video_model_elem.attrib["primary"] = "yes"
+
+        # Redefine the domain with updated XML
+        # defineXML() updates existing definitions atomically - no need to undefine()
+        conn = self.dom.connect()
+        new_xml = ET.tostring(root).decode()
+        new_dom = conn.defineXML(new_xml)
+
+        # Update the domain reference
+        self.dom = new_dom
 
     def attach_network(
         self,
