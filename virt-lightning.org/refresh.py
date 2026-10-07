@@ -58,11 +58,11 @@ class Image:
                     k, v = line.split(": ")
                     self.meta[k] = v.strip()
 
-    def __init__(self, name, qcow2_url):
+    def __init__(self, name, qcow2_url, meta=None, yaml_url=""):
         self.name = name
         self.qcow2_url = qcow2_url
-        self.meta: dict[str] = {}
-        self.yaml_url: str = ""
+        self.meta: dict[str] = meta or {}
+        self.yaml_url: str = yaml_url
 
     def as_dict(self):
         return {
@@ -82,10 +82,26 @@ class Image:
         )
 
 
+class Images:
+    def __init__(self):
+        self._images = []
+
+    def add_or_update(self, image: Image):
+        t = {}
+        for i in self._images:
+            t[i.name] = i
+        t[image.name] = image
+        self._images = t.values()
+        print(f"images counter={len(self._images)}")
+
+    def as_list(self):
+        return self._images
+
+
 def get_fedora_images() -> list[Image]:
     def get(version) -> Image | None:
         base_url = f"https://download.fedoraproject.org/pub/fedora/linux/releases/{version}/Cloud/x86_64/images"
-        resp = urllib3.request("GET", base_url, redirect=True)
+        resp = urllib3.request("GET", base_url, redirect=True, timeout=30.0)
         m = re.search(">(Fedora-Cloud.*?qcow2)<", resp.data.decode())
         if m:
             return Image(f"fedora-{version}", f"{base_url}/{m.group(1)}")
@@ -96,10 +112,8 @@ def get_fedora_images() -> list[Image]:
 def get_alpine_images() -> list[Image]:
     def get(version) -> Image | None:
         base_url = f"https://dl-cdn.alpinelinux.org/alpine/v{version}/releases/cloud"
-        resp = urllib3.request("GET", base_url, redirect=True)
-        m = re.findall(
-            r"generic_alpine.*x86_64\-bios\-cloudinit-r0\.qcow2", resp.data.decode()
-        )
+        resp = urllib3.request("GET", base_url, redirect=True, timeout=180.0)
+        m = re.findall(r"generic_alpine.*x86_64\-bios\-cloudinit-r0\.qcow2", resp.data.decode())
         if m:
             image = Image(f"alpine-{version}", f"{base_url}/{m[-1]}")
             image.meta["username"] = "alpine"
@@ -111,9 +125,7 @@ def get_alpine_images() -> list[Image]:
 def get_freebsd_images() -> list[Image]:
     def releases():
         resp = urllib3.request(
-            "GET",
-            "https://download.freebsd.org/releases/VM-IMAGES/",
-            redirect=True,
+            "GET", "https://download.freebsd.org/releases/VM-IMAGES/", redirect=True, timeout=30.0
         )
         return re.findall(r'"(\d+\.\d-RELEASE)"', resp.data.decode())
 
@@ -133,9 +145,7 @@ def get_freebsd_images() -> list[Image]:
 
     for r in releases():
         for u in file_names(r):
-            m = re.match(
-                r"FreeBSD-(\d+\.\d)-RELEASE-amd64-BASIC-CLOUDINIT-(ufs|zfs).qcow2.xz", u
-            )
+            m = re.match(r"FreeBSD-(\d+\.\d)-RELEASE-amd64-BASIC-CLOUDINIT-(ufs|zfs).qcow2.xz", u)
             if m:
                 name = f"freebsd-{m.group(1)}-{m.group(2)}"
                 url = base_url(r) + u
@@ -162,6 +172,7 @@ def get_bsd_images() -> list[Image]:
         "GET",
         "https://raw.githubusercontent.com/goneri/bsd-cloud-image.org/refs/heads/main/src/images_data.json",
         redirect=True,
+        timeout=30.0,
     )
     images: list[Image] = []
     for os in resp.json():
@@ -180,29 +191,32 @@ def get_bsd_images() -> list[Image]:
     return images
 
 
-images: list[Image] = []
+images_json_file = Path("./virt-lightning.org/images.json")
+images = Images()
+for i in json.loads(images_json_file.read_text()):
+    images.add_or_update(Image(**i))
 
 for name, qcow2_url in configuration.items():
     yaml_url = re.sub(r".qcow2", ".yaml", qcow2_url)
     if urllib3.request("HEAD", qcow2_url).status == 200:
         image = Image(name, qcow2_url)
-        images.append(image)
+        images.add_or_update(image)
 
-images += get_fedora_images()
-images += get_bsd_images()
-images += get_alpine_images()
-images += get_freebsd_images()
+for i in get_fedora_images():
+    images.add_or_update(i)
+for i in get_bsd_images():
+    images.add_or_update(i)
+for i in get_alpine_images():
+    images.add_or_update(i)
+for i in get_freebsd_images():
+    images.add_or_update(i)
 
 index_md = ""
 images_redir = ""
-for image in sorted(images, key=lambda i: i.name):
-    images_redir += (
-        f"    redir /images/{image.name}/{image.name}.qcow2 {image.qcow2_url}\n"
-    )
+for image in sorted(images.as_list(), key=lambda i: i.name):
+    images_redir += f"    redir /images/{image.name}/{image.name}.qcow2 {image.qcow2_url}\n"
     if image.yaml_url:
-        images_redir += (
-            f"    redir /images/{image.name}/{image.name}.yaml {image.yaml_url}\n"
-        )
+        images_redir += f"    redir /images/{image.name}/{image.name}.yaml {image.yaml_url}\n"
     index_md += f"- {image.name}\n"
 
 
@@ -211,4 +225,4 @@ index_md_file.parent.mkdir(parents=True, exist_ok=True)
 index_md_file.write_text(index_md)
 
 images_json_file = Path("./virt-lightning.org/images.json")
-images_json_file.write_text(json.dumps([i.as_dict() for i in images], indent=2))
+images_json_file.write_text(json.dumps([i.as_dict() for i in images.as_list()], indent=2))
