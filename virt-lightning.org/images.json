@@ -199,91 +199,75 @@
   },
   {
     "name": "freebsd-13.4-ufs",
-    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/freebsd/13.4/2024-10-28/ufs/freebsd-13.4-ufs-2024-10-28.qcow2",
+    "qcow2_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/freebsd/13.4/2024-10-28/ufs/freebsd-13.4-ufs-2024-10-28.qcow2",
     "meta": {
       "python_interpreter": "/usr/local/bin/python3"
     },
-    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/freebsd/13.4/2024-10-28/ufs/freebsd-13.4-ufs-2024-10-28.yaml"
+    "yaml_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/freebsd/13.4/2024-10-28/ufs/freebsd-13.4-ufs-2024-10-28.yaml"
   },
   {
     "name": "freebsd-13.4-zfs",
-    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/freebsd/13.4/2024-10-28/zfs/freebsd-13.4-zfs-2024-10-28.qcow2",
+    "qcow2_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/freebsd/13.4/2024-10-28/zfs/freebsd-13.4-zfs-2024-10-28.qcow2",
     "meta": {
       "python_interpreter": "/usr/local/bin/python3"
     },
-    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/freebsd/13.4/2024-10-28/zfs/freebsd-13.4-zfs-2024-10-28.yaml"
+    "yaml_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/freebsd/13.4/2024-10-28/zfs/freebsd-13.4-zfs-2024-10-28.yaml"
   },
   {
     "name": "freebsd-14.1-ufs",
-    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/freebsd/14.1/2024-10-28/ufs/freebsd-14.1-ufs-2024-10-28.qcow2",
+    "qcow2_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/freebsd/14.1/2024-10-28/ufs/freebsd-14.1-ufs-2024-10-28.qcow2",
     "meta": {
       "python_interpreter": "/usr/local/bin/python3"
     },
-    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/freebsd/14.1/2024-10-28/ufs/freebsd-14.1-ufs-2024-10-28.yaml"
+    "yaml_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/freebsd/14.1/2024-10-28/ufs/freebsd-14.1-ufs-2024-10-28.yaml"
   },
   {
     "name": "freebsd-14.1-zfs",
-    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/freebsd/14.1/2024-10-28/zfs/freebsd-14.1-zfs-2024-10-28.qcow2",
+    "qcow2_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/freebsd/14.1/2024-10-28/zfs/freebsd-14.1-zfs-2024-10-28.qcow2",
     "meta": {
       "python_interpreter": "/usr/local/bin/python3"
     },
-    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/freebsd/14.1/2024-10-28/zfs/freebsd-14.1-zfs-2024-10-28.yaml"
+    "yaml_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/freebsd/14.1/2024-10-28/zfs/freebsd-14.1-zfs-2024-10-28.yaml"
   },
   {
     "name": "freebsd-14.2-ufs",
-    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/freebsd/14.2/2024-12-08/ufs/freebsd-14.2-ufs-2024-12-08.qcow2",
+    "qcow2_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/freebsd/14.2/2024-12-08/ufs/freebsd-14.2-ufs-2024-12-08.qcow2",
     "meta": {
       "python_interpreter": "/usr/local/bin/python3"
     },
-    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/freebsd/14.2/2024-12-08/ufs/freebsd-14.2-ufs-2024-12-08.yaml"
+    "yaml_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/freebsd/14.2/2024-12-08/ufs/freebsd-14.2-ufs-2024-12-08.yaml"
   },
   {
     "name": "freebsd-14.2-zfs",
-    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/freebsd/14.2/2024-12-08/zfs/freebsd-14.2-zfs-2024-12-08.qcow2",
+    "qcow2_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/freebsd/14.2/2024-12-08/zfs/freebsd-14.2-zfs-2024-12-08.qcow2",
     "meta": {
       "python_interpreter": "/usr/local/bin/python3"
     },
-    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/freebsd/14.2/2024-12-08/zfs/freebsd-14.2-zfs-2024-12-08.yaml"
+    "yaml_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/freebsd/14.2/2024-12-08/zfs/freebsd-14.2-zfs-2024-12-08.yaml"
   },
   {
     "name": "netbsd-9.4-ufs",
-    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/netbsd/9.4/2024-11-02/ufs/netbsd-9.4-2024-11-02.qcow2",
+    "qcow2_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/netbsd/9.4/2024-11-02/ufs/netbsd-9.4-2024-11-02.qcow2",
     "meta": {
       "python_interpreter": "/usr/pkg/bin/python3.12"
     },
-    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/netbsd/9.4/2024-11-02/ufs/netbsd-9.4-2024-11-02.yaml"
+    "yaml_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/netbsd/9.4/2024-11-02/ufs/netbsd-9.4-2024-11-02.yaml"
   },
   {
     "name": "netbsd-10.0-ufs",
-    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/netbsd/10.0/2024-11-05/ufs/netbsd-10.0-2024-11-05.qcow2",
+    "qcow2_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/netbsd/10.0/2024-11-05/ufs/netbsd-10.0-2024-11-05.qcow2",
     "meta": {
       "python_interpreter": "/usr/pkg/bin/python3.12"
     },
-    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/netbsd/10.0/2024-11-05/ufs/netbsd-10.0-2024-11-05.yaml"
+    "yaml_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/netbsd/10.0/2024-11-05/ufs/netbsd-10.0-2024-11-05.yaml"
   },
   {
     "name": "netbsd-10.1-ufs",
-    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/netbsd/10.1/2025-02-15/ufs/netbsd-10.1-2025-02-15.qcow2",
+    "qcow2_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/netbsd/10.1/2025-02-15/ufs/netbsd-10.1-2025-02-15.qcow2",
     "meta": {
       "python_interpreter": "/usr/pkg/bin/python3.13"
     },
-    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/netbsd/10.1/2025-02-15/ufs/netbsd-10.1-2025-02-15.yaml"
-  },
-  {
-    "name": "openbsd-7.5-ufs",
-    "qcow2_url": "https://github.com/hcartiaux/openbsd-cloud-image/releases/download/v7.5_2024-05-13-15-25/openbsd-min.qcow2",
-    "meta": {
-      "python_interpreter": "/usr/local/bin/python3"
-    },
-    "yaml_url": ""
-  },
-  {
-    "name": "openbsd-7.6-ufs",
-    "qcow2_url": "https://github.com/hcartiaux/openbsd-cloud-image/releases/download/v7.6_2024-10-08-22-40/openbsd-min.qcow2",
-    "meta": {
-      "python_interpreter": "/usr/local/bin/python3"
-    },
-    "yaml_url": ""
+    "yaml_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/netbsd/10.1/2025-02-15/ufs/netbsd-10.1-2025-02-15.yaml"
   },
   {
     "name": "openbsd-7.7-ufs",
@@ -302,40 +286,48 @@
     "yaml_url": ""
   },
   {
+    "name": "openbsd-7.9-ufs",
+    "qcow2_url": "https://github.com/hcartiaux/openbsd-cloud-image/releases/download/v7.9_2026-08-31-22-45/openbsd-min.qcow2",
+    "meta": {
+      "python_interpreter": "/usr/local/bin/python3"
+    },
+    "yaml_url": ""
+  },
+  {
     "name": "dragonflybsd-6.2.2-ufs",
-    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/dragonflybsd/6.2.2/2022-09-06/ufs/dragonflybsd-6.2.2-ufs-2022-09-06.qcow2",
+    "qcow2_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/dragonflybsd/6.2.2/2022-09-06/ufs/dragonflybsd-6.2.2-ufs-2022-09-06.qcow2",
     "meta": {
       "python_interpreter": "/usr/local/bin/python3.8"
     },
-    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/dragonflybsd/6.2.2/2022-09-06/ufs/dragonflybsd-6.2.2-ufs-2022-09-06.yaml"
+    "yaml_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/dragonflybsd/6.2.2/2022-09-06/ufs/dragonflybsd-6.2.2-ufs-2022-09-06.yaml"
   },
   {
     "name": "dragonflybsd-6.2.2-hammer2",
-    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/dragonflybsd/6.2.2/2022-09-06/hammer2/dragonflybsd-6.2.2-hammer2-2022-09-06.qcow2",
+    "qcow2_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/dragonflybsd/6.2.2/2022-09-06/hammer2/dragonflybsd-6.2.2-hammer2-2022-09-06.qcow2",
     "meta": {
       "python_interpreter": "/usr/local/bin/python3.8"
     },
-    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/dragonflybsd/6.2.2/2022-09-06/hammer2/dragonflybsd-6.2.2-hammer2-2022-09-06.yaml"
+    "yaml_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/dragonflybsd/6.2.2/2022-09-06/hammer2/dragonflybsd-6.2.2-hammer2-2022-09-06.yaml"
   },
   {
     "name": "dragonflybsd-6.4.0-ufs",
-    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/dragonflybsd/6.4.0/2023-04-23/ufs/dragonflybsd-6.4.0-ufs-2023-04-23.qcow2",
+    "qcow2_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/dragonflybsd/6.4.0/2023-04-23/ufs/dragonflybsd-6.4.0-ufs-2023-04-23.qcow2",
     "meta": {
       "python_interpreter": "/usr/local/bin/python3.9"
     },
-    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/dragonflybsd/6.4.0/2023-04-23/ufs/dragonflybsd-6.4.0-ufs-2023-04-23.yaml"
+    "yaml_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/dragonflybsd/6.4.0/2023-04-23/ufs/dragonflybsd-6.4.0-ufs-2023-04-23.yaml"
   },
   {
     "name": "dragonflybsd-6.4.0-hammer2",
-    "qcow2_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/dragonflybsd/6.4.0/2023-04-23/hammer2/dragonflybsd-6.4.0-hammer2-2023-04-23.qcow2",
+    "qcow2_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/dragonflybsd/6.4.0/2023-04-23/hammer2/dragonflybsd-6.4.0-hammer2-2023-04-23.qcow2",
     "meta": {
       "python_interpreter": "/usr/local/bin/python3.9"
     },
-    "yaml_url": "https://object-storage.public.mtl1.vexxhost.net/swift/v1/1dbafeefbd4f4c80864414a441e72dd2/bsd-cloud-image.org/images/dragonflybsd/6.4.0/2023-04-23/hammer2/dragonflybsd-6.4.0-hammer2-2023-04-23.yaml"
+    "yaml_url": "https://s3.public.mtl1.vexxhost.net/bsd-cloud-image.org/images/dragonflybsd/6.4.0/2023-04-23/hammer2/dragonflybsd-6.4.0-hammer2-2023-04-23.yaml"
   },
   {
     "name": "alpine-3.20",
-    "qcow2_url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/cloud/generic_alpine-3.20.8-x86_64-bios-cloudinit-r0.qcow2",
+    "qcow2_url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/cloud/generic_alpine-3.20.9-x86_64-bios-cloudinit-r0.qcow2",
     "meta": {
       "username": "alpine"
     },
@@ -343,7 +335,7 @@
   },
   {
     "name": "alpine-3.21",
-    "qcow2_url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/cloud/generic_alpine-3.21.5-x86_64-bios-cloudinit-r0.qcow2",
+    "qcow2_url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/cloud/generic_alpine-3.21.7-x86_64-bios-cloudinit-r0.qcow2",
     "meta": {
       "username": "alpine"
     },
@@ -351,7 +343,7 @@
   },
   {
     "name": "alpine-3.22",
-    "qcow2_url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/cloud/generic_alpine-3.22.2-x86_64-bios-cloudinit-r0.qcow2",
+    "qcow2_url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/cloud/generic_alpine-3.22.5-x86_64-bios-cloudinit-r0.qcow2",
     "meta": {
       "username": "alpine"
     },
@@ -359,15 +351,23 @@
   },
   {
     "name": "alpine-3.23",
-    "qcow2_url": "https://dl-cdn.alpinelinux.org/alpine/v3.23/releases/cloud/generic_alpine-3.23.2-x86_64-bios-cloudinit-r0.qcow2",
+    "qcow2_url": "https://dl-cdn.alpinelinux.org/alpine/v3.23/releases/cloud/generic_alpine-3.23.5-x86_64-bios-cloudinit-r0.qcow2",
     "meta": {
       "username": "alpine"
     },
     "yaml_url": ""
   },
   {
-    "name": "freebsd-14.3-ufs",
-    "qcow2_url": "https://download.freebsd.org/releases/VM-IMAGES/14.3-RELEASE/amd64/Latest/FreeBSD-14.3-RELEASE-amd64-BASIC-CLOUDINIT-ufs.qcow2.xz",
+    "name": "alpine-3.24",
+    "qcow2_url": "https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/cloud/generic_alpine-3.24.1-x86_64-bios-cloudinit-r0.qcow2",
+    "meta": {
+      "username": "alpine"
+    },
+    "yaml_url": ""
+  },
+  {
+    "name": "freebsd-14.4-ufs",
+    "qcow2_url": "https://download.freebsd.org/releases/VM-IMAGES/14.4-RELEASE/amd64/Latest/FreeBSD-14.4-RELEASE-amd64-BASIC-CLOUDINIT-ufs.qcow2.xz",
     "meta": {
       "write_files": [
         {
@@ -388,8 +388,52 @@
     "yaml_url": ""
   },
   {
-    "name": "freebsd-14.3-zfs",
-    "qcow2_url": "https://download.freebsd.org/releases/VM-IMAGES/14.3-RELEASE/amd64/Latest/FreeBSD-14.3-RELEASE-amd64-BASIC-CLOUDINIT-zfs.qcow2.xz",
+    "name": "freebsd-14.4-zfs",
+    "qcow2_url": "https://download.freebsd.org/releases/VM-IMAGES/14.4-RELEASE/amd64/Latest/FreeBSD-14.4-RELEASE-amd64-BASIC-CLOUDINIT-zfs.qcow2.xz",
+    "meta": {
+      "write_files": [
+        {
+          "content": "# Workaround for https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=292137\nnameserver 8.8.8.8\n",
+          "owner": "root:root",
+          "path": "/etc/resolv.conf",
+          "permissions": "0644",
+          "append": true
+        }
+      ],
+      "packages": [
+        "sudo"
+      ],
+      "groups": [
+        "wheel"
+      ]
+    },
+    "yaml_url": ""
+  },
+  {
+    "name": "freebsd-14.5-ufs",
+    "qcow2_url": "https://download.freebsd.org/releases/VM-IMAGES/14.5-RELEASE/amd64/Latest/FreeBSD-14.5-RELEASE-amd64-BASIC-CLOUDINIT-ufs.qcow2.xz",
+    "meta": {
+      "write_files": [
+        {
+          "content": "# Workaround for https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=292137\nnameserver 8.8.8.8\n",
+          "owner": "root:root",
+          "path": "/etc/resolv.conf",
+          "permissions": "0644",
+          "append": true
+        }
+      ],
+      "packages": [
+        "sudo"
+      ],
+      "groups": [
+        "wheel"
+      ]
+    },
+    "yaml_url": ""
+  },
+  {
+    "name": "freebsd-14.5-zfs",
+    "qcow2_url": "https://download.freebsd.org/releases/VM-IMAGES/14.5-RELEASE/amd64/Latest/FreeBSD-14.5-RELEASE-amd64-BASIC-CLOUDINIT-zfs.qcow2.xz",
     "meta": {
       "write_files": [
         {
@@ -434,6 +478,50 @@
   {
     "name": "freebsd-15.0-zfs",
     "qcow2_url": "https://download.freebsd.org/releases/VM-IMAGES/15.0-RELEASE/amd64/Latest/FreeBSD-15.0-RELEASE-amd64-BASIC-CLOUDINIT-zfs.qcow2.xz",
+    "meta": {
+      "write_files": [
+        {
+          "content": "# Workaround for https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=292137\nnameserver 8.8.8.8\n",
+          "owner": "root:root",
+          "path": "/etc/resolv.conf",
+          "permissions": "0644",
+          "append": true
+        }
+      ],
+      "packages": [
+        "sudo"
+      ],
+      "groups": [
+        "wheel"
+      ]
+    },
+    "yaml_url": ""
+  },
+  {
+    "name": "freebsd-15.1-ufs",
+    "qcow2_url": "https://download.freebsd.org/releases/VM-IMAGES/15.1-RELEASE/amd64/Latest/FreeBSD-15.1-RELEASE-amd64-BASIC-CLOUDINIT-ufs.qcow2.xz",
+    "meta": {
+      "write_files": [
+        {
+          "content": "# Workaround for https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=292137\nnameserver 8.8.8.8\n",
+          "owner": "root:root",
+          "path": "/etc/resolv.conf",
+          "permissions": "0644",
+          "append": true
+        }
+      ],
+      "packages": [
+        "sudo"
+      ],
+      "groups": [
+        "wheel"
+      ]
+    },
+    "yaml_url": ""
+  },
+  {
+    "name": "freebsd-15.1-zfs",
+    "qcow2_url": "https://download.freebsd.org/releases/VM-IMAGES/15.1-RELEASE/amd64/Latest/FreeBSD-15.1-RELEASE-amd64-BASIC-CLOUDINIT-zfs.qcow2.xz",
     "meta": {
       "write_files": [
         {
