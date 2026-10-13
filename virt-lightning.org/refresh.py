@@ -38,6 +38,7 @@ configuration = {
     "ubuntu-23.10": "https://cloud-images.ubuntu.com/mantic/current/mantic-server-cloudimg-amd64.img",
     "ubuntu-24.04": "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img",
     "ubuntu-24.10": "https://cloud-images.ubuntu.com/oracular/current/oracular-server-cloudimg-amd64.img",
+    "ubuntu-26.04": "https://cloud-images.ubuntu.com/resolute/current/resolute-server-cloudimg-amd64.img",
     "cirros-0.4.0": "http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img",
     "opensuse-leap-15.2": "https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.2/images/openSUSE-Leap-15.2-OpenStack.x86_64.qcow2",
     "gentoo-latest": "http://gentoo.osuosl.org/experimental/amd64/openstack/gentoo-openstack-amd64-default-latest.qcow2",

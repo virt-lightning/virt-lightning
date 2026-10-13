@@ -138,6 +138,12 @@
     "yaml_url": ""
   },
   {
+    "name": "ubuntu-26.04",
+    "qcow2_url": "https://cloud-images.ubuntu.com/resolute/current/resolute-server-cloudimg-amd64.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
     "name": "cirros-0.4.0",
     "qcow2_url": "http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img",
     "meta": {},
