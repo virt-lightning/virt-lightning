@@ -4,6 +4,7 @@ import json
 import re
 from pathlib import Path
 from textwrap import dedent
+from urllib.parse import urljoin
 
 import urllib3
 
@@ -25,20 +26,6 @@ configuration = {
     "almalinux-9": "https://repo.almalinux.org/almalinux/9/cloud/x86_64/images/AlmaLinux-9-GenericCloud-latest.x86_64.qcow2",
     "rockylinux-8": "https://download.rockylinux.org/pub/rocky/8/images/x86_64/Rocky-8-GenericCloud.latest.x86_64.qcow2",
     "rockylinux-9": "https://download.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-GenericCloud.latest.x86_64.qcow2",
-    "ubuntu-14.04": "https://cloud-images.ubuntu.com/trusty/current/trusty-server-cloudimg-amd64-disk1.img",
-    "ubuntu-16.04": "https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img",
-    "ubuntu-18.04": "https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img",
-    "ubuntu-19.04": "https://cloud-images.ubuntu.com/disco/current/disco-server-cloudimg-amd64.img",
-    "ubuntu-19.10": "https://cloud-images.ubuntu.com/eoan/current/eoan-server-cloudimg-amd64.img",
-    "ubuntu-20.04": "https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img",
-    "ubuntu-21.04": "https://cloud-images.ubuntu.com/hirsute/current/hirsute-server-cloudimg-amd64.img",
-    "ubuntu-22.04": "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img",
-    "ubuntu-22.10": "https://cloud-images.ubuntu.com/kinetic/current/kinetic-server-cloudimg-amd64.img",
-    "ubuntu-23.04": "https://cloud-images.ubuntu.com/lunar/current/lunar-server-cloudimg-amd64.img",
-    "ubuntu-23.10": "https://cloud-images.ubuntu.com/mantic/current/mantic-server-cloudimg-amd64.img",
-    "ubuntu-24.04": "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img",
-    "ubuntu-24.10": "https://cloud-images.ubuntu.com/oracular/current/oracular-server-cloudimg-amd64.img",
-    "ubuntu-26.04": "https://cloud-images.ubuntu.com/resolute/current/resolute-server-cloudimg-amd64.img",
     "cirros-0.4.0": "http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img",
     "opensuse-leap-15.2": "https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.2/images/openSUSE-Leap-15.2-OpenStack.x86_64.qcow2",
     "gentoo-latest": "http://gentoo.osuosl.org/experimental/amd64/openstack/gentoo-openstack-amd64-default-latest.qcow2",
@@ -97,6 +84,32 @@ class Images:
 
     def as_list(self):
         return self._images
+
+
+def get_ubuntu_images() -> list[Image]:
+    base_url = "https://cloud-images.ubuntu.com/"
+    resp = urllib3.request(
+        "GET",
+        f"{base_url}releases/streams/v1/com.ubuntu.cloud:released:download.json",
+        redirect=True,
+        timeout=30.0,
+    )
+    if resp.status != 200:
+        raise RuntimeError(f"Failed to fetch Ubuntu image metadata: HTTP {resp.status}")
+
+    images: list[Image] = []
+    for product_name, product in resp.json()["products"].items():
+        if product["arch"] != "amd64":
+            continue
+        version = product["version"]
+        if product_name != f"com.ubuntu.cloud:server:{version}:amd64":
+            continue
+        for build in sorted(product["versions"], reverse=True):
+            disk = product["versions"][build]["items"].get("disk1.img")
+            if disk:
+                images.append(Image(f"ubuntu-{version}", urljoin(base_url, disk["path"])))
+                break
+    return images
 
 
 def get_fedora_images() -> list[Image]:
@@ -203,6 +216,8 @@ for name, qcow2_url in configuration.items():
         image = Image(name, qcow2_url)
         images.add_or_update(image)
 
+for i in get_ubuntu_images():
+    images.add_or_update(i)
 for i in get_fedora_images():
     images.add_or_update(i)
 for i in get_bsd_images():

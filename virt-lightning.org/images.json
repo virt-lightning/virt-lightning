@@ -103,43 +103,43 @@
   },
   {
     "name": "ubuntu-14.04",
-    "qcow2_url": "https://cloud-images.ubuntu.com/trusty/current/trusty-server-cloudimg-amd64-disk1.img",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/trusty/release-20191107/ubuntu-14.04-server-cloudimg-amd64-disk1.img",
     "meta": {},
     "yaml_url": ""
   },
   {
     "name": "ubuntu-16.04",
-    "qcow2_url": "https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/xenial/release-20211001/ubuntu-16.04-server-cloudimg-amd64-disk1.img",
     "meta": {},
     "yaml_url": ""
   },
   {
     "name": "ubuntu-18.04",
-    "qcow2_url": "https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/bionic/release-20230607/ubuntu-18.04-server-cloudimg-amd64.img",
     "meta": {},
     "yaml_url": ""
   },
   {
     "name": "ubuntu-20.04",
-    "qcow2_url": "https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/focal/release-20250624/ubuntu-20.04-server-cloudimg-amd64.img",
     "meta": {},
     "yaml_url": ""
   },
   {
     "name": "ubuntu-22.04",
-    "qcow2_url": "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/jammy/release-20261004/ubuntu-22.04-server-cloudimg-amd64.img",
     "meta": {},
     "yaml_url": ""
   },
   {
     "name": "ubuntu-24.04",
-    "qcow2_url": "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/noble/release-20260926/ubuntu-24.04-server-cloudimg-amd64.img",
     "meta": {},
     "yaml_url": ""
   },
   {
     "name": "ubuntu-26.04",
-    "qcow2_url": "https://cloud-images.ubuntu.com/resolute/current/resolute-server-cloudimg-amd64.img",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/resolute/release-20260927/ubuntu-26.04-server-cloudimg-amd64.img",
     "meta": {},
     "yaml_url": ""
   },
@@ -545,6 +545,156 @@
         "wheel"
       ]
     },
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-10.04",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/lucid/release-20150427/ubuntu-10.04-server-cloudimg-amd64-disk1.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-11.04",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/natty/release-20121028/ubuntu-11.04-server-cloudimg-amd64-disk1.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-11.10",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/oneiric/release-20130509/ubuntu-11.10-server-cloudimg-amd64-disk1.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-12.04",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/precise/release-20170502/ubuntu-12.04-server-cloudimg-amd64-disk1.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-12.10",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/quantal/release-20140409/ubuntu-12.10-server-cloudimg-amd64-disk1.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-13.04",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/raring/release-20140111/ubuntu-13.04-server-cloudimg-amd64-disk1.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-13.10",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/saucy/release-20140709/ubuntu-13.10-server-cloudimg-amd64-disk1.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-14.10",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/utopic/release-20150723/ubuntu-14.10-server-cloudimg-amd64-disk1.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-15.04",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/vivid/release-20160203/ubuntu-15.04-server-cloudimg-amd64-disk1.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-15.10",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/wily/release-20160715/ubuntu-15.10-server-cloudimg-amd64-disk1.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-16.10",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/yakkety/release-20170719/ubuntu-16.10-server-cloudimg-amd64.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-17.04",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/zesty/release-20171208/ubuntu-17.04-server-cloudimg-amd64.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-17.10",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/artful/release-20180706/ubuntu-17.10-server-cloudimg-amd64.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-18.10",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/cosmic/release-20190628/ubuntu-18.10-server-cloudimg-amd64.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-19.04",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/disco/release-20200109/ubuntu-19.04-server-cloudimg-amd64.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-19.10",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/eoan/release-20200717/ubuntu-19.10-server-cloudimg-amd64.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-20.10",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/groovy/release-20210720/ubuntu-20.10-server-cloudimg-amd64.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-21.04",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/hirsute/release-20220118/ubuntu-21.04-server-cloudimg-amd64.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-21.10",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/impish/release-20220708/ubuntu-21.10-server-cloudimg-amd64.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-22.10",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/kinetic/release-20230716/ubuntu-22.10-server-cloudimg-amd64.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-23.04",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/lunar/release-20240115/ubuntu-23.04-server-cloudimg-amd64.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-23.10",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/mantic/release-20240710/ubuntu-23.10-server-cloudimg-amd64.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-24.10",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/oracular/release-20250701/ubuntu-24.10-server-cloudimg-amd64.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-25.04",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/plucky/release-20260114/ubuntu-25.04-server-cloudimg-amd64.img",
+    "meta": {},
+    "yaml_url": ""
+  },
+  {
+    "name": "ubuntu-25.10",
+    "qcow2_url": "https://cloud-images.ubuntu.com/server/releases/questing/release-20260703/ubuntu-25.10-server-cloudimg-amd64.img",
+    "meta": {},
     "yaml_url": ""
   }
 ]
