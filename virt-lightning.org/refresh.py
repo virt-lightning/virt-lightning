@@ -104,6 +104,9 @@ def get_ubuntu_images() -> list[Image]:
         version = product["version"]
         if product_name != f"com.ubuntu.cloud:server:{version}:amd64":
             continue
+        # Uncomment to add only releases supported by Ubuntu; existing entries are retained.
+        # if not product["supported"]:
+        #     continue
         for build in sorted(product["versions"], reverse=True):
             disk = product["versions"][build]["items"].get("disk1.img")
             if disk:
