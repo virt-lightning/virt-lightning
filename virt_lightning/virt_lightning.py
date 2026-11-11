@@ -139,7 +139,12 @@ class LibvirtHypervisor:
                 config[k] = v
         for k, v in user_config.items():
             if v:
-                config[k] = v
+                # Allow packages and write_files to be added by the user
+                # without overwriting any distro-specific config
+                if k in config and isinstance(config[k], list):
+                    config[k].extend(v)
+                else:
+                    config[k] = v
         domain.groups = config["groups"]
         domain.load_ssh_key_file(config.get("ssh_key_file"))
         domain.memory = config["memory"]
