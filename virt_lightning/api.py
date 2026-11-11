@@ -124,6 +124,8 @@ def _start_domain(hv, host, context, configuration):
         "video_model": host.get("video_model"),
         "bootcmd": host.get("bootcmd"),
         "runcmd": host.get("runcmd"),
+        "packages": host.get("packages"),
+        "write_files": host.get("write_files"),
         "meta_data_media_type": host.get("meta_data_media_type"),
         "default_bus_type": host.get("default_bus_type"),
     }
